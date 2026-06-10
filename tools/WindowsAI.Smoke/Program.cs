@@ -86,7 +86,17 @@ try
         Check("Changed fired again on second change", events == 2, $"events={events}");
     }
 
-    // 4) + 5) Live paths through DI: catalog discovery + local streaming.
+    // 4) Local context retrieval against the live Windows Search index.
+    Console.WriteLine("Local context retrieval (Windows Search index)");
+    {
+        var retriever = new WindowsAI.Services.Search.WindowsSearchRetriever();
+        var docs = await retriever.SearchAsync("windows", maxResults: 3);
+        Check("SYSTEMINDEX query returns local documents", docs.Count > 0, $"count={docs.Count}");
+        foreach (var doc in docs)
+            Console.WriteLine($"         · {doc.Name}");
+    }
+
+    // 5) + 6) Live paths through DI: catalog discovery + local streaming.
     Console.WriteLine("Catalog + local streaming (requires Ollama running)");
     {
         var services = new ServiceCollection();
