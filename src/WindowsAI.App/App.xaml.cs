@@ -4,6 +4,7 @@ using WindowsAI.Core;
 using WindowsAI.Core.Configuration;
 using WindowsAI.Core.Security;
 using WindowsAI.Services.Hotkeys;
+using WindowsAI.Services.Inference;
 using WindowsAI.Services.Security;
 using WindowsAI.Services.Tray;
 using WindowsAI_App.ViewModels;
@@ -70,7 +71,12 @@ public partial class App : Application
 
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
-        await Services.GetRequiredService<ISettingsStore>().LoadAsync();
+        var settingsStore = Services.GetRequiredService<ISettingsStore>();
+        await settingsStore.LoadAsync();
+
+        // Ensure Ollama is running before the first inference request. Fires in the
+        // background so it doesn't delay the overlay appearing; any failure is silent.
+        _ = OllamaLauncher.EnsureRunningAsync(settingsStore);
 
         // Create the overlay once and keep it alive (hidden) for the whole session so the
         // global hotkey and tray icon remain available. It is never Activated here — the app
