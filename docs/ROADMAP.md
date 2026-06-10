@@ -85,9 +85,19 @@ settings round-trip, conversation save/list/get/delete, active-model persistence
   the four pages, open-from-history → switches to Chat tab, new-chat, live model-chip updates, and
   **local chat against `gemma4:e2b-it-qat`** (see findings above).
 
+## Phase 4 — Local-first RAG 🚧
+
+- ✅ **Windows Search retrieval** (`WindowsSearchRetriever`): queries the live SYSTEMINDEX
+  over OLE DB (FREETEXT, user-profile scope, rank order), snippets from index AutoSummary
+  or plain-text file heads. Covered by a smoke check against the real index.
+- ✅ **Chat integration**: `ILocalContextRetriever` (Core) → opt-in "Search my PC" toggle in
+  the composer and overlay pill → matching files injected as a transient system message →
+  source chips rendered under the reply.
+- ⏭ Embedding re-rank: Ollama `nomic-embed-text` + sqlite-vec over retrieved candidates
+  (hybrid recall → semantic precision).
+
 ## ⏭ Next
 
-- ⏭ Windows Search integration (hybrid RAG over local files).
 - ⏭ Agent functionality (tool-calling loop in `ChatOrchestrator`).
 
 ## 💡 Later

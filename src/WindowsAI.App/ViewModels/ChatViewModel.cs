@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.AI;
 using WindowsAI.Core.Chat;
+using WindowsAI.Core.Context;
 using WindowsAI.Core.History;
 using WindowsAI.Core.Providers;
 
@@ -23,6 +24,7 @@ public partial class ChatViewModel : ObservableObject
     private readonly IModelCatalog _catalog;
     private readonly ActiveModelService _activeModel;
     private readonly IConversationStore _history;
+    private readonly ILocalContextRetriever _localContext;
     private readonly List<ChatMessage> _conversation = new();
 
     private StoredConversation _current = new();
@@ -41,6 +43,10 @@ public partial class ChatViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
 
+    /// <summary>When on, each prompt is augmented with matching files from this PC (local RAG).</summary>
+    [ObservableProperty]
+    public partial bool UseLocalContext { get; set; }
+
     public bool IsNotBusy => !IsBusy;
 
     public string ModelLabel => _orchestrator.ActiveModelLabel;
@@ -49,12 +55,14 @@ public partial class ChatViewModel : ObservableObject
         ChatOrchestrator orchestrator,
         IModelCatalog catalog,
         ActiveModelService activeModel,
-        IConversationStore history)
+        IConversationStore history,
+        ILocalContextRetriever localContext)
     {
         _orchestrator = orchestrator;
         _catalog = catalog;
         _activeModel = activeModel;
         _history = history;
+        _localContext = localContext;
         _conversation.Add(new ChatMessage(ChatRole.System, SystemPrompt));
 
         // Stay in sync when the active model is changed on any other surface.
@@ -119,14 +127,29 @@ public partial class ChatViewModel : ObservableObject
         Input = string.Empty;
 
         Messages.Add(new ChatMessageViewModel("You", text, isUser: true));
-        _conversation.Add(new ChatMessage(ChatRole.User, text));
 
         var reply = new ChatMessageViewModel(_orchestrator.ActiveProvider.DisplayName, string.Empty, isUser: false);
         Messages.Add(reply);
 
         IsBusy = true;
+        ChatMessage? contextMessage = null;
         try
         {
+            // Local-first RAG: surface matching files from this PC as a transient
+            // system message. Removed after the exchange so it never bloats later turns.
+            if (UseLocalContext)
+            {
+                var documents = await _localContext.SearchAsync(text, maxResults: 4);
+                if (documents.Count > 0)
+                {
+                    contextMessage = new ChatMessage(ChatRole.System, BuildContextBlock(documents));
+                    _conversation.Add(contextMessage);
+                    reply.Sources = documents;
+                }
+            }
+
+            _conversation.Add(new ChatMessage(ChatRole.User, text));
+
             var sb = new StringBuilder();
             await foreach (var delta in _orchestrator.StreamReplyAsync(_conversation))
             {
@@ -143,6 +166,8 @@ public partial class ChatViewModel : ObservableObject
         }
         finally
         {
+            if (contextMessage is not null)
+                _conversation.Remove(contextMessage);
             IsBusy = false;
         }
 
@@ -150,6 +175,24 @@ public partial class ChatViewModel : ObservableObject
     }
 
     private bool CanSend() => !IsBusy;
+
+    /// <summary>Formats retrieved files as a context block the model can cite from.</summary>
+    private static string BuildContextBlock(IReadOnlyList<LocalDocument> documents)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(
+            "The user enabled local file search. The following files from their PC may be " +
+            "relevant to the next question. Use them when helpful and cite file names.");
+
+        for (int i = 0; i < documents.Count; i++)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"[{i + 1}] {documents[i].Path}");
+            sb.AppendLine(documents[i].Snippet);
+        }
+
+        return sb.ToString();
+    }
 
     /// <summary>Starts a fresh conversation, clearing the screen and the model context.</summary>
     [RelayCommand]

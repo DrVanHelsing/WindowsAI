@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using WindowsAI.Core.Context;
 
 namespace WindowsAI_App.ViewModels;
 
@@ -21,4 +22,13 @@ public partial class ChatMessageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string Text { get; set; }
+
+    /// <summary>Local files used as context for this reply (RAG source chips). Set once.</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<LocalDocument>? Sources { get; set; }
+
+    public bool HasSources => Sources is { Count: > 0 };
+
+    partial void OnSourcesChanged(IReadOnlyList<LocalDocument>? value)
+        => OnPropertyChanged(nameof(HasSources));
 }

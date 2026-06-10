@@ -55,6 +55,9 @@ public sealed partial class MainPage : Page
             ChatList.ScrollIntoView(ViewModel.Messages[^1]);
     }
 
+    private void LocalContext_Toggled(object sender, RoutedEventArgs e)
+        => ViewModel.UseLocalContext = LocalContextToggle.IsChecked == true;
+
     /// <summary>Suggestion chip: drop its prompt into the composer ready to edit/send.</summary>
     private void Suggestion_Click(object sender, RoutedEventArgs e)
     {

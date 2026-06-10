@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:WindowsAI_App.ViewModels"
     xmlns:controls="using:WindowsAI_App.Controls"
+    xmlns:ctx="using:WindowsAI.Core.Context"
     Background="Transparent"
     NavigationCacheMode="Required">
 
@@ -202,6 +203,40 @@
                                 <controls:MessageContentControl Margin="16,0,0,0" Text="{x:Bind Text, Mode=OneWay}" />
                             </Grid>
 
+                            <!--  Local files used as context for this reply  -->
+                            <ItemsControl
+                                Margin="16,2,0,0"
+                                ItemsSource="{x:Bind Sources, Mode=OneWay}"
+                                Visibility="{x:Bind HasSources, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="6" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="ctx:LocalDocument">
+                                        <Border
+                                            Padding="8,4"
+                                            Background="{StaticResource GlassFillSubtleBrush}"
+                                            BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            ToolTipService.ToolTip="{x:Bind Path}">
+                                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                                <FontIcon
+                                                    FontSize="10"
+                                                    Foreground="{StaticResource AccentTextBrush}"
+                                                    Glyph="&#xE7C3;" />
+                                                <TextBlock
+                                                    FontSize="11"
+                                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                                    Text="{x:Bind Name}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
                             <!--  Hover-revealed actions  -->
                             <StackPanel
                                 x:Name="ActionsRow"
@@ -373,26 +408,52 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <!--  Active model pill  -->
-                        <Border
+                        <StackPanel
                             Grid.Column="0"
-                            Padding="12,6"
-                            VerticalAlignment="Center"
-                            Background="{StaticResource AccentFillSubtleBrush}"
-                            BorderBrush="{StaticResource AccentStrokeBrush}"
-                            BorderThickness="1"
-                            CornerRadius="{StaticResource RadiusPill}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon
-                                    FontSize="10"
-                                    Foreground="{StaticResource AccentTextBrush}"
-                                    Glyph="&#xE72E;" />
-                                <TextBlock
-                                    FontSize="11"
-                                    Foreground="{StaticResource AccentTextBrush}"
-                                    Text="{x:Bind ViewModel.ModelLabel, Mode=OneWay}" />
-                            </StackPanel>
-                        </Border>
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            VerticalAlignment="Center">
+
+                            <!--  Active model pill  -->
+                            <Border
+                                Padding="12,6"
+                                VerticalAlignment="Center"
+                                Background="{StaticResource AccentFillSubtleBrush}"
+                                BorderBrush="{StaticResource AccentStrokeBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource RadiusPill}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon
+                                        FontSize="10"
+                                        Foreground="{StaticResource AccentTextBrush}"
+                                        Glyph="&#xE72E;" />
+                                    <TextBlock
+                                        FontSize="11"
+                                        Foreground="{StaticResource AccentTextBrush}"
+                                        Text="{x:Bind ViewModel.ModelLabel, Mode=OneWay}" />
+                                </StackPanel>
+                            </Border>
+
+                            <!--  Local-RAG toggle: include matching files from this PC  -->
+                            <ToggleButton
+                                x:Name="LocalContextToggle"
+                                Padding="10,5"
+                                VerticalAlignment="Center"
+                                Background="{StaticResource GlassFillSubtleBrush}"
+                                BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                                BorderThickness="1"
+                                Checked="LocalContext_Toggled"
+                                CornerRadius="{StaticResource RadiusPill}"
+                                FontSize="11"
+                                Foreground="{StaticResource TextSecondaryBrush}"
+                                ToolTipService.ToolTip="Include matching files from this PC as context"
+                                Unchecked="LocalContext_Toggled">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <FontIcon FontSize="11" Glyph="&#xE721;" />
+                                    <TextBlock Text="Search my PC" />
+                                </StackPanel>
+                            </ToggleButton>
+                        </StackPanel>
 
                         <!--  Keyboard hint  -->
                         <TextBlock

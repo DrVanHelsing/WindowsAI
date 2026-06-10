@@ -122,10 +122,11 @@
                     Background="{StaticResource GlassSheenBrush}"
                     CornerRadius="26"
                     IsHitTestVisible="False" />
-                <Grid Margin="16,0,12,0">
+                <Grid Margin="16,0,10,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <!-- Sparkle icon (spins during inference) -->
@@ -161,6 +162,22 @@
                             <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent" />
                         </TextBox.Resources>
                     </TextBox>
+
+                    <!--  Local-RAG toggle: include matching files from this PC  -->
+                    <ToggleButton
+                        x:Name="LocalContextToggle"
+                        Grid.Column="2"
+                        Padding="8"
+                        VerticalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Checked="LocalContext_Toggled"
+                        CornerRadius="16"
+                        Foreground="{StaticResource TextTertiaryBrush}"
+                        ToolTipService.ToolTip="Search my PC files for context"
+                        Unchecked="LocalContext_Toggled">
+                        <FontIcon FontSize="13" Glyph="&#xE721;" />
+                    </ToggleButton>
                 </Grid>
             </Grid>
 
@@ -212,17 +229,53 @@
                                 </Border>
 
                                 <!--  AI message — markdown prose with indigo accent bar  -->
-                                <Grid HorizontalAlignment="Stretch" Visibility="{x:Bind conv:Vis.IfNot(IsUser)}">
-                                    <Rectangle
-                                        Width="3"
-                                        Margin="0,4,0,4"
-                                        HorizontalAlignment="Left"
-                                        VerticalAlignment="Stretch"
-                                        Fill="{StaticResource AccentBrush}"
-                                        RadiusX="2"
-                                        RadiusY="2" />
-                                    <controls:MessageContentControl Margin="14,0,0,0" Text="{x:Bind Text, Mode=OneWay}" />
-                                </Grid>
+                                <StackPanel HorizontalAlignment="Stretch" Spacing="4" Visibility="{x:Bind conv:Vis.IfNot(IsUser)}">
+                                    <Grid>
+                                        <Rectangle
+                                            Width="3"
+                                            Margin="0,4,0,4"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Stretch"
+                                            Fill="{StaticResource AccentBrush}"
+                                            RadiusX="2"
+                                            RadiusY="2" />
+                                        <controls:MessageContentControl Margin="14,0,0,0" Text="{x:Bind Text, Mode=OneWay}" />
+                                    </Grid>
+
+                                    <!--  Local files used as context for this reply  -->
+                                    <ItemsControl
+                                        Margin="14,0,0,0"
+                                        ItemsSource="{x:Bind Sources, Mode=OneWay}"
+                                        Visibility="{x:Bind conv:Vis.If(HasSources), Mode=OneWay}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" Spacing="6" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border
+                                                    Padding="8,4"
+                                                    Background="{StaticResource GlassFillSubtleBrush}"
+                                                    BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="10"
+                                                    ToolTipService.ToolTip="{Binding Path}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                                        <FontIcon
+                                                            FontSize="10"
+                                                            Foreground="{StaticResource AccentTextBrush}"
+                                                            Glyph="&#xE7C3;" />
+                                                        <TextBlock
+                                                            FontSize="11"
+                                                            Foreground="{StaticResource TextSecondaryBrush}"
+                                                            Text="{Binding Name}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>

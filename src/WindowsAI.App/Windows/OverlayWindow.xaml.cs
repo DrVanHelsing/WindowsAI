@@ -199,6 +199,9 @@ public sealed partial class OverlayWindow : Window
         HideOverlay();
     }
 
+    private void LocalContext_Toggled(object sender, RoutedEventArgs e)
+        => ViewModel.UseLocalContext = LocalContextToggle.IsChecked == true;
+
     // ── Input ───────────────────────────────────────────────────────────────
 
     private void SearchBox_KeyDown(object sender, KeyRoutedEventArgs e)

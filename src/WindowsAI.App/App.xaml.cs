@@ -46,6 +46,8 @@ public partial class App : Application
 
         // Windows-specific services.
         services.AddSingleton<ISecretStore, DpapiSecretStore>();
+        services.AddSingleton<WindowsAI.Core.Context.ILocalContextRetriever,
+                              WindowsAI.Services.Search.WindowsSearchRetriever>();
 
         // View models. ChatViewModel is a singleton so the active model and conversation
         // stay in sync across the overlay, the chat page, and the models page.
