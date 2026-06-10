@@ -114,6 +114,12 @@
             </Rectangle.Fill>
         </Rectangle>
 
+        <!-- Panel-wide specular sheen: top-down light falloff over the acrylic -->
+        <Rectangle
+            Grid.Row="1"
+            Fill="{StaticResource GlassSheenBrush}"
+            IsHitTestVisible="False" />
+
         <!-- Panel content -->
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>
@@ -129,10 +135,16 @@
                 <Border
                     x:Name="SearchPillBorder"
                     Height="52"
-                    Background="#14FFFFFF"
-                    BorderBrush="#207A6CFF"
+                    Background="{StaticResource GlassFillBrush}"
+                    BorderBrush="{StaticResource GlassStrokeBrush}"
                     BorderThickness="1"
                     CornerRadius="26" />
+                <!-- Inner specular highlight on the upper half of the pill -->
+                <Border
+                    Height="52"
+                    Background="{StaticResource GlassSheenBrush}"
+                    CornerRadius="26"
+                    IsHitTestVisible="False" />
                 <Grid Margin="14,0,14,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -193,7 +205,9 @@
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <Border
                         Padding="10,5"
-                        Background="#0DFFFFFF"
+                        Background="{StaticResource GlassFillSubtleBrush}"
+                        BorderBrush="{StaticResource GlassStrokeBrush}"
+                        BorderThickness="1"
                         CornerRadius="12">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <FontIcon FontSize="11" Foreground="#88FFFFFF" Glyph="&#xE7F4;" />
@@ -202,7 +216,9 @@
                     </Border>
                     <Border
                         Padding="10,5"
-                        Background="#0DFFFFFF"
+                        Background="{StaticResource GlassFillSubtleBrush}"
+                        BorderBrush="{StaticResource GlassStrokeBrush}"
+                        BorderThickness="1"
                         CornerRadius="12">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <FontIcon FontSize="11" Foreground="#88FFFFFF" Glyph="&#xE77F;" />
@@ -247,7 +263,9 @@
                                 MaxWidth="310"
                                 HorizontalAlignment="Right"
                                 Padding="14,10"
-                                Background="#221E5C"
+                                Background="#B32A2470"
+                                BorderBrush="{StaticResource GlassStrokeBrush}"
+                                BorderThickness="1"
                                 CornerRadius="18,18,4,18"
                                 Visibility="{x:Bind conv:Vis.If(IsUser)}">
                                 <TextBlock
@@ -294,7 +312,9 @@
                     <Border
                         HorizontalAlignment="Left"
                         Padding="10,5"
-                        Background="#0CFFFFFF"
+                        Background="{StaticResource GlassFillSubtleBrush}"
+                        BorderBrush="{StaticResource GlassStrokeBrush}"
+                        BorderThickness="1"
                         CornerRadius="10">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <ProgressRing

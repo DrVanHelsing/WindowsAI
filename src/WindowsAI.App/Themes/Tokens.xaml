@@ -30,4 +30,23 @@
     <!--  Soft accent used for the overlay's outer aura shadow  -->
     <Color x:Key="GlowAuraColor">#7A5CFF</Color>
 
+    <!--  Liquid glass surfaces — translucent fills + gradient strokes that read as
+          edge-lit glass over the acrylic backdrop  -->
+    <SolidColorBrush x:Key="GlassFillBrush" Color="#14FFFFFF" />
+    <SolidColorBrush x:Key="GlassFillSubtleBrush" Color="#0AFFFFFF" />
+
+    <!--  Edge-lit stroke: bright top rim, faint sides, soft bottom reflection  -->
+    <LinearGradientBrush x:Key="GlassStrokeBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Offset="0.0" Color="#55FFFFFF" />
+        <GradientStop Offset="0.45" Color="#12FFFFFF" />
+        <GradientStop Offset="1.0" Color="#26FFFFFF" />
+    </LinearGradientBrush>
+
+    <!--  Specular sheen laid over a whole surface (top-down light falloff)  -->
+    <LinearGradientBrush x:Key="GlassSheenBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Offset="0.0" Color="#14FFFFFF" />
+        <GradientStop Offset="0.22" Color="#05FFFFFF" />
+        <GradientStop Offset="1.0" Color="#00FFFFFF" />
+    </LinearGradientBrush>
+
 </ResourceDictionary>

@@ -11,6 +11,7 @@ using Windows.System;
 using WindowsAI.Services;
 using WindowsAI.Services.Interop;
 using WindowsAI_App.ViewModels;
+using WinRT;
 using WinRT.Interop;
 
 namespace WindowsAI_App.Windows;
@@ -25,6 +26,8 @@ public sealed partial class OverlayWindow : Window
     private static extern uint GetDpiForWindow(IntPtr hwnd);
 
     private readonly AppWindow _appWindow;
+    private DesktopAcrylicController? _acrylic;
+    private SystemBackdropConfiguration? _backdropConfig;
     private bool _initializedModels;
 
     public ChatViewModel ViewModel { get; }
@@ -52,11 +55,43 @@ public sealed partial class OverlayWindow : Window
         }
 
         _appWindow.IsShownInSwitchers = false;
-        SystemBackdrop = new MicaBackdrop { Kind = MicaKind.BaseAlt };
+        ApplyGlassBackdrop();
         Title = "WindowsAI";
 
         ViewModel.Messages.CollectionChanged += OnMessagesChanged;
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+        Closed += (_, _) => { _acrylic?.Dispose(); _acrylic = null; };
+    }
+
+    /// <summary>
+    /// Liquid-glass backdrop: a hand-tuned acrylic (deep indigo tint, real behind-window
+    /// blur). Mica is unusable here — it falls back to a flat solid whenever the window
+    /// is not the active foreground window, which an overlay almost never is. The acrylic
+    /// configuration is pinned to IsInputActive=true so the glass never deactivates.
+    /// </summary>
+    private void ApplyGlassBackdrop()
+    {
+        if (!DesktopAcrylicController.IsSupported())
+        {
+            SystemBackdrop = new MicaBackdrop { Kind = MicaKind.BaseAlt };
+            return;
+        }
+
+        _backdropConfig = new SystemBackdropConfiguration
+        {
+            IsInputActive = true,
+            Theme = SystemBackdropTheme.Dark,
+        };
+
+        _acrylic = new DesktopAcrylicController
+        {
+            TintColor         = global::Windows.UI.Color.FromArgb(255, 16, 10, 32),
+            TintOpacity       = 0.40f,
+            LuminosityOpacity = 0.55f,
+            FallbackColor     = global::Windows.UI.Color.FromArgb(255, 14, 10, 26),
+        };
+        _acrylic.AddSystemBackdropTarget(this.As<Microsoft.UI.Composition.ICompositionSupportsSystemBackdrop>());
+        _acrylic.SetSystemBackdropConfiguration(_backdropConfig);
     }
 
     // ── Show / hide ─────────────────────────────────────────────────────────
