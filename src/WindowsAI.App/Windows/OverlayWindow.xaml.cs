@@ -54,8 +54,14 @@ public sealed partial class OverlayWindow : Window
             presenter.IsMinimizable = false;
         }
 
+        // Win11 still draws a 1px light border around borderless windows — kill it.
+        WindowChrome.RemoveWindowBorder(Hwnd);
+
         _appWindow.IsShownInSwitchers = false;
-        Helpers.GlassBackdrop.Apply(this, tintOpacity: 0.40f, luminosityOpacity: 0.55f);
+
+        // Fully transparent window: the desktop shows directly through; RootHost's
+        // scrim (in XAML) provides the panel's tint and readability.
+        SystemBackdrop = new Helpers.TransparentBackdrop();
         Title = "WindowsAI";
 
         ViewModel.Messages.CollectionChanged += OnMessagesChanged;
@@ -128,14 +134,15 @@ public sealed partial class OverlayWindow : Window
 
         if (ViewModel.IsBusy)
         {
-            AmbientPulseStoryboard.Begin();
+            ThinkingFrame.Opacity = 1;
+            ThinkingSpinStoryboard.Begin();
             SparkleSpinStoryboard.Begin();
         }
         else
         {
-            AmbientPulseStoryboard.Stop();
+            ThinkingFrame.Opacity = 0;
+            ThinkingSpinStoryboard.Stop();
             SparkleSpinStoryboard.Stop();
-            AmbientBar.Opacity = 0.30;
         }
     }
 

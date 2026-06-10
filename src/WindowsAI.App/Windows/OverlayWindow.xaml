@@ -9,10 +9,12 @@
 
     <!--
         Left-edge slide-in panel. Full screen height, 420 logical px wide.
-        Liquid-glass acrylic backdrop is set in code-behind.
+        The window backdrop is fully transparent (TransparentBackdrop in code-behind);
+        this root Grid's Background is the readability scrim — lower the alpha for more
+        see-through, raise it for more contrast.
         NOTE (Window XAML): no x:Bind Converter= here — use conv:Vis function binds.
     -->
-    <Grid x:Name="RootHost" Opacity="0">
+    <Grid x:Name="RootHost" Background="#B30D0A1C" Opacity="0">
         <Grid.RenderTransform>
             <TranslateTransform x:Name="RootSlide" X="-440" />
         </Grid.RenderTransform>
@@ -55,21 +57,16 @@
                     Duration="0:0:0.14" />
             </Storyboard>
 
-            <!-- Ambient bar pulse during inference -->
-            <Storyboard
-                x:Name="AmbientPulseStoryboard"
-                AutoReverse="True"
-                RepeatBehavior="Forever">
+            <!-- Running light: the comet gradient orbits the panel frame during inference.
+                 Gradient-transform animation is dependent (CPU-ticked) by design. -->
+            <Storyboard x:Name="ThinkingSpinStoryboard" RepeatBehavior="Forever">
                 <DoubleAnimation
-                    Storyboard.TargetName="AmbientBar"
-                    Storyboard.TargetProperty="Opacity"
-                    From="0.30"
-                    To="1.0"
-                    Duration="0:0:0.6">
-                    <DoubleAnimation.EasingFunction>
-                        <SineEase EasingMode="EaseInOut" />
-                    </DoubleAnimation.EasingFunction>
-                </DoubleAnimation>
+                    EnableDependentAnimation="True"
+                    Storyboard.TargetName="ThinkingSpin"
+                    Storyboard.TargetProperty="Angle"
+                    From="0"
+                    To="360"
+                    Duration="0:0:1.6" />
             </Storyboard>
 
             <!-- Sparkle icon spin during inference -->
@@ -99,26 +96,11 @@
 
         </Grid.Resources>
 
-        <Grid.RowDefinitions>
-            <RowDefinition Height="3" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-
-        <!-- Ambient gradient bar — pulses during inference -->
-        <Rectangle
-            x:Name="AmbientBar"
-            Grid.Row="0"
-            Fill="{StaticResource GlowGradientBrush}"
-            Opacity="0.30" />
-
-        <!-- Panel-wide specular sheen: top-down light falloff over the acrylic -->
-        <Rectangle
-            Grid.Row="1"
-            Fill="{StaticResource GlassSheenBrush}"
-            IsHitTestVisible="False" />
+        <!-- Panel-wide specular sheen: top-down light falloff over the glass -->
+        <Rectangle Fill="{StaticResource GlassSheenBrush}" IsHitTestVisible="False" />
 
         <!-- Panel content -->
-        <Grid Grid.Row="1">
+        <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -399,8 +381,6 @@
 
         <!-- Inner depth shadow along the right edge — panel reads as floating glass -->
         <Rectangle
-            Grid.Row="0"
-            Grid.RowSpan="2"
             Width="12"
             HorizontalAlignment="Right"
             IsHitTestVisible="False">
@@ -414,8 +394,6 @@
 
         <!-- Edge-lit hairline at the very right -->
         <Rectangle
-            Grid.Row="0"
-            Grid.RowSpan="2"
             Width="1"
             HorizontalAlignment="Right"
             Opacity="0.14">
@@ -428,6 +406,32 @@
                 </LinearGradientBrush>
             </Rectangle.Fill>
         </Rectangle>
+
+        <!-- Thinking frame: a rainbow comet orbits the panel edge while the LLM works.
+             The rotating gradient sweeps a bright band along the 2.5px border. -->
+        <Border
+            x:Name="ThinkingFrame"
+            BorderThickness="2.5"
+            IsHitTestVisible="False"
+            Opacity="0">
+            <Border.OpacityTransition>
+                <ScalarTransition Duration="0:0:0.3" />
+            </Border.OpacityTransition>
+            <Border.BorderBrush>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <LinearGradientBrush.RelativeTransform>
+                        <RotateTransform x:Name="ThinkingSpin" CenterX="0.5" CenterY="0.5" />
+                    </LinearGradientBrush.RelativeTransform>
+                    <GradientStop Offset="0.0" Color="#004F8CFF" />
+                    <GradientStop Offset="0.38" Color="#004F8CFF" />
+                    <GradientStop Offset="0.46" Color="#FF4F8CFF" />
+                    <GradientStop Offset="0.50" Color="#FFFF6BD6" />
+                    <GradientStop Offset="0.54" Color="#FF4DE3FF" />
+                    <GradientStop Offset="0.62" Color="#004DE3FF" />
+                    <GradientStop Offset="1.0" Color="#004DE3FF" />
+                </LinearGradientBrush>
+            </Border.BorderBrush>
+        </Border>
 
     </Grid>
 </Window>

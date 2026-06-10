@@ -26,6 +26,22 @@ public static class WindowChrome
     /// <summary>Brings a window to the foreground (needed after showing a hidden overlay).</summary>
     public static void BringToForeground(IntPtr hwnd) => NativeMethods.SetForegroundWindow(hwnd);
 
+    private const uint DWMWA_BORDER_COLOR = 34;
+    private const uint DWMWA_COLOR_NONE = 0xFFFFFFFE;
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, uint attribute, ref uint value, int size);
+
+    /// <summary>
+    /// Removes the 1px border Windows 11 draws around borderless windows
+    /// (SetBorderAndTitleBar(false, false) alone still leaves it).
+    /// </summary>
+    public static void RemoveWindowBorder(IntPtr hwnd)
+    {
+        var none = DWMWA_COLOR_NONE;
+        _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref none, sizeof(uint));
+    }
+
     /// <summary>Work area (excludes taskbar) of the monitor currently under the mouse cursor.</summary>
     public static WorkArea GetCursorWorkArea()
     {
