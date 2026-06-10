@@ -73,6 +73,19 @@ public partial class App : Application
 
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
+        // Single instance: a second launch redirects its activation to the running
+        // instance (which surfaces the UI) and exits. Without this, the duplicate
+        // could never own the Alt+Space hotkey and the tray would show twice.
+        var mainInstance = Microsoft.Windows.AppLifecycle.AppInstance.FindOrRegisterForKey("WindowsAI-Main");
+        if (!mainInstance.IsCurrent)
+        {
+            await mainInstance.RedirectActivationToAsync(
+                Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().GetActivatedEventArgs());
+            Environment.Exit(0);
+            return;
+        }
+        mainInstance.Activated += OnActivationRedirected;
+
         var settingsStore = Services.GetRequiredService<ISettingsStore>();
         await settingsStore.LoadAsync();
 
@@ -85,10 +98,12 @@ public partial class App : Application
         // lives in the tray until summoned.
         _overlay = new OverlayWindow();
 
-        // Bind the global summon hotkey to the overlay's HWND.
+        // Bind the global summon hotkey to the overlay's HWND. Registration can fail
+        // transiently (e.g. a previous instance not fully exited still holds the chord),
+        // so retry instead of failing silently forever.
         _hotkey = new HotkeyManager(_overlay.Hwnd);
         _hotkey.Pressed += () => _overlay?.ToggleOverlay();
-        _hotkey.Register(HotkeyDefinition.Default);
+        _ = RegisterHotkeyWithRetryAsync();
 
         // Native tray icon + menu. Built on Win32 (not H.NotifyIcon's XAML flyout) so it has
         // no dependency on an activated window's XamlRoot — the overlay is never activated.
@@ -101,6 +116,21 @@ public partial class App : Application
         _tray.LeftClicked += () => _overlay?.ToggleOverlay();
         _tray.Show();
     }
+
+    /// <summary>Keeps retrying hotkey registration until the chord is free (or we give up).</summary>
+    private async Task RegisterHotkeyWithRetryAsync()
+    {
+        for (var attempt = 0; attempt < 15; attempt++)
+        {
+            if (_hotkey is null || _hotkey.Register(HotkeyDefinition.Default))
+                return;
+            await Task.Delay(1000);
+        }
+    }
+
+    /// <summary>Another launch of the app was redirected here — surface the main window.</summary>
+    private void OnActivationRedirected(object? sender, Microsoft.Windows.AppLifecycle.AppActivationArguments e)
+        => _overlay?.DispatcherQueue.TryEnqueue(ShowMainApp);
 
     /// <summary>Summons the overlay search surface.</summary>
     public void ShowOverlay() => _overlay?.ShowOverlay();
