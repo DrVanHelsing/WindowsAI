@@ -35,7 +35,13 @@ public sealed class ModelCatalog : IModelCatalog
             if (tags?.Models is not null)
             {
                 foreach (var m in tags.Models.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase))
+                {
+                    // Embedding models (e.g. nomic-embed-text) are pulled for local RAG
+                    // re-ranking, not chat — keep them out of the model picker.
+                    if (IsEmbeddingModel(m.Name))
+                        continue;
                     result.Add(new ModelOption("ollama", m.Name, $"{m.Name} (local)", isLocal: true));
+                }
             }
         }
         catch
@@ -45,6 +51,11 @@ public sealed class ModelCatalog : IModelCatalog
 
         return result;
     }
+
+    /// <summary>True for models that produce embeddings rather than chat completions.</summary>
+    private bool IsEmbeddingModel(string name) =>
+        name.Contains("embed", StringComparison.OrdinalIgnoreCase) ||
+        name.StartsWith(_settings.Current.LocalModel.EmbeddingModelId, StringComparison.OrdinalIgnoreCase);
 
     private IReadOnlyList<ModelOption> GetCloudModels()
     {

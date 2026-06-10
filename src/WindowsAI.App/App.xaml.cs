@@ -46,8 +46,14 @@ public partial class App : Application
 
         // Windows-specific services.
         services.AddSingleton<ISecretStore, DpapiSecretStore>();
-        services.AddSingleton<WindowsAI.Core.Context.ILocalContextRetriever,
-                              WindowsAI.Services.Search.WindowsSearchRetriever>();
+
+        // Local RAG: keyword retrieval over the Windows Search index, then semantic
+        // re-ranking via local embeddings (falls back to keyword order if unavailable).
+        services.AddSingleton<WindowsAI.Services.Search.WindowsSearchRetriever>();
+        services.AddSingleton<WindowsAI.Core.Context.ILocalContextRetriever>(sp =>
+            new WindowsAI.Core.Context.RerankingContextRetriever(
+                sp.GetRequiredService<WindowsAI.Services.Search.WindowsSearchRetriever>(),
+                sp.GetRequiredService<WindowsAI.Core.Context.IEmbeddingClient>()));
 
         // View models. ChatViewModel is a singleton so the active model and conversation
         // stay in sync across the overlay, the chat page, and the models page.

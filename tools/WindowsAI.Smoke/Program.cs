@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using WindowsAI.Core;
 using WindowsAI.Core.Chat;
 using WindowsAI.Core.Configuration;
+using WindowsAI.Core.Context;
 using WindowsAI.Core.History;
 using WindowsAI.Core.Providers;
 using WindowsAI.Core.Security;
@@ -94,6 +95,26 @@ try
         Check("SYSTEMINDEX query returns local documents", docs.Count > 0, $"count={docs.Count}");
         foreach (var doc in docs)
             Console.WriteLine($"         · {doc.Name}");
+    }
+
+    // 4b) Embedding re-rank decorator over the keyword retriever.
+    Console.WriteLine("Embedding re-rank (Ollama nomic-embed-text)");
+    {
+        var store = new JsonSettingsStore(Path.Combine(tmp, "embed.json"));
+        await store.LoadAsync();
+        var embeddings = new OllamaEmbeddingClient(store);
+
+        var vectors = await embeddings.EmbedAsync(new[] { "alpha", "beta" });
+        if (vectors is null)
+            Console.WriteLine("         · embeddings unavailable (pull nomic-embed-text) — reranker falls back to keywords");
+        else
+            Check("embedding client returns aligned vectors",
+                vectors.Count == 2 && vectors[0].Length > 0, $"dim={vectors[0].Length}");
+
+        var reranker = new RerankingContextRetriever(
+            new WindowsAI.Services.Search.WindowsSearchRetriever(), embeddings);
+        var ranked = await reranker.SearchAsync("windows", maxResults: 3);
+        Check("reranking retriever returns results (re-ranked or fallback)", ranked.Count > 0, $"count={ranked.Count}");
     }
 
     // 5) + 6) Live paths through DI: catalog discovery + local streaming.

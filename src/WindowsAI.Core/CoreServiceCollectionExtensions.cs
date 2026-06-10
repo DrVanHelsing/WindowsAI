@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using WindowsAI.Core.Chat;
 using WindowsAI.Core.Configuration;
+using WindowsAI.Core.Context;
 using WindowsAI.Core.History;
 using WindowsAI.Core.Providers;
 
@@ -23,6 +24,10 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<IModelCatalog, ModelCatalog>();
         services.AddSingleton<ActiveModelService>();
         services.AddSingleton<ChatOrchestrator>();
+
+        // Local embeddings for semantic re-ranking of "Search my PC" results. The host
+        // composes this with its platform retriever (see RerankingContextRetriever).
+        services.AddSingleton<IEmbeddingClient, OllamaEmbeddingClient>();
         return services;
     }
 }

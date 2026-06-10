@@ -35,6 +35,12 @@ public sealed class LocalModelSettings
     /// </summary>
     public string DefaultModelId { get; set; } = "gemma4:e2b-it-qat";
 
+    /// <summary>
+    /// Local embedding model used to re-rank "Search my PC" results by semantic relevance.
+    /// Optional — if it isn't pulled, retrieval silently falls back to keyword ranking.
+    /// </summary>
+    public string EmbeddingModelId { get; set; } = "nomic-embed-text";
+
     /// <summary>How long Ollama keeps the model resident after a request (keeps the overlay snappy).</summary>
     public string KeepAlive { get; set; } = "10m";
 }
