@@ -44,6 +44,49 @@
                 <Setter Property="CharacterSpacing" Value="20" />
             </Style>
 
+            <!--
+                Liquid-glass building blocks. Property-setter styles only — ControlTemplates
+                must stay in page/window resources (XamlCompiler silently fails otherwise).
+            -->
+            <Style x:Key="GlassCardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource GlassFillBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource GlassStrokeBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="{StaticResource RadiusLarge}" />
+            </Style>
+
+            <Style x:Key="GlassCardSubtleStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource GlassFillSubtleBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource GlassStrokeSubtleBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="{StaticResource RadiusLarge}" />
+            </Style>
+
+            <Style x:Key="GlassChipStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource GlassFillSubtleBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource GlassStrokeSubtleBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+                <Setter Property="Padding" Value="12,6" />
+            </Style>
+
+            <!--  Page title — used by History / Models / Settings headers  -->
+            <Style x:Key="PageTitleStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="{StaticResource TypeDisplaySize}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="CharacterSpacing" Value="-20" />
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            </Style>
+
+            <!--  Quiet circular icon button (hover fill comes from the default template)  -->
+            <Style x:Key="IconButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="8" />
+                <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
+                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+            </Style>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

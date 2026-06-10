@@ -35,7 +35,7 @@ public sealed class ModelCatalog : IModelCatalog
             if (tags?.Models is not null)
             {
                 foreach (var m in tags.Models.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase))
-                    result.Add(new ModelOption("ollama", m.Name, $"{m.Name} (local)", IsLocal: true));
+                    result.Add(new ModelOption("ollama", m.Name, $"{m.Name} (local)", isLocal: true));
             }
         }
         catch
@@ -51,10 +51,10 @@ public sealed class ModelCatalog : IModelCatalog
         var s = _settings.Current;
         return
         [
-            new ModelOption("openrouter", s.OpenRouter.DefaultModelId, $"{s.OpenRouter.DefaultModelId} (OpenRouter)", IsLocal: false),
-            new ModelOption("openrouter", "deepseek/deepseek-r1:free", "deepseek-r1:free (OpenRouter)", IsLocal: false),
-            new ModelOption("gemini", s.Gemini.DefaultModelId, $"{s.Gemini.DefaultModelId} (Gemini)", IsLocal: false),
-            new ModelOption("gemini", "gemini-2.5-pro", "gemini-2.5-pro (Gemini)", IsLocal: false),
+            new ModelOption("openrouter", s.OpenRouter.DefaultModelId, $"{s.OpenRouter.DefaultModelId} (OpenRouter)", isLocal: false),
+            new ModelOption("openrouter", "deepseek/deepseek-r1:free", "deepseek-r1:free (OpenRouter)", isLocal: false),
+            new ModelOption("gemini", s.Gemini.DefaultModelId, $"{s.Gemini.DefaultModelId} (Gemini)", isLocal: false),
+            new ModelOption("gemini", "gemini-2.5-pro", "gemini-2.5-pro (Gemini)", isLocal: false),
         ];
     }
 

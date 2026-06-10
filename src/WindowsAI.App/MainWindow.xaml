@@ -4,9 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="WindowsAI">
-    <Window.SystemBackdrop>
-        <MicaBackdrop />
-    </Window.SystemBackdrop>
+    <!-- Backdrop: liquid-glass acrylic applied in code-behind (GlassBackdrop.Apply). -->
 
     <Grid>
         <Grid.Resources>
@@ -26,36 +24,58 @@
                 <Setter Property="MinHeight" Value="0" />
                 <Setter Property="Template">
                     <Setter.Value>
+                        <!--
+                            Fluid nav item: stacked fill layers cross-fade via opacity
+                            animations (smooth, GPU-friendly) and the checked state grows
+                            a left accent indicator. Inline colors — StaticResource is
+                            unreliable inside ControlTemplates in this compile scope.
+                        -->
                         <ControlTemplate TargetType="RadioButton">
-                            <Border
-                                x:Name="Root"
-                                Background="Transparent"
-                                CornerRadius="{TemplateBinding CornerRadius}"
-                                Padding="{TemplateBinding Padding}">
+                            <Grid x:Name="Root">
                                 <VisualStateManager.VisualStateGroups>
                                     <VisualStateGroup x:Name="CommonStates">
                                         <VisualState x:Name="Normal" />
                                         <VisualState x:Name="PointerOver">
                                             <Storyboard>
-                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="Root" Storyboard.TargetProperty="Background">
-                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="#0AFFFFFF" />
-                                                </ObjectAnimationUsingKeyFrames>
+                                                <DoubleAnimation
+                                                    Storyboard.TargetName="HoverFill"
+                                                    Storyboard.TargetProperty="Opacity"
+                                                    To="1"
+                                                    Duration="0:0:0.12" />
                                             </Storyboard>
                                         </VisualState>
                                         <VisualState x:Name="Pressed">
                                             <Storyboard>
-                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="Root" Storyboard.TargetProperty="Background">
-                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="#18FFFFFF" />
-                                                </ObjectAnimationUsingKeyFrames>
+                                                <DoubleAnimation
+                                                    Storyboard.TargetName="HoverFill"
+                                                    Storyboard.TargetProperty="Opacity"
+                                                    To="1"
+                                                    Duration="0:0:0.06" />
+                                                <DoubleAnimation
+                                                    Storyboard.TargetName="PressedFill"
+                                                    Storyboard.TargetProperty="Opacity"
+                                                    To="1"
+                                                    Duration="0:0:0.06" />
                                             </Storyboard>
                                         </VisualState>
                                     </VisualStateGroup>
                                     <VisualStateGroup x:Name="CheckStates">
                                         <VisualState x:Name="Checked">
                                             <Storyboard>
-                                                <ObjectAnimationUsingKeyFrames Storyboard.TargetName="Root" Storyboard.TargetProperty="Background">
-                                                    <DiscreteObjectKeyFrame KeyTime="0" Value="#207A6CFF" />
-                                                </ObjectAnimationUsingKeyFrames>
+                                                <DoubleAnimation
+                                                    Storyboard.TargetName="CheckedFill"
+                                                    Storyboard.TargetProperty="Opacity"
+                                                    To="1"
+                                                    Duration="0:0:0.15" />
+                                                <DoubleAnimation
+                                                    Storyboard.TargetName="IndicatorScale"
+                                                    Storyboard.TargetProperty="ScaleY"
+                                                    To="1"
+                                                    Duration="0:0:0.18">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CubicEase EasingMode="EaseOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
                                                 <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentArea" Storyboard.TargetProperty="Foreground">
                                                     <DiscreteObjectKeyFrame KeyTime="0" Value="#FFFFFF" />
                                                 </ObjectAnimationUsingKeyFrames>
@@ -65,12 +85,46 @@
                                         <VisualState x:Name="Indeterminate" />
                                     </VisualStateGroup>
                                 </VisualStateManager.VisualStateGroups>
+
+                                <Border
+                                    x:Name="HoverFill"
+                                    Background="#0AFFFFFF"
+                                    CornerRadius="{TemplateBinding CornerRadius}"
+                                    Opacity="0" />
+                                <Border
+                                    x:Name="PressedFill"
+                                    Background="#0FFFFFFF"
+                                    CornerRadius="{TemplateBinding CornerRadius}"
+                                    Opacity="0" />
+                                <Border
+                                    x:Name="CheckedFill"
+                                    Background="#207A6CFF"
+                                    CornerRadius="{TemplateBinding CornerRadius}"
+                                    Opacity="0" />
+
+                                <Rectangle
+                                    x:Name="Indicator"
+                                    Width="3"
+                                    Height="16"
+                                    Margin="2,0,0,0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Fill="#9B8CFF"
+                                    RadiusX="1.5"
+                                    RadiusY="1.5"
+                                    RenderTransformOrigin="0.5,0.5">
+                                    <Rectangle.RenderTransform>
+                                        <ScaleTransform x:Name="IndicatorScale" ScaleY="0" />
+                                    </Rectangle.RenderTransform>
+                                </Rectangle>
+
                                 <ContentPresenter
                                     x:Name="ContentArea"
+                                    Padding="{TemplateBinding Padding}"
                                     HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                    VerticalAlignment="Center"
                                     Foreground="{TemplateBinding Foreground}" />
-                            </Border>
+                            </Grid>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
@@ -82,8 +136,8 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- ═══════════════ SIDEBAR ═══════════════════════════════════════ -->
-        <Grid x:Name="Sidebar" Grid.Column="0" Background="#0A0A12">
+        <!-- ═══════════════ SIDEBAR — translucent layer over the glass ════ -->
+        <Grid x:Name="Sidebar" Grid.Column="0" Background="#590A0816">
 
             <Grid.RowDefinitions>
                 <RowDefinition Height="48" />
@@ -130,7 +184,7 @@
                 Height="1"
                 Margin="16,0"
                 VerticalAlignment="Bottom"
-                Fill="#10FFFFFF" />
+                Fill="{StaticResource HairlineBrush}" />
 
             <!-- New Chat button -->
             <Button
@@ -139,9 +193,10 @@
                 Margin="12,12,12,6"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Left"
-                Background="#12FFFFFF"
-                BorderThickness="0"
-                CornerRadius="8"
+                Background="{StaticResource GlassFillBrush}"
+                BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusMedium}"
                 Foreground="White"
                 Padding="12,10"
                 Click="NewChatButton_Click">

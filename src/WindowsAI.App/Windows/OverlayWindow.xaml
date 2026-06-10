@@ -4,12 +4,13 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:WindowsAI_App.ViewModels"
-    xmlns:conv="using:WindowsAI_App.Converters">
+    xmlns:conv="using:WindowsAI_App.Converters"
+    xmlns:controls="using:WindowsAI_App.Controls">
 
     <!--
         Left-edge slide-in panel. Full screen height, 420 logical px wide.
-        RootHost starts at X=-440 (off-screen left) and translates to X=0 on show.
-        MicaAlt backdrop is set in code-behind.
+        Liquid-glass acrylic backdrop is set in code-behind.
+        NOTE (Window XAML): no x:Bind Converter= here — use conv:Vis function binds.
     -->
     <Grid x:Name="RootHost" Opacity="0">
         <Grid.RenderTransform>
@@ -18,15 +19,15 @@
 
         <Grid.Resources>
 
-            <!-- Show: slide in from left + fade -->
+            <!-- Show: slide in from left with a slight spring overshoot + fade -->
             <Storyboard x:Name="ShowStoryboard">
                 <DoubleAnimation
                     Storyboard.TargetName="RootSlide"
                     Storyboard.TargetProperty="X"
                     To="0"
-                    Duration="0:0:0.22">
+                    Duration="0:0:0.28">
                     <DoubleAnimation.EasingFunction>
-                        <CubicEase EasingMode="EaseOut" />
+                        <BackEase Amplitude="0.35" EasingMode="EaseOut" />
                     </DoubleAnimation.EasingFunction>
                 </DoubleAnimation>
                 <DoubleAnimation
@@ -83,6 +84,19 @@
                     Duration="0:0:1.2" />
             </Storyboard>
 
+            <!-- Quiet glass action row (recents / suggestions) -->
+            <Style x:Key="OverlayActionButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource GlassFillSubtleBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource GlassStrokeSubtleBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
+                <Setter Property="Padding" Value="12,10" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                <Setter Property="FontSize" Value="13" />
+            </Style>
+
         </Grid.Resources>
 
         <Grid.RowDefinitions>
@@ -90,29 +104,12 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- 2px ambient gradient bar — pulses during inference -->
+        <!-- Ambient gradient bar — pulses during inference -->
         <Rectangle
             x:Name="AmbientBar"
             Grid.Row="0"
             Fill="{StaticResource GlowGradientBrush}"
             Opacity="0.30" />
-
-        <!-- Subtle right-edge separator line -->
-        <Rectangle
-            Grid.Row="0"
-            Grid.RowSpan="2"
-            Width="1"
-            HorizontalAlignment="Right"
-            Opacity="0.12">
-            <Rectangle.Fill>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Offset="0.0" Color="Transparent" />
-                    <GradientStop Offset="0.15" Color="White" />
-                    <GradientStop Offset="0.85" Color="White" />
-                    <GradientStop Offset="1.0" Color="Transparent" />
-                </LinearGradientBrush>
-            </Rectangle.Fill>
-        </Rectangle>
 
         <!-- Panel-wide specular sheen: top-down light falloff over the acrylic -->
         <Rectangle
@@ -124,14 +121,12 @@
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <!-- ── Search pill ─────────────────────────────────────── -->
-            <Grid Grid.Row="0" Margin="16,16,16,10">
+            <Grid Grid.Row="0" Margin="16,16,16,12">
                 <Border
                     x:Name="SearchPillBorder"
                     Height="52"
@@ -145,21 +140,25 @@
                     Background="{StaticResource GlassSheenBrush}"
                     CornerRadius="26"
                     IsHitTestVisible="False" />
-                <Grid Margin="14,0,14,0">
+                <Grid Margin="16,0,12,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <!-- Sparkle icon (spins during inference) -->
-                    <Grid Grid.Column="0" Width="26" VerticalAlignment="Center" Margin="0,0,8,0" RenderTransformOrigin="0.5,0.5">
+                    <Grid
+                        Grid.Column="0"
+                        Width="26"
+                        Margin="0,0,8,0"
+                        VerticalAlignment="Center"
+                        RenderTransformOrigin="0.5,0.5">
                         <Grid.RenderTransform>
                             <RotateTransform x:Name="SparkleRotate" />
                         </Grid.RenderTransform>
                         <FontIcon
                             FontSize="18"
-                            Foreground="#7A6CFF"
+                            Foreground="{StaticResource AccentBrush}"
                             Glyph="&#xE77B;" />
                     </Grid>
 
@@ -171,179 +170,264 @@
                         BorderThickness="0"
                         FontSize="16"
                         KeyDown="SearchBox_KeyDown"
-                        PlaceholderText="Ask anything, or search your PC…"
-                        Text="{x:Bind ViewModel.Input, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                    <!-- Model chip -->
-                    <Border
-                        Grid.Column="2"
-                        Padding="10,5"
-                        VerticalAlignment="Center"
-                        Background="#1A7A6CFF"
-                        CornerRadius="12">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <FontIcon
-                                FontSize="10"
-                                Foreground="#9B80FF"
-                                Glyph="&#xE72E;" />
-                            <TextBlock
-                                FontSize="11"
-                                Foreground="#9B80FF"
-                                Text="{x:Bind ViewModel.ModelLabel, Mode=OneWay}" />
-                        </StackPanel>
-                    </Border>
+                        PlaceholderText="Ask anything…"
+                        Text="{x:Bind ViewModel.Input, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                        <TextBox.Resources>
+                            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent" />
+                            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent" />
+                            <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent" />
+                            <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent" />
+                        </TextBox.Resources>
+                    </TextBox>
                 </Grid>
             </Grid>
 
-            <!-- ── Context chips ──────────────────────────────────── -->
-            <ScrollViewer
-                Grid.Row="1"
-                Margin="16,0,16,10"
-                HorizontalScrollBarVisibility="Hidden"
-                HorizontalScrollMode="Auto"
-                VerticalScrollMode="Disabled">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <Border
-                        Padding="10,5"
-                        Background="{StaticResource GlassFillSubtleBrush}"
-                        BorderBrush="{StaticResource GlassStrokeBrush}"
-                        BorderThickness="1"
-                        CornerRadius="12">
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <FontIcon FontSize="11" Foreground="#88FFFFFF" Glyph="&#xE7F4;" />
-                            <TextBlock FontSize="11" Foreground="#88FFFFFF" Text="Screen" />
-                        </StackPanel>
-                    </Border>
-                    <Border
-                        Padding="10,5"
-                        Background="{StaticResource GlassFillSubtleBrush}"
-                        BorderBrush="{StaticResource GlassStrokeBrush}"
-                        BorderThickness="1"
-                        CornerRadius="12">
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <FontIcon FontSize="11" Foreground="#88FFFFFF" Glyph="&#xE77F;" />
-                            <TextBlock FontSize="11" Foreground="#88FFFFFF" Text="Clipboard" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </ScrollViewer>
+            <!-- ── Body: messages OR empty state ───────────────────── -->
+            <Grid Grid.Row="1">
 
-            <!-- Divider -->
-            <Rectangle
-                Grid.Row="2"
-                Height="1"
-                Margin="16,0,16,0"
-                Fill="#0CFFFFFF" />
+                <!-- Messages -->
+                <ListView
+                    x:Name="ResultsList"
+                    Padding="16,4,16,10"
+                    ItemsSource="{x:Bind ViewModel.Messages}"
+                    ScrollViewer.VerticalScrollBarVisibility="Auto"
+                    SelectionMode="None">
+                    <ListView.Resources>
+                        <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="Transparent" />
+                        <SolidColorBrush x:Key="ListViewItemBackgroundPressed" Color="Transparent" />
+                    </ListView.Resources>
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Padding" Value="0,4" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="MinHeight" Value="0" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemContainerTransitions>
+                        <TransitionCollection>
+                            <EntranceThemeTransition FromVerticalOffset="10" IsStaggeringEnabled="False" />
+                        </TransitionCollection>
+                    </ListView.ItemContainerTransitions>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ChatMessageViewModel">
+                            <Grid Margin="0,4">
+                                <!--  User message — right-aligned indigo glass capsule  -->
+                                <Border
+                                    MaxWidth="310"
+                                    HorizontalAlignment="Right"
+                                    Padding="14,9"
+                                    Background="{StaticResource UserBubbleFillBrush}"
+                                    BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="16,16,5,16"
+                                    Visibility="{x:Bind conv:Vis.If(IsUser)}">
+                                    <TextBlock
+                                        FontSize="14"
+                                        Foreground="White"
+                                        Text="{x:Bind Text, Mode=OneWay}"
+                                        TextWrapping="Wrap" />
+                                </Border>
 
-            <!-- ── Messages ────────────────────────────────────────── -->
-            <ListView
-                x:Name="ResultsList"
-                Grid.Row="3"
-                Padding="16,10,16,10"
-                ItemsSource="{x:Bind ViewModel.Messages}"
-                SelectionMode="None">
-                <ListView.ItemContainerStyle>
-                    <Style TargetType="ListViewItem">
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                        <Setter Property="Padding" Value="0,4" />
-                        <Setter Property="Background" Value="Transparent" />
-                        <Setter Property="MinHeight" Value="0" />
-                    </Style>
-                </ListView.ItemContainerStyle>
-                <ListView.ItemContainerTransitions>
-                    <TransitionCollection>
-                        <EntranceThemeTransition FromVerticalOffset="10" IsStaggeringEnabled="False" />
-                    </TransitionCollection>
-                </ListView.ItemContainerTransitions>
-                <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ChatMessageViewModel">
-                        <Grid Margin="0,4">
-                            <!--  User message — right-aligned indigo capsule  -->
-                            <Border
-                                MaxWidth="310"
-                                HorizontalAlignment="Right"
-                                Padding="14,10"
-                                Background="#B32A2470"
-                                BorderBrush="{StaticResource GlassStrokeBrush}"
-                                BorderThickness="1"
-                                CornerRadius="18,18,4,18"
-                                Visibility="{x:Bind conv:Vis.If(IsUser)}">
-                                <TextBlock
-                                    FontSize="14"
-                                    Foreground="White"
-                                    Text="{x:Bind Text, Mode=OneWay}"
-                                    TextWrapping="Wrap" />
-                            </Border>
-
-                            <!--  AI message — left-aligned prose with indigo accent bar  -->
-                            <Grid
-                                HorizontalAlignment="Stretch"
-                                Visibility="{x:Bind conv:Vis.IfNot(IsUser)}">
-                                <Rectangle
-                                    Width="3"
-                                    Margin="0,3,0,3"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Stretch"
-                                    Fill="#7A6CFF"
-                                    RadiusX="2"
-                                    RadiusY="2" />
-                                <TextBlock
-                                    Margin="14,0,0,0"
-                                    FontSize="14"
-                                    Foreground="#EEFFFFFF"
-                                    IsTextSelectionEnabled="True"
-                                    LineHeight="22"
-                                    Text="{x:Bind Text, Mode=OneWay}"
-                                    TextWrapping="Wrap" />
+                                <!--  AI message — markdown prose with indigo accent bar  -->
+                                <Grid HorizontalAlignment="Stretch" Visibility="{x:Bind conv:Vis.IfNot(IsUser)}">
+                                    <Rectangle
+                                        Width="3"
+                                        Margin="0,4,0,4"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Stretch"
+                                        Fill="{StaticResource AccentBrush}"
+                                        RadiusX="2"
+                                        RadiusY="2" />
+                                    <controls:MessageContentControl Margin="14,0,0,0" Text="{x:Bind Text, Mode=OneWay}" />
+                                </Grid>
                             </Grid>
-                        </Grid>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
 
-            <!-- ── Footer / Privacy badge ─────────────────────────── -->
+                <!-- Empty state: recents + quick actions -->
+                <StackPanel
+                    x:Name="EmptyPanel"
+                    Margin="16,8,16,0"
+                    VerticalAlignment="Top"
+                    Spacing="8">
+                    <StackPanel.ChildrenTransitions>
+                        <TransitionCollection>
+                            <EntranceThemeTransition FromVerticalOffset="14" IsStaggeringEnabled="True" />
+                        </TransitionCollection>
+                    </StackPanel.ChildrenTransitions>
+
+                    <TextBlock
+                        x:Name="RecentsLabel"
+                        Margin="4,4,0,0"
+                        FontSize="11"
+                        CharacterSpacing="60"
+                        Foreground="{StaticResource TextTertiaryBrush}"
+                        Text="RECENT"
+                        Visibility="Collapsed" />
+
+                    <ItemsControl x:Name="RecentsList">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="6" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button
+                                    Click="Recent_Click"
+                                    Style="{StaticResource OverlayActionButtonStyle}"
+                                    Tag="{Binding Id}">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock
+                                            FontSize="13"
+                                            Foreground="{StaticResource TextPrimaryBrush}"
+                                            Text="{Binding Title}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            FontSize="11"
+                                            Foreground="{StaticResource TextTertiaryBrush}"
+                                            Text="{Binding Meta}" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock
+                        Margin="4,10,0,0"
+                        FontSize="11"
+                        CharacterSpacing="60"
+                        Foreground="{StaticResource TextTertiaryBrush}"
+                        Text="TRY" />
+
+                    <Button
+                        Click="Suggestion_Click"
+                        Style="{StaticResource OverlayActionButtonStyle}"
+                        Tag="Summarize this for me: ">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon FontSize="13" Foreground="{StaticResource AccentTextBrush}" Glyph="&#xE8BC;" />
+                            <TextBlock Text="Summarize a block of text" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        Click="Suggestion_Click"
+                        Style="{StaticResource OverlayActionButtonStyle}"
+                        Tag="Translate this to English: ">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon FontSize="13" Foreground="{StaticResource AccentTextBrush}" Glyph="&#xE775;" />
+                            <TextBlock Text="Translate something" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        Click="Suggestion_Click"
+                        Style="{StaticResource OverlayActionButtonStyle}"
+                        Tag="Write a one-line PowerShell command to ">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon FontSize="13" Foreground="{StaticResource AccentTextBrush}" Glyph="&#xE756;" />
+                            <TextBlock Text="Get a PowerShell one-liner" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- ── Footer ──────────────────────────────────────────── -->
             <Border
-                Grid.Row="4"
+                Grid.Row="2"
                 Padding="16,10"
-                BorderBrush="#0CFFFFFF"
+                BorderBrush="{StaticResource HairlineBrush}"
                 BorderThickness="0,1,0,0">
-                <Grid>
-                    <!--  Privacy badge  -->
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!--  Privacy / model badge  -->
                     <Border
-                        HorizontalAlignment="Left"
+                        Grid.Column="0"
                         Padding="10,5"
                         Background="{StaticResource GlassFillSubtleBrush}"
-                        BorderBrush="{StaticResource GlassStrokeBrush}"
+                        BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
                         BorderThickness="1"
                         CornerRadius="10">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <ProgressRing
                                 Width="10"
                                 Height="10"
-                                Foreground="#7A6CFF"
+                                Foreground="{StaticResource AccentBrush}"
                                 IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" />
                             <FontIcon
                                 FontSize="10"
-                                Foreground="#7A6CFF"
+                                Foreground="{StaticResource AccentBrush}"
                                 Glyph="&#xE72E;"
                                 Visibility="{x:Bind conv:Vis.IfNot(ViewModel.IsBusy), Mode=OneWay}" />
                             <TextBlock
                                 FontSize="11"
-                                Foreground="#88FFFFFF"
+                                Foreground="{StaticResource TextSecondaryBrush}"
                                 Text="{x:Bind ViewModel.ModelLabel, Mode=OneWay}" />
                         </StackPanel>
                     </Border>
 
                     <!--  Keyboard hint  -->
                     <TextBlock
+                        Grid.Column="1"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Center"
                         FontSize="11"
-                        Foreground="#33FFFFFF"
+                        Foreground="{StaticResource TextGhostBrush}"
                         Text="Alt+Space · Esc" />
+
+                    <!--  Open the full app  -->
+                    <Button
+                        Grid.Column="2"
+                        Click="OpenApp_Click"
+                        Style="{StaticResource OverlayActionButtonStyle}"
+                        Padding="10,6"
+                        ToolTipService.ToolTip="Open WindowsAI">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="11" Glyph="&#xE8A7;" />
+                            <TextBlock FontSize="11" Text="Open app" />
+                        </StackPanel>
+                    </Button>
                 </Grid>
             </Border>
 
         </Grid>
+
+        <!-- Inner depth shadow along the right edge — panel reads as floating glass -->
+        <Rectangle
+            Grid.Row="0"
+            Grid.RowSpan="2"
+            Width="12"
+            HorizontalAlignment="Right"
+            IsHitTestVisible="False">
+            <Rectangle.Fill>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Offset="0.0" Color="#00000000" />
+                    <GradientStop Offset="1.0" Color="#46000000" />
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <!-- Edge-lit hairline at the very right -->
+        <Rectangle
+            Grid.Row="0"
+            Grid.RowSpan="2"
+            Width="1"
+            HorizontalAlignment="Right"
+            Opacity="0.14">
+            <Rectangle.Fill>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Offset="0.0" Color="Transparent" />
+                    <GradientStop Offset="0.15" Color="White" />
+                    <GradientStop Offset="0.85" Color="White" />
+                    <GradientStop Offset="1.0" Color="Transparent" />
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
     </Grid>
 </Window>

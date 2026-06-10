@@ -5,11 +5,20 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="using:WindowsAI_App"
     xmlns:providers="using:WindowsAI.Core.Providers"
+    Background="Transparent"
     NavigationCacheMode="Required"
     mc:Ignorable="d">
 
-    <Grid Padding="16" RowSpacing="12">
+    <Page.Resources>
+        <CollectionViewSource
+            x:Name="GroupedModels"
+            IsSourceGrouped="True"
+            Source="{x:Bind Groups, Mode=OneWay}" />
+    </Page.Resources>
+
+    <Grid Padding="28,24,28,16" RowSpacing="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -18,7 +27,7 @@
         <!-- Header -->
         <Grid Grid.Row="0">
             <StackPanel Orientation="Horizontal" Spacing="12">
-                <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="Models" />
+                <TextBlock Style="{StaticResource PageTitleStyle}" Text="Models" />
                 <ProgressRing
                     Width="18"
                     Height="18"
@@ -27,55 +36,109 @@
             </StackPanel>
             <Button
                 HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Background="{StaticResource GlassFillSubtleBrush}"
+                BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusMedium}"
                 Click="Refresh_Click"
+                Foreground="{StaticResource TextSecondaryBrush}"
                 ToolTipService.ToolTip="Refresh model list">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon FontSize="14" Glyph="&#xE72C;" />
-                    <TextBlock Text="Refresh" />
+                    <FontIcon FontSize="13" Glyph="&#xE72C;" />
+                    <TextBlock FontSize="13" Text="Refresh" />
                 </StackPanel>
             </Button>
         </Grid>
 
-        <!-- Selectable model list -->
+        <!-- Selectable model list, grouped Local / Cloud -->
         <ListView
             x:Name="ModelList"
             Grid.Row="1"
-            ItemsSource="{x:Bind ViewModel.AvailableModels}"
+            ItemsSource="{x:Bind GroupedModels.View, Mode=OneWay}"
+            ScrollViewer.VerticalScrollBarVisibility="Auto"
             SelectedItem="{x:Bind ViewModel.SelectedModel, Mode=TwoWay}"
             SelectionMode="Single">
+            <ListView.GroupStyle>
+                <GroupStyle>
+                    <GroupStyle.HeaderTemplate>
+                        <DataTemplate x:DataType="local:ModelGroup">
+                            <TextBlock
+                                Margin="2,8,0,2"
+                                FontSize="11"
+                                CharacterSpacing="60"
+                                Foreground="{StaticResource TextTertiaryBrush}"
+                                Text="{x:Bind Key}" />
+                        </DataTemplate>
+                    </GroupStyle.HeaderTemplate>
+                </GroupStyle>
+            </ListView.GroupStyle>
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                    <Setter Property="Padding" Value="14,12" />
-                    <Setter Property="Margin" Value="0,3" />
-                    <Setter Property="CornerRadius" Value="8" />
+                    <Setter Property="Padding" Value="16,12" />
+                    <Setter Property="Margin" Value="0,4" />
+                    <Setter Property="CornerRadius" Value="{StaticResource RadiusLarge}" />
                 </Style>
             </ListView.ItemContainerStyle>
+            <ListView.ItemContainerTransitions>
+                <TransitionCollection>
+                    <EntranceThemeTransition FromVerticalOffset="20" IsStaggeringEnabled="True" />
+                    <AddDeleteThemeTransition />
+                    <RepositionThemeTransition />
+                </TransitionCollection>
+            </ListView.ItemContainerTransitions>
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="providers:ModelOption">
-                    <Grid ColumnSpacing="12">
+                    <Grid ColumnSpacing="14">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="0" Spacing="2">
-                            <TextBlock Text="{x:Bind DisplayName}" />
+                        <!--  Provider glyph in a glass chip  -->
+                        <Border
+                            Grid.Column="0"
+                            Width="36"
+                            Height="36"
+                            VerticalAlignment="Center"
+                            Background="{StaticResource AccentFillSubtleBrush}"
+                            BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusMedium}">
+                            <FontIcon
+                                FontSize="15"
+                                Foreground="{StaticResource AccentTextBrush}"
+                                Glyph="{x:Bind local:ModelsPage.GlyphFor(ProviderId)}" />
+                        </Border>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Spacing="2">
                             <TextBlock
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Style="{StaticResource CaptionTextBlockStyle}"
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Foreground="{StaticResource TextPrimaryBrush}"
+                                Text="{x:Bind DisplayName}" />
+                            <TextBlock
+                                FontSize="11"
+                                Foreground="{StaticResource TextTertiaryBrush}"
                                 Text="{x:Bind Key}" />
                         </StackPanel>
 
                         <Border
-                            Grid.Column="1"
+                            Grid.Column="2"
                             Padding="10,4"
                             VerticalAlignment="Center"
-                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                            Background="{StaticResource GlassFillSubtleBrush}"
+                            BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                            BorderThickness="1"
                             CornerRadius="10">
                             <TextBlock
-                                FontSize="12"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                FontSize="11"
+                                Foreground="{StaticResource TextSecondaryBrush}"
                                 Text="{x:Bind Kind}" />
                         </Border>
                     </Grid>

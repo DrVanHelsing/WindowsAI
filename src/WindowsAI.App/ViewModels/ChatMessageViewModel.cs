@@ -16,6 +16,9 @@ public partial class ChatMessageViewModel : ObservableObject
 
     public bool IsUser { get; }
 
+    /// <summary>Creation time, shown in the hover actions row.</summary>
+    public string TimeLabel { get; } = DateTime.Now.ToString("HH:mm");
+
     [ObservableProperty]
     public partial string Text { get; set; }
 }

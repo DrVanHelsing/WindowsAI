@@ -6,10 +6,11 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:WindowsAI_App"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Background="Transparent"
     NavigationCacheMode="Required"
     mc:Ignorable="d">
 
-    <Grid Padding="16" RowSpacing="12">
+    <Grid Padding="28,24,28,16" RowSpacing="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -18,24 +19,32 @@
         <!-- Header -->
         <TextBlock
             Grid.Row="0"
-            Style="{StaticResource TitleTextBlockStyle}"
+            Style="{StaticResource PageTitleStyle}"
             Text="Settings" />
 
-        <ScrollViewer Grid.Row="1">
-            <StackPanel MaxWidth="640" Spacing="16">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel
+                MaxWidth="640"
+                HorizontalAlignment="Stretch"
+                Spacing="14">
 
                 <!-- Local model -->
-                <Border
-                    Padding="16"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8">
-                    <StackPanel Spacing="8">
-                        <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Local model (Ollama)" />
+                <Border Padding="20,16" Style="{StaticResource GlassCardStyle}">
+                    <StackPanel Spacing="10">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon
+                                FontSize="15"
+                                Foreground="{StaticResource AccentTextBrush}"
+                                Glyph="&#xE977;" />
+                            <TextBlock
+                                FontSize="16"
+                                FontWeight="SemiBold"
+                                Foreground="{StaticResource TextPrimaryBrush}"
+                                Text="Local model (Ollama)" />
+                        </StackPanel>
                         <TextBlock
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Style="{StaticResource CaptionTextBlockStyle}"
+                            FontSize="12"
+                            Foreground="{StaticResource TextTertiaryBrush}"
                             Text="Endpoint of your local Ollama server. Pull models with 'ollama pull'." />
                         <Grid ColumnSpacing="8">
                             <Grid.ColumnDefinitions>
@@ -52,25 +61,30 @@
                 </Border>
 
                 <!-- OpenRouter -->
-                <Border
-                    Padding="16"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8">
-                    <StackPanel Spacing="8">
+                <Border Padding="20,16" Style="{StaticResource GlassCardStyle}">
+                    <StackPanel Spacing="10">
                         <Grid>
-                            <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="OpenRouter (cloud)" />
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <FontIcon
+                                    FontSize="15"
+                                    Foreground="{StaticResource AccentTextBrush}"
+                                    Glyph="&#xE968;" />
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Foreground="{StaticResource TextPrimaryBrush}"
+                                    Text="OpenRouter (cloud)" />
+                            </StackPanel>
                             <TextBlock
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Center"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Style="{StaticResource CaptionTextBlockStyle}"
+                                FontSize="11"
+                                Foreground="{StaticResource AccentTextBrush}"
                                 Text="{x:Bind ViewModel.OpenRouterStatus, Mode=OneWay}" />
                         </Grid>
                         <TextBlock
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Style="{StaticResource CaptionTextBlockStyle}"
+                            FontSize="12"
+                            Foreground="{StaticResource TextTertiaryBrush}"
                             Text="Get a key at openrouter.ai. Stored encrypted (DPAPI) on this PC only." />
                         <Grid ColumnSpacing="8">
                             <Grid.ColumnDefinitions>
@@ -93,25 +107,30 @@
                 </Border>
 
                 <!-- Gemini -->
-                <Border
-                    Padding="16"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8">
-                    <StackPanel Spacing="8">
+                <Border Padding="20,16" Style="{StaticResource GlassCardStyle}">
+                    <StackPanel Spacing="10">
                         <Grid>
-                            <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Gemini (cloud)" />
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <FontIcon
+                                    FontSize="15"
+                                    Foreground="{StaticResource AccentTextBrush}"
+                                    Glyph="&#xE753;" />
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Foreground="{StaticResource TextPrimaryBrush}"
+                                    Text="Gemini (cloud)" />
+                            </StackPanel>
                             <TextBlock
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Center"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Style="{StaticResource CaptionTextBlockStyle}"
+                                FontSize="11"
+                                Foreground="{StaticResource AccentTextBrush}"
                                 Text="{x:Bind ViewModel.GeminiStatus, Mode=OneWay}" />
                         </Grid>
                         <TextBlock
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Style="{StaticResource CaptionTextBlockStyle}"
+                            FontSize="12"
+                            Foreground="{StaticResource TextTertiaryBrush}"
                             Text="Get a key from Google AI Studio. Stored encrypted (DPAPI) on this PC only." />
                         <Grid ColumnSpacing="8">
                             <Grid.ColumnDefinitions>
@@ -129,6 +148,74 @@
                                 Grid.Column="2"
                                 Click="ClearGeminiKey_Click"
                                 Content="Clear" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- About -->
+                <Border Padding="20,16" Style="{StaticResource GlassCardSubtleStyle}">
+                    <StackPanel Spacing="10">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock
+                                FontSize="15"
+                                Foreground="{StaticResource GlowGradientBrush}"
+                                Text="✦" />
+                            <TextBlock
+                                FontSize="16"
+                                FontWeight="SemiBold"
+                                Foreground="{StaticResource TextPrimaryBrush}"
+                                Text="About" />
+                        </StackPanel>
+                        <Grid ColumnSpacing="24" RowSpacing="6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                FontSize="12"
+                                Foreground="{StaticResource TextTertiaryBrush}"
+                                Text="Version" />
+                            <TextBlock
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                FontSize="12"
+                                Foreground="{StaticResource TextSecondaryBrush}"
+                                Text="{x:Bind AppVersion}" />
+
+                            <TextBlock
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                FontSize="12"
+                                Foreground="{StaticResource TextTertiaryBrush}"
+                                Text="Summon" />
+                            <TextBlock
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                FontSize="12"
+                                Foreground="{StaticResource TextSecondaryBrush}"
+                                Text="Alt + Space  ·  Esc to dismiss" />
+
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="0"
+                                FontSize="12"
+                                Foreground="{StaticResource TextTertiaryBrush}"
+                                Text="Privacy" />
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                FontSize="12"
+                                Foreground="{StaticResource TextSecondaryBrush}"
+                                Text="Conversations and keys never leave this PC unless you use a cloud model."
+                                TextWrapping="Wrap" />
                         </Grid>
                     </StackPanel>
                 </Border>

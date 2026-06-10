@@ -16,6 +16,9 @@ public partial class HistoryViewModel : ObservableObject
 
     public ObservableCollection<ConversationSummary> Conversations { get; } = new();
 
+    /// <summary>Conversations bucketed by recency for the grouped history list.</summary>
+    public ObservableCollection<ConversationGroup> Groups { get; } = new();
+
     [ObservableProperty]
     public partial bool IsEmpty { get; set; } = true;
 
@@ -34,6 +37,14 @@ public partial class HistoryViewModel : ObservableObject
         foreach (var convo in saved)
             Conversations.Add(new ConversationSummary(convo));
 
+        Groups.Clear();
+        foreach (var bucket in Conversations.GroupBy(c => c.GroupKey))
+        {
+            var group = new ConversationGroup(bucket.Key);
+            group.AddRange(bucket);
+            Groups.Add(group);
+        }
+
         IsEmpty = Conversations.Count == 0;
     }
 
@@ -47,6 +58,14 @@ public partial class HistoryViewModel : ObservableObject
     }
 }
 
+/// <summary>A recency bucket of conversations ("Today", "Yesterday", …).</summary>
+public sealed class ConversationGroup : List<ConversationSummary>
+{
+    public ConversationGroup(string key) => Key = key;
+
+    public string Key { get; }
+}
+
 /// <summary>A row in the history list: id plus display strings.</summary>
 public sealed class ConversationSummary
 {
@@ -56,7 +75,12 @@ public sealed class ConversationSummary
         Title = string.IsNullOrWhiteSpace(convo.Title) ? "Untitled conversation" : convo.Title;
 
         var count = convo.Messages.Count;
-        Meta = $"{convo.UpdatedAt.LocalDateTime:g}  ·  {count} message{(count == 1 ? "" : "s")}";
+        var when = convo.UpdatedAt.LocalDateTime;
+        Meta = $"{FriendlyTime(when)}  ·  {count} message{(count == 1 ? "" : "s")}";
+        GroupKey = BucketOf(when);
+
+        var last = convo.Messages.LastOrDefault()?.Text.ReplaceLineEndings(" ").Trim() ?? string.Empty;
+        Snippet = last.Length <= 90 ? last : last[..90].TrimEnd() + "…";
     }
 
     public string Id { get; }
@@ -64,4 +88,28 @@ public sealed class ConversationSummary
     public string Title { get; }
 
     public string Meta { get; }
+
+    /// <summary>Single-line preview of the last message.</summary>
+    public string Snippet { get; }
+
+    /// <summary>Recency bucket used to group the history list.</summary>
+    public string GroupKey { get; }
+
+    private static string FriendlyTime(DateTime when)
+    {
+        var today = DateTime.Today;
+        if (when.Date == today) return $"Today · {when:HH:mm}";
+        if (when.Date == today.AddDays(-1)) return $"Yesterday · {when:HH:mm}";
+        if (when.Date > today.AddDays(-7)) return $"{when:dddd} · {when:HH:mm}";
+        return when.ToString("d MMM yyyy");
+    }
+
+    private static string BucketOf(DateTime when)
+    {
+        var today = DateTime.Today;
+        if (when.Date == today) return "Today";
+        if (when.Date == today.AddDays(-1)) return "Yesterday";
+        if (when.Date > today.AddDays(-7)) return "This week";
+        return "Earlier";
+    }
 }

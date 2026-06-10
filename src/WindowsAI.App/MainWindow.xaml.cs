@@ -15,6 +15,9 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // Slightly heavier tint than the overlay so long-form chat stays readable.
+        Helpers.GlassBackdrop.Apply(this, tintOpacity: 0.55f, luminosityOpacity: 0.70f);
+
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(BrandBar);
 

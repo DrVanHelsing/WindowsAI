@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -8,6 +9,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.Graphics;
 using Windows.System;
+using WindowsAI.Core.History;
 using WindowsAI.Services;
 using WindowsAI.Services.Interop;
 using WindowsAI_App.ViewModels;
@@ -26,8 +28,6 @@ public sealed partial class OverlayWindow : Window
     private static extern uint GetDpiForWindow(IntPtr hwnd);
 
     private readonly AppWindow _appWindow;
-    private DesktopAcrylicController? _acrylic;
-    private SystemBackdropConfiguration? _backdropConfig;
     private bool _initializedModels;
 
     public ChatViewModel ViewModel { get; }
@@ -55,43 +55,11 @@ public sealed partial class OverlayWindow : Window
         }
 
         _appWindow.IsShownInSwitchers = false;
-        ApplyGlassBackdrop();
+        Helpers.GlassBackdrop.Apply(this, tintOpacity: 0.40f, luminosityOpacity: 0.55f);
         Title = "WindowsAI";
 
         ViewModel.Messages.CollectionChanged += OnMessagesChanged;
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
-        Closed += (_, _) => { _acrylic?.Dispose(); _acrylic = null; };
-    }
-
-    /// <summary>
-    /// Liquid-glass backdrop: a hand-tuned acrylic (deep indigo tint, real behind-window
-    /// blur). Mica is unusable here — it falls back to a flat solid whenever the window
-    /// is not the active foreground window, which an overlay almost never is. The acrylic
-    /// configuration is pinned to IsInputActive=true so the glass never deactivates.
-    /// </summary>
-    private void ApplyGlassBackdrop()
-    {
-        if (!DesktopAcrylicController.IsSupported())
-        {
-            SystemBackdrop = new MicaBackdrop { Kind = MicaKind.BaseAlt };
-            return;
-        }
-
-        _backdropConfig = new SystemBackdropConfiguration
-        {
-            IsInputActive = true,
-            Theme = SystemBackdropTheme.Dark,
-        };
-
-        _acrylic = new DesktopAcrylicController
-        {
-            TintColor         = global::Windows.UI.Color.FromArgb(255, 16, 10, 32),
-            TintOpacity       = 0.40f,
-            LuminosityOpacity = 0.55f,
-            FallbackColor     = global::Windows.UI.Color.FromArgb(255, 14, 10, 26),
-        };
-        _acrylic.AddSystemBackdropTarget(this.As<Microsoft.UI.Composition.ICompositionSupportsSystemBackdrop>());
-        _acrylic.SetSystemBackdropConfiguration(_backdropConfig);
     }
 
     // ── Show / hide ─────────────────────────────────────────────────────────
@@ -104,6 +72,7 @@ public sealed partial class OverlayWindow : Window
             await ViewModel.InitializeAsync();
         }
 
+        await RefreshRecentsAsync();
         PositionForLeftEdge();
 
         // Reset slide position before showing so re-opens always slide in.
@@ -172,8 +141,55 @@ public sealed partial class OverlayWindow : Window
 
     private void OnMessagesChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        EmptyPanel.Visibility = ViewModel.Messages.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
         if (ViewModel.Messages.Count > 0)
             ResultsList.ScrollIntoView(ViewModel.Messages[^1]);
+    }
+
+    // ── Empty state: recents + quick actions ────────────────────────────────
+
+    /// <summary>Loads the three most recent conversations into the empty-state list.</summary>
+    private async Task RefreshRecentsAsync()
+    {
+        try
+        {
+            var store = App.Services.GetRequiredService<IConversationStore>();
+            var recents = (await store.ListAsync()).Take(3).ToList();
+            RecentsList.ItemsSource = recents.Select(c => new ConversationSummary(c)).ToList();
+            RecentsLabel.Visibility = recents.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        catch
+        {
+            // Recents are decoration — never block the overlay on history I/O.
+        }
+    }
+
+    /// <summary>Opens a recent conversation in the full app and dismisses the overlay.</summary>
+    private async void Recent_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).Tag is not string id)
+            return;
+
+        var app = (App)Application.Current;
+        app.ShowMainApp();
+        await App.GetService<ChatViewModel>().LoadConversationAsync(id);
+        app.AppShell?.ShowChat();
+        HideOverlay();
+    }
+
+    /// <summary>Quick-action chip: drop its prompt stub into the search box.</summary>
+    private void Suggestion_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.Input = (string)((FrameworkElement)sender).Tag;
+        SearchBox.Focus(FocusState.Programmatic);
+        SearchBox.SelectionStart = SearchBox.Text.Length;
+    }
+
+    private void OpenApp_Click(object sender, RoutedEventArgs e)
+    {
+        ((App)Application.Current).ShowMainApp();
+        HideOverlay();
     }
 
     // ── Input ───────────────────────────────────────────────────────────────

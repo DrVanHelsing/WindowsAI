@@ -49,9 +49,41 @@ public sealed partial class MainPage : Page
 
     private void OnMessagesChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        EmptyState.Visibility = ViewModel.Messages.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
         if (ViewModel.Messages.Count > 0)
             ChatList.ScrollIntoView(ViewModel.Messages[^1]);
     }
+
+    /// <summary>Suggestion chip: drop its prompt into the composer ready to edit/send.</summary>
+    private void Suggestion_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.Input = (string)((FrameworkElement)sender).Tag;
+        InputBox.Focus(FocusState.Programmatic);
+        InputBox.SelectionStart = InputBox.Text.Length;
+    }
+
+    private void CopyMessage_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).Tag is not ChatMessageViewModel message)
+            return;
+
+        var package = new global::Windows.ApplicationModel.DataTransfer.DataPackage();
+        package.SetText(message.Text);
+        global::Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+    }
+
+    // Hover-reveal for the per-message actions row inside the DataTemplate.
+    private static void SetActionsRowOpacity(object templateRoot, double opacity)
+    {
+        if (templateRoot is FrameworkElement root &&
+            root.FindName("ActionsRow") is FrameworkElement actions)
+            actions.Opacity = opacity;
+    }
+
+    private void Message_PointerEntered(object sender, PointerRoutedEventArgs e) => SetActionsRowOpacity(sender, 1);
+
+    private void Message_PointerExited(object sender, PointerRoutedEventArgs e) => SetActionsRowOpacity(sender, 0);
 
     private void InputBox_KeyDown(object sender, KeyRoutedEventArgs e)
     {

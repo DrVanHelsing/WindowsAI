@@ -33,9 +33,23 @@ public sealed partial class HistoryPage : Page
         ((App)Application.Current).AppShell?.ShowChat();
     }
 
-    private async void Delete_Click(object sender, RoutedEventArgs e)
+    private async void DeleteConfirmed_Click(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string id })
             await ViewModel.DeleteAsync(id);
     }
+
+    // Hover-reveal: the delete button is dimmed until its row is pointed at.
+    private static void SetDeleteOpacity(object templateRoot, double opacity)
+    {
+        if (templateRoot is FrameworkElement root &&
+            root.FindName("DeleteButton") is FrameworkElement button)
+            button.Opacity = opacity;
+    }
+
+    private void Row_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        => SetDeleteOpacity(sender, 1);
+
+    private void Row_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        => SetDeleteOpacity(sender, 0.35);
 }

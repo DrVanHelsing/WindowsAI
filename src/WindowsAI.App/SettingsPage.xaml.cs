@@ -9,6 +9,10 @@ public sealed partial class SettingsPage : Page
 {
     public SettingsViewModel ViewModel { get; }
 
+    /// <summary>Assembly version shown on the About card.</summary>
+    public string AppVersion { get; } =
+        typeof(SettingsPage).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
+
     public SettingsPage()
     {
         ViewModel = App.GetService<SettingsViewModel>();
