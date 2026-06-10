@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Design tokens: the single place for the app's radii, motion timing, and the
+    signature "glow" gradient. Keep visual constants here so the look stays consistent.
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--  Radii  -->
+    <x:Double x:Key="OverlayCornerRadiusValue">20</x:Double>
+    <CornerRadius x:Key="OverlayCornerRadius">20</CornerRadius>
+    <CornerRadius x:Key="OverlayInnerCornerRadius">18</CornerRadius>
+    <CornerRadius x:Key="CardCornerRadius">12</CornerRadius>
+
+    <!--  Motion (durations as KeyTime-friendly strings used by storyboards)  -->
+    <x:String x:Key="MotionFast">0:0:0.16</x:String>
+    <x:String x:Key="MotionMedium">0:0:0.25</x:String>
+    <x:String x:Key="MotionGlowCycle">0:0:8</x:String>
+
+    <!--  Signature glow gradient — the app's visual identity  -->
+    <LinearGradientBrush x:Key="GlowGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Offset="0.0" Color="#4F8CFF" />
+        <GradientStop Offset="0.30" Color="#9B6BFF" />
+        <GradientStop Offset="0.55" Color="#FF6BD6" />
+        <GradientStop Offset="0.80" Color="#FF9D5C" />
+        <GradientStop Offset="1.0" Color="#4DE3FF" />
+    </LinearGradientBrush>
+
+    <!--  Soft accent used for the overlay's outer aura shadow  -->
+    <Color x:Key="GlowAuraColor">#7A5CFF</Color>
+
+</ResourceDictionary>

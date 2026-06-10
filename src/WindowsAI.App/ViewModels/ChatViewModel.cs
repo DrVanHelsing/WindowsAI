@@ -1,0 +1,213 @@
+using System.Collections.ObjectModel;
+using System.Text;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.AI;
+using WindowsAI.Core.Chat;
+using WindowsAI.Core.History;
+using WindowsAI.Core.Providers;
+
+namespace WindowsAI_App.ViewModels;
+
+/// <summary>
+/// Drives the chat surface: holds the visible bubbles and the underlying model
+/// conversation, streams replies, and lets the user switch the active model.
+/// </summary>
+public partial class ChatViewModel : ObservableObject
+{
+    private const string SystemPrompt =
+        "You are WindowsAI, a concise and helpful on-device assistant for Windows. " +
+        "Prefer short, direct answers.";
+
+    private readonly ChatOrchestrator _orchestrator;
+    private readonly IModelCatalog _catalog;
+    private readonly ActiveModelService _activeModel;
+    private readonly IConversationStore _history;
+    private readonly List<ChatMessage> _conversation = new();
+
+    private StoredConversation _current = new();
+    private bool _applyingSelection;
+
+    public ObservableCollection<ChatMessageViewModel> Messages { get; } = new();
+
+    public ObservableCollection<ModelOption> AvailableModels { get; } = new();
+
+    [ObservableProperty]
+    public partial ModelOption? SelectedModel { get; set; }
+
+    [ObservableProperty]
+    public partial string Input { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool IsBusy { get; set; }
+
+    public bool IsNotBusy => !IsBusy;
+
+    public string ModelLabel => _orchestrator.ActiveModelLabel;
+
+    public ChatViewModel(
+        ChatOrchestrator orchestrator,
+        IModelCatalog catalog,
+        ActiveModelService activeModel,
+        IConversationStore history)
+    {
+        _orchestrator = orchestrator;
+        _catalog = catalog;
+        _activeModel = activeModel;
+        _history = history;
+        _conversation.Add(new ChatMessage(ChatRole.System, SystemPrompt));
+
+        // Stay in sync when the active model is changed on any other surface.
+        _activeModel.Changed += OnActiveModelChanged;
+    }
+
+    /// <summary>Loads the model list and selects the active one. Call after construction.</summary>
+    public async Task InitializeAsync()
+    {
+        var models = await _catalog.GetModelsAsync();
+
+        _applyingSelection = true;
+        AvailableModels.Clear();
+        foreach (var m in models)
+            AvailableModels.Add(m);
+
+        var active = _activeModel.Current;
+        SelectedModel =
+            AvailableModels.FirstOrDefault(m => m.ProviderId == active.ProviderId && m.ModelId == active.ModelId)
+            ?? AvailableModels.FirstOrDefault();
+        _applyingSelection = false;
+
+        // If settings pointed at a model that no longer exists, adopt the fallback everywhere.
+        if (SelectedModel is { } fallback &&
+            (fallback.ProviderId != active.ProviderId || fallback.ModelId != active.ModelId))
+        {
+            await _activeModel.SetAsync(fallback.ProviderId, fallback.ModelId);
+        }
+
+        OnPropertyChanged(nameof(ModelLabel));
+    }
+
+    partial void OnSelectedModelChanged(ModelOption? value)
+    {
+        if (_applyingSelection || value is null)
+            return;
+
+        _ = _activeModel.SetAsync(value.ProviderId, value.ModelId);
+    }
+
+    /// <summary>Another surface changed the active model — mirror it into this view model.</summary>
+    private void OnActiveModelChanged(object? sender, EventArgs e)
+    {
+        var active = _activeModel.Current;
+
+        _applyingSelection = true;
+        SelectedModel =
+            AvailableModels.FirstOrDefault(m => m.ProviderId == active.ProviderId && m.ModelId == active.ModelId)
+            ?? SelectedModel;
+        _applyingSelection = false;
+
+        OnPropertyChanged(nameof(ModelLabel));
+    }
+
+    [RelayCommand(CanExecute = nameof(CanSend))]
+    private async Task SendAsync()
+    {
+        var text = Input.Trim();
+        if (text.Length == 0)
+            return;
+
+        Input = string.Empty;
+
+        Messages.Add(new ChatMessageViewModel("You", text, isUser: true));
+        _conversation.Add(new ChatMessage(ChatRole.User, text));
+
+        var reply = new ChatMessageViewModel(_orchestrator.ActiveProvider.DisplayName, string.Empty, isUser: false);
+        Messages.Add(reply);
+
+        IsBusy = true;
+        try
+        {
+            var sb = new StringBuilder();
+            await foreach (var delta in _orchestrator.StreamReplyAsync(_conversation))
+            {
+                sb.Append(delta);
+                reply.Text = sb.ToString();
+            }
+
+            reply.Text = sb.Length == 0 ? "(no response)" : sb.ToString();
+            _conversation.Add(new ChatMessage(ChatRole.Assistant, reply.Text));
+        }
+        catch (Exception ex)
+        {
+            reply.Text = $"⚠ {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+        await PersistAsync();
+    }
+
+    private bool CanSend() => !IsBusy;
+
+    /// <summary>Starts a fresh conversation, clearing the screen and the model context.</summary>
+    [RelayCommand]
+    private void NewConversation()
+    {
+        Messages.Clear();
+        _conversation.Clear();
+        _conversation.Add(new ChatMessage(ChatRole.System, SystemPrompt));
+        _current = new StoredConversation();
+    }
+
+    /// <summary>Replaces the current session with a saved one loaded from history.</summary>
+    public async Task LoadConversationAsync(string id)
+    {
+        var convo = await _history.GetAsync(id);
+        if (convo is null)
+            return;
+
+        _current = convo;
+
+        Messages.Clear();
+        _conversation.Clear();
+        _conversation.Add(new ChatMessage(ChatRole.System, SystemPrompt));
+
+        foreach (var m in convo.Messages)
+        {
+            Messages.Add(new ChatMessageViewModel(m.Author, m.Text, m.IsUser));
+            _conversation.Add(new ChatMessage(m.IsUser ? ChatRole.User : ChatRole.Assistant, m.Text));
+        }
+    }
+
+    /// <summary>Snapshots the visible conversation to the store after each completed exchange.</summary>
+    private async Task PersistAsync()
+    {
+        _current.Messages = Messages
+            .Select(m => new StoredMessage { Author = m.Author, Text = m.Text, IsUser = m.IsUser })
+            .ToList();
+
+        if (string.IsNullOrWhiteSpace(_current.Title))
+            _current.Title = DeriveTitle();
+
+        _current.UpdatedAt = DateTimeOffset.Now;
+        await _history.SaveAsync(_current);
+    }
+
+    /// <summary>Title from the first user message, trimmed to a single short line.</summary>
+    private string DeriveTitle()
+    {
+        var first = Messages.FirstOrDefault(m => m.IsUser)?.Text.Trim().ReplaceLineEndings(" ");
+        if (string.IsNullOrWhiteSpace(first))
+            return "New conversation";
+
+        return first.Length <= 60 ? first : first[..60].TrimEnd() + "…";
+    }
+
+    partial void OnIsBusyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsNotBusy));
+        SendCommand.NotifyCanExecuteChanged();
+    }
+}

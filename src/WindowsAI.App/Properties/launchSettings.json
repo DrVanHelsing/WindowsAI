@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "WindowsAI.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "WindowsAI.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

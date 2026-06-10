@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="WindowsAI_App.Windows.OverlayWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:WindowsAI_App.ViewModels"
+    xmlns:conv="using:WindowsAI_App.Converters">
+
+    <!--
+        Left-edge slide-in panel. Full screen height, 420 logical px wide.
+        RootHost starts at X=-440 (off-screen left) and translates to X=0 on show.
+        MicaAlt backdrop is set in code-behind.
+    -->
+    <Grid x:Name="RootHost" Opacity="0">
+        <Grid.RenderTransform>
+            <TranslateTransform x:Name="RootSlide" X="-440" />
+        </Grid.RenderTransform>
+
+        <Grid.Resources>
+
+            <!-- Show: slide in from left + fade -->
+            <Storyboard x:Name="ShowStoryboard">
+                <DoubleAnimation
+                    Storyboard.TargetName="RootSlide"
+                    Storyboard.TargetProperty="X"
+                    To="0"
+                    Duration="0:0:0.22">
+                    <DoubleAnimation.EasingFunction>
+                        <CubicEase EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+                <DoubleAnimation
+                    Storyboard.TargetName="RootHost"
+                    Storyboard.TargetProperty="Opacity"
+                    To="1"
+                    Duration="0:0:0.16" />
+            </Storyboard>
+
+            <!-- Dismiss: slide out to left + fade -->
+            <Storyboard x:Name="DismissStoryboard" Completed="DismissStoryboard_Completed">
+                <DoubleAnimation
+                    Storyboard.TargetName="RootSlide"
+                    Storyboard.TargetProperty="X"
+                    To="-440"
+                    Duration="0:0:0.16">
+                    <DoubleAnimation.EasingFunction>
+                        <CubicEase EasingMode="EaseIn" />
+                    </DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+                <DoubleAnimation
+                    Storyboard.TargetName="RootHost"
+                    Storyboard.TargetProperty="Opacity"
+                    To="0"
+                    Duration="0:0:0.14" />
+            </Storyboard>
+
+            <!-- Ambient bar pulse during inference -->
+            <Storyboard
+                x:Name="AmbientPulseStoryboard"
+                AutoReverse="True"
+                RepeatBehavior="Forever">
+                <DoubleAnimation
+                    Storyboard.TargetName="AmbientBar"
+                    Storyboard.TargetProperty="Opacity"
+                    From="0.30"
+                    To="1.0"
+                    Duration="0:0:0.6">
+                    <DoubleAnimation.EasingFunction>
+                        <SineEase EasingMode="EaseInOut" />
+                    </DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+            </Storyboard>
+
+            <!-- Sparkle icon spin during inference -->
+            <Storyboard
+                x:Name="SparkleSpinStoryboard"
+                RepeatBehavior="Forever">
+                <DoubleAnimation
+                    Storyboard.TargetName="SparkleRotate"
+                    Storyboard.TargetProperty="Angle"
+                    From="0"
+                    To="360"
+                    Duration="0:0:1.2" />
+            </Storyboard>
+
+        </Grid.Resources>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="3" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 2px ambient gradient bar — pulses during inference -->
+        <Rectangle
+            x:Name="AmbientBar"
+            Grid.Row="0"
+            Fill="{StaticResource GlowGradientBrush}"
+            Opacity="0.30" />
+
+        <!-- Subtle right-edge separator line -->
+        <Rectangle
+            Grid.Row="0"
+            Grid.RowSpan="2"
+            Width="1"
+            HorizontalAlignment="Right"
+            Opacity="0.12">
+            <Rectangle.Fill>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Offset="0.0" Color="Transparent" />
+                    <GradientStop Offset="0.15" Color="White" />
+                    <GradientStop Offset="0.85" Color="White" />
+                    <GradientStop Offset="1.0" Color="Transparent" />
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <!-- Panel content -->
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- ── Search pill ─────────────────────────────────────── -->
+            <Grid Grid.Row="0" Margin="16,16,16,10">
+                <Border
+                    x:Name="SearchPillBorder"
+                    Height="52"
+                    Background="#14FFFFFF"
+                    BorderBrush="#207A6CFF"
+                    BorderThickness="1"
+                    CornerRadius="26" />
+                <Grid Margin="14,0,14,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Sparkle icon (spins during inference) -->
+                    <Grid Grid.Column="0" Width="26" VerticalAlignment="Center" Margin="0,0,8,0" RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <RotateTransform x:Name="SparkleRotate" />
+                        </Grid.RenderTransform>
+                        <FontIcon
+                            FontSize="18"
+                            Foreground="#7A6CFF"
+                            Glyph="&#xE77B;" />
+                    </Grid>
+
+                    <TextBox
+                        x:Name="SearchBox"
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        FontSize="16"
+                        KeyDown="SearchBox_KeyDown"
+                        PlaceholderText="Ask anything, or search your PC…"
+                        Text="{x:Bind ViewModel.Input, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <!-- Model chip -->
+                    <Border
+                        Grid.Column="2"
+                        Padding="10,5"
+                        VerticalAlignment="Center"
+                        Background="#1A7A6CFF"
+                        CornerRadius="12">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <FontIcon
+                                FontSize="10"
+                                Foreground="#9B80FF"
+                                Glyph="&#xE72E;" />
+                            <TextBlock
+                                FontSize="11"
+                                Foreground="#9B80FF"
+                                Text="{x:Bind ViewModel.ModelLabel, Mode=OneWay}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- ── Context chips ──────────────────────────────────── -->
+            <ScrollViewer
+                Grid.Row="1"
+                Margin="16,0,16,10"
+                HorizontalScrollBarVisibility="Hidden"
+                HorizontalScrollMode="Auto"
+                VerticalScrollMode="Disabled">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Border
+                        Padding="10,5"
+                        Background="#0DFFFFFF"
+                        CornerRadius="12">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <FontIcon FontSize="11" Foreground="#88FFFFFF" Glyph="&#xE7F4;" />
+                            <TextBlock FontSize="11" Foreground="#88FFFFFF" Text="Screen" />
+                        </StackPanel>
+                    </Border>
+                    <Border
+                        Padding="10,5"
+                        Background="#0DFFFFFF"
+                        CornerRadius="12">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <FontIcon FontSize="11" Foreground="#88FFFFFF" Glyph="&#xE77F;" />
+                            <TextBlock FontSize="11" Foreground="#88FFFFFF" Text="Clipboard" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Divider -->
+            <Rectangle
+                Grid.Row="2"
+                Height="1"
+                Margin="16,0,16,0"
+                Fill="#0CFFFFFF" />
+
+            <!-- ── Messages ────────────────────────────────────────── -->
+            <ListView
+                x:Name="ResultsList"
+                Grid.Row="3"
+                Padding="16,10,16,10"
+                ItemsSource="{x:Bind ViewModel.Messages}"
+                SelectionMode="None">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Padding" Value="0,4" />
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="MinHeight" Value="0" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemContainerTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromVerticalOffset="10" IsStaggeringEnabled="False" />
+                    </TransitionCollection>
+                </ListView.ItemContainerTransitions>
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ChatMessageViewModel">
+                        <Grid Margin="0,4">
+                            <!--  User message — right-aligned indigo capsule  -->
+                            <Border
+                                MaxWidth="310"
+                                HorizontalAlignment="Right"
+                                Padding="14,10"
+                                Background="#221E5C"
+                                CornerRadius="18,18,4,18"
+                                Visibility="{x:Bind conv:Vis.If(IsUser)}">
+                                <TextBlock
+                                    FontSize="14"
+                                    Foreground="White"
+                                    Text="{x:Bind Text, Mode=OneWay}"
+                                    TextWrapping="Wrap" />
+                            </Border>
+
+                            <!--  AI message — left-aligned prose with indigo accent bar  -->
+                            <Grid
+                                HorizontalAlignment="Stretch"
+                                Visibility="{x:Bind conv:Vis.IfNot(IsUser)}">
+                                <Rectangle
+                                    Width="3"
+                                    Margin="0,3,0,3"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Stretch"
+                                    Fill="#7A6CFF"
+                                    RadiusX="2"
+                                    RadiusY="2" />
+                                <TextBlock
+                                    Margin="14,0,0,0"
+                                    FontSize="14"
+                                    Foreground="#EEFFFFFF"
+                                    IsTextSelectionEnabled="True"
+                                    LineHeight="22"
+                                    Text="{x:Bind Text, Mode=OneWay}"
+                                    TextWrapping="Wrap" />
+                            </Grid>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <!-- ── Footer / Privacy badge ─────────────────────────── -->
+            <Border
+                Grid.Row="4"
+                Padding="16,10"
+                BorderBrush="#0CFFFFFF"
+                BorderThickness="0,1,0,0">
+                <Grid>
+                    <!--  Privacy badge  -->
+                    <Border
+                        HorizontalAlignment="Left"
+                        Padding="10,5"
+                        Background="#0CFFFFFF"
+                        CornerRadius="10">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <ProgressRing
+                                Width="10"
+                                Height="10"
+                                Foreground="#7A6CFF"
+                                IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" />
+                            <FontIcon
+                                FontSize="10"
+                                Foreground="#7A6CFF"
+                                Glyph="&#xE72E;"
+                                Visibility="{x:Bind conv:Vis.IfNot(ViewModel.IsBusy), Mode=OneWay}" />
+                            <TextBlock
+                                FontSize="11"
+                                Foreground="#88FFFFFF"
+                                Text="{x:Bind ViewModel.ModelLabel, Mode=OneWay}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!--  Keyboard hint  -->
+                    <TextBlock
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Foreground="#33FFFFFF"
+                        Text="Alt+Space · Esc" />
+                </Grid>
+            </Border>
+
+        </Grid>
+    </Grid>
+</Window>
