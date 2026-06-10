@@ -136,13 +136,11 @@ public sealed partial class OverlayWindow : Window
         {
             ThinkingFrame.Opacity = 1;
             ThinkingSpinStoryboard.Begin();
-            SparkleSpinStoryboard.Begin();
         }
         else
         {
             ThinkingFrame.Opacity = 0;
             ThinkingSpinStoryboard.Stop();
-            SparkleSpinStoryboard.Stop();
         }
     }
 

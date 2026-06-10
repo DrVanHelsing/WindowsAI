@@ -47,6 +47,10 @@ public partial class ChatViewModel : ObservableObject
     [ObservableProperty]
     public partial bool UseLocalContext { get; set; }
 
+    /// <summary>True only while a local file search is running — drives the sparkle indicator.</summary>
+    [ObservableProperty]
+    public partial bool IsSearchingFiles { get; set; }
+
     public bool IsNotBusy => !IsBusy;
 
     public string ModelLabel => _orchestrator.ActiveModelLabel;
@@ -139,7 +143,17 @@ public partial class ChatViewModel : ObservableObject
             // system message. Removed after the exchange so it never bloats later turns.
             if (UseLocalContext)
             {
-                var documents = await _localContext.SearchAsync(text, maxResults: 4);
+                IsSearchingFiles = true;
+                IReadOnlyList<LocalDocument> documents;
+                try
+                {
+                    documents = await _localContext.SearchAsync(text, maxResults: 4);
+                }
+                finally
+                {
+                    IsSearchingFiles = false;
+                }
+
                 if (documents.Count > 0)
                 {
                     contextMessage = new ChatMessage(ChatRole.System, BuildContextBlock(documents));

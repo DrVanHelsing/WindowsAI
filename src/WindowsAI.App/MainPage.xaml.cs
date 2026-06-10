@@ -66,6 +66,25 @@ public sealed partial class MainPage : Page
         InputBox.SelectionStart = InputBox.Text.Length;
     }
 
+    /// <summary>Opens a RAG source file in its default app. Failure is silent — the file may be gone.</summary>
+    private void Source_Click(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is not WindowsAI.Core.Context.LocalDocument doc)
+            return;
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(doc.Path)
+            {
+                UseShellExecute = true,
+            });
+        }
+        catch
+        {
+            // Best effort — opening a moved/locked file shouldn't disrupt the chat.
+        }
+    }
+
     private void CopyMessage_Click(object sender, RoutedEventArgs e)
     {
         if (((FrameworkElement)sender).Tag is not ChatMessageViewModel message)

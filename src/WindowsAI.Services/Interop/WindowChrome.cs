@@ -29,17 +29,26 @@ public static class WindowChrome
     private const uint DWMWA_BORDER_COLOR = 34;
     private const uint DWMWA_COLOR_NONE = 0xFFFFFFFE;
 
+    // DWMWA_WINDOW_CORNER_PREFERENCE (33): Win11 rounds window corners by default, which
+    // leaves a faint light arc against our square transparent panel. Force square corners.
+    private const uint DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    private const uint DWMWCP_DONOTROUND = 1;
+
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, uint attribute, ref uint value, int size);
 
     /// <summary>
-    /// Removes the 1px border Windows 11 draws around borderless windows
-    /// (SetBorderAndTitleBar(false, false) alone still leaves it).
+    /// Removes the chrome Windows 11 draws around a borderless window: the 1px light
+    /// border (SetBorderAndTitleBar(false, false) alone still leaves it) and the rounded
+    /// corners (whose anti-aliased arc otherwise shows as a white edge on our panel).
     /// </summary>
     public static void RemoveWindowBorder(IntPtr hwnd)
     {
         var none = DWMWA_COLOR_NONE;
         _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref none, sizeof(uint));
+
+        var square = DWMWCP_DONOTROUND;
+        _ = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref square, sizeof(uint));
     }
 
     /// <summary>Work area (excludes taskbar) of the monitor currently under the mouse cursor.</summary>
