@@ -21,6 +21,7 @@ public sealed partial class MainWindow : Window
         AppWindow.SetIcon("Assets/AppIcon.ico");
 
         ContentFrame.Navigate(typeof(MainPage), null, new EntranceNavigationTransitionInfo());
+        NavChat.IsChecked = true;
     }
 
     /// <summary>Re-selects Chat and navigates the frame to it.</summary>
@@ -33,6 +34,8 @@ public sealed partial class MainWindow : Window
 
     private void NavItem_Checked(object sender, RoutedEventArgs e)
     {
+        if (ContentFrame is null) return; // fired during InitializeComponent
+
         var tag = ((RadioButton)sender).Tag as string;
         var target = tag switch
         {

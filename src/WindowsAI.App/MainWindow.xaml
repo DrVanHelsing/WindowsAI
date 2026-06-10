@@ -154,10 +154,11 @@
             <!-- Navigation items -->
             <StackPanel Grid.Row="2" Margin="12,4,12,4" Spacing="2">
 
+                <!-- IsChecked is set in code-behind: assigning it here fires Checked
+                     mid-parse, before ContentFrame is connected, and crashes the window. -->
                 <RadioButton
                     x:Name="NavChat"
                     GroupName="AppNav"
-                    IsChecked="True"
                     Style="{StaticResource NavRadioButtonStyle}"
                     Tag="chat"
                     Checked="NavItem_Checked">
