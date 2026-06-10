@@ -1,0 +1,162 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# WindowsAI — .NET 10 / WinUI 3 (Windows App SDK) solution
+# ──────────────────────────────────────────────────────────────────────────────
+
+## Build output
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Bb]uild/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+
+## Per-platform intermediate output (only when they appear as output dirs;
+## source folders never use these names in this repo)
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+ARM/
+ARM64/
+bld/
+
+## Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.vssscc
+*.vspscc
+*.sln.iml
+
+## JetBrains Rider
+.idea/
+*.DotSettings.user
+
+## VS Code (keep shared settings out; commit nothing by default)
+.vscode/
+
+## Build logs / diagnostics
+*.log
+*.binlog
+*.tlog
+msbuild.wrn
+msbuild.err
+
+## Test results & coverage
+[Tt]est[Rr]esult*/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+*.dotCover
+coverage*.json
+coverage*.xml
+coverage*.info
+
+## NuGet
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+# Package restore folders (PackageReference makes these obsolete, but just in case)
+[Pp]ackages/
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+## .NET tooling
+.dotnet/
+.fake/
+.ionide/
+*.svclog
+
+## MSIX / AppX packaging output
+AppPackages/
+BundleArtifacts/
+Package.StoreAssociation.xml
+_pkginfo.txt
+*.appx
+*.appxbundle
+*.appxupload
+*.msix
+*.msixbundle
+*.msixupload
+
+## Signing certificates — never commit private keys
+*.pfx
+*.cer
+*.snk
+*.p12
+
+## Publish output
+[Pp]ublish/
+publish/
+PublishScripts/
+*.publishsettings
+*.azurePubxml
+# .pubxml.user may contain machine-local publish state; the .pubxml profiles
+# themselves (Properties/PublishProfiles/) are committed intentionally
+*.pubxml.user
+
+## WinUI / XAML compiler intermediates (normally under obj/, listed defensively)
+Generated\ Files/
+*.g.cs
+*.g.i.cs
+*.xbf
+XamlSaveStateFile.xml
+
+## CsWinRT / WinMD intermediates
+*.winmd.lastcodegen
+
+## ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+## Profilers / dumps
+*.psess
+*.vsp
+*.vspx
+*.sap
+*.dmp
+*.mdmp
+
+## Local secrets & environment — never commit
+*.env
+.env
+.env.*
+secrets.json
+appsettings.*.local.json
+*.secret.*
+
+## AI assistant local config
+.claude/
+CLAUDE.local.md
+
+## Windows OS cruft
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+## macOS cruft (in case the repo is ever cloned there)
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+## Archives & local backups
+*.bak
+*.tmp
+*.temp
+*.orig
+*.rej
+*~
+_xamlbak/

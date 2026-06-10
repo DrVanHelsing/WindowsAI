@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WindowsAI.App/WindowsAI.App.csproj">
+      <Platform Project="x86" />
+    </Project>
+    <Project Path="src/WindowsAI.Core/WindowsAI.Core.csproj" />
+    <Project Path="src/WindowsAI.Services/WindowsAI.Services.csproj" />
+  </Folder>
+</Solution>
