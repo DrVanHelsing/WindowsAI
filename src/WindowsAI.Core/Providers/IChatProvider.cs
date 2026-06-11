@@ -24,6 +24,12 @@ public interface IChatProvider
     bool IsConfigured { get; }
 
     /// <summary>
+    /// True if the active model can accept images (multimodal). Defaults to false so text-only
+    /// backends (e.g. local Gemma via Ollama) are never sent image content they'd reject.
+    /// </summary>
+    bool SupportsVision => false;
+
+    /// <summary>
     /// Returns a chat client for the given model id, configured from current settings and secrets.
     /// Throws <see cref="ProviderNotConfiguredException"/> if a required key is missing.
     /// </summary>

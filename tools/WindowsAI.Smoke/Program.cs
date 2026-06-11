@@ -88,6 +88,34 @@ try
         Check("Changed fired again on second change", events == 2, $"events={events}");
     }
 
+    // 3b) File text extraction (chat attachments): plain text passthrough + docx unzip/strip.
+    //     PDF is exercised only via CanExtract — hand-crafting a valid PDF here isn't worth it.
+    Console.WriteLine("File text extraction (attachments)");
+    {
+        var txtPath = Path.Combine(tmp, "note.txt");
+        await File.WriteAllTextAsync(txtPath, "alpha beta");
+        Check("txt reads through", (await FileTextExtractor.ExtractAsync(txtPath)).Trim() == "alpha beta");
+
+        // Minimal .docx: a zip whose word/document.xml carries two paragraphs.
+        var docxPath = Path.Combine(tmp, "doc.docx");
+        using (var zip = System.IO.Compression.ZipFile.Open(docxPath, System.IO.Compression.ZipArchiveMode.Create))
+        {
+            using var writer = new StreamWriter(zip.CreateEntry("word/document.xml").Open());
+            writer.Write("<w:document><w:body><w:p><w:r><w:t>first</w:t></w:r></w:p>" +
+                         "<w:p><w:r><w:t>second &amp; more</w:t></w:r></w:p></w:body></w:document>");
+        }
+
+        var docxText = await FileTextExtractor.ExtractAsync(docxPath);
+        Check("docx paragraphs extracted on separate lines",
+            docxText.Contains("first\n") && docxText.Contains("second"), $"text=\"{Truncate(docxText.Replace("\n", "\\n"), 60)}\"");
+        Check("docx entities decoded", docxText.Contains("second & more"));
+
+        Check("CanExtract accepts pdf/docx/txt",
+            FileTextExtractor.CanExtract("a.pdf") && FileTextExtractor.CanExtract("a.DOCX") && FileTextExtractor.CanExtract("a.txt"));
+        Check("CanExtract rejects images/binaries",
+            !FileTextExtractor.CanExtract("a.png") && !FileTextExtractor.CanExtract("a.exe"));
+    }
+
     // 4) Local context retrieval against the live Windows Search index.
     Console.WriteLine("Local context retrieval (Windows Search index)");
     {

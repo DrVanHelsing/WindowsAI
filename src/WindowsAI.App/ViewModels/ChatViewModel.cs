@@ -36,6 +36,17 @@ public partial class ChatViewModel : ObservableObject
 
     public ObservableCollection<ModelOption> AvailableModels { get; } = new();
 
+    /// <summary>Files queued in the composer, sent (then cleared) with the next message.</summary>
+    public ObservableCollection<PendingAttachment> PendingAttachments { get; } = new();
+
+    public bool HasPendingAttachments => PendingAttachments.Count > 0;
+
+    /// <summary>Inline composer note (e.g. "this model can't read images"). Empty = hidden.</summary>
+    [ObservableProperty]
+    public partial string AttachmentNotice { get; set; } = string.Empty;
+
+    public bool HasAttachmentNotice => AttachmentNotice.Length > 0;
+
     [ObservableProperty]
     public partial ModelOption? SelectedModel { get; set; }
 
@@ -73,7 +84,53 @@ public partial class ChatViewModel : ObservableObject
 
         // Stay in sync when the active model is changed on any other surface.
         _activeModel.Changed += OnActiveModelChanged;
+
+        PendingAttachments.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(HasPendingAttachments));
+            SendCommand.NotifyCanExecuteChanged();
+        };
     }
+
+    /// <summary>
+    /// Queues picked files for the next message. Documents must be a type we can extract text
+    /// from; images additionally require the active model to support vision — anything else is
+    /// rejected with an inline notice rather than failing the send later.
+    /// </summary>
+    public void AddAttachments(IEnumerable<string> paths)
+    {
+        var notices = new List<string>();
+        foreach (var path in paths)
+        {
+            if (PendingAttachments.Any(a => string.Equals(a.Path, path, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            if (PendingAttachment.IsImagePath(path))
+            {
+                if (_orchestrator.ActiveProvider.SupportsVision)
+                    PendingAttachments.Add(new PendingAttachment(path));
+                else
+                    notices.Add($"{Path.GetFileName(path)} skipped — {_orchestrator.ActiveProvider.DisplayName} can't read images; switch to a cloud model.");
+            }
+            else if (FileTextExtractor.CanExtract(path))
+            {
+                PendingAttachments.Add(new PendingAttachment(path));
+            }
+            else
+            {
+                notices.Add($"{Path.GetFileName(path)} skipped — unsupported file type.");
+            }
+        }
+
+        AttachmentNotice = string.Join('\n', notices);
+    }
+
+    [RelayCommand]
+    private void RemoveAttachment(PendingAttachment attachment)
+        => PendingAttachments.Remove(attachment);
+
+    partial void OnAttachmentNoticeChanged(string value)
+        => OnPropertyChanged(nameof(HasAttachmentNotice));
 
     /// <summary>Loads the model list and selects the active one. Call after construction.</summary>
     public async Task InitializeAsync()
@@ -127,20 +184,37 @@ public partial class ChatViewModel : ObservableObject
     private async Task SendAsync()
     {
         var text = Input.Trim();
-        if (text.Length == 0)
+        var attachments = PendingAttachments.ToList();
+        if (text.Length == 0 && attachments.Count == 0)
             return;
+        if (text.Length == 0)
+            text = "See the attached file(s).";
 
         Input = string.Empty;
+        PendingAttachments.Clear();
+        AttachmentNotice = string.Empty;
 
-        Messages.Add(new ChatMessageViewModel("You", text, isUser: true));
+        var userBubble = new ChatMessageViewModel("You", text, isUser: true);
+        if (attachments.Count > 0)
+        {
+            userBubble.Sources = attachments
+                .Select(a => new LocalDocument(a.Path, a.Name, snippet: string.Empty))
+                .ToList();
+        }
+        Messages.Add(userBubble);
 
         var reply = new ChatMessageViewModel(_orchestrator.ActiveProvider.DisplayName, string.Empty, isUser: false);
         Messages.Add(reply);
 
         IsBusy = true;
         ChatMessage? toolHint = null;
+        ChatMessage? attachmentContext = null;
         try
         {
+            attachmentContext = await BuildAttachmentContextAsync(attachments);
+            if (attachmentContext is not null)
+                _conversation.Add(attachmentContext);
+
             // Local-first RAG, agentic: when "Search my PC" is on the model is given tools to
             // search the index and open found files, and decides when to use them. The tool
             // delegates drive IsSearchingFiles + the reply's source chips. Tools are built per
@@ -164,7 +238,7 @@ public partial class ChatViewModel : ObservableObject
                 _conversation.Add(toolHint);
             }
 
-            _conversation.Add(new ChatMessage(ChatRole.User, text));
+            _conversation.Add(BuildUserMessage(text, attachments));
 
             var sb = new StringBuilder();
             await foreach (var delta in _orchestrator.StreamReplyAsync(_conversation, tools))
@@ -184,6 +258,10 @@ public partial class ChatViewModel : ObservableObject
         {
             if (toolHint is not null)
                 _conversation.Remove(toolHint);
+            // Attachment text is transient like the tool hint: the assistant's reply already
+            // reflects it, so keeping it would bloat every later turn with the full document.
+            if (attachmentContext is not null)
+                _conversation.Remove(attachmentContext);
             IsSearchingFiles = false;
             IsBusy = false;
         }
@@ -192,6 +270,63 @@ public partial class ChatViewModel : ObservableObject
     }
 
     private bool CanSend() => !IsBusy;
+
+    /// <summary>Per-attachment character cap for injected document text — keeps a big PDF from blowing the context window.</summary>
+    private const int MaxAttachmentChars = 20_000;
+
+    /// <summary>
+    /// Extracts text from document attachments into one transient system message. Extraction
+    /// failures become part of the context (the model can tell the user) instead of throwing.
+    /// </summary>
+    private static async Task<ChatMessage?> BuildAttachmentContextAsync(IReadOnlyList<PendingAttachment> attachments)
+    {
+        var documents = attachments.Where(a => !a.IsImage).ToList();
+        if (documents.Count == 0)
+            return null;
+
+        var sb = new StringBuilder("The user attached the following file(s) to their message:\n");
+        foreach (var doc in documents)
+        {
+            string body;
+            try
+            {
+                body = (await FileTextExtractor.ExtractAsync(doc.Path)).Trim();
+                if (body.Length > MaxAttachmentChars)
+                    body = body[..MaxAttachmentChars] + "\n[…truncated]";
+            }
+            catch (Exception ex)
+            {
+                body = $"[could not read file: {ex.Message}]";
+            }
+
+            sb.Append("\n--- ").Append(doc.Name).Append(" ---\n").Append(body).Append('\n');
+        }
+
+        return new ChatMessage(ChatRole.System, sb.ToString());
+    }
+
+    /// <summary>The user turn: plain text, plus inline image bytes when images are attached.</summary>
+    private static ChatMessage BuildUserMessage(string text, IReadOnlyList<PendingAttachment> attachments)
+    {
+        var images = attachments.Where(a => a.IsImage).ToList();
+        if (images.Count == 0)
+            return new ChatMessage(ChatRole.User, text);
+
+        var contents = new List<AIContent> { new TextContent(text) };
+        foreach (var image in images)
+        {
+            try
+            {
+                contents.Add(new DataContent(File.ReadAllBytes(image.Path), image.MediaType!));
+            }
+            catch (Exception ex)
+            {
+                contents.Add(new TextContent($"[attached image {image.Name} could not be read: {ex.Message}]"));
+            }
+        }
+
+        return new ChatMessage(ChatRole.User, contents);
+    }
 
     /// <summary>Merges newly-found files into a reply's source chips, de-duped by path.</summary>
     private static void AppendSources(ChatMessageViewModel reply, IReadOnlyList<LocalDocument> documents)

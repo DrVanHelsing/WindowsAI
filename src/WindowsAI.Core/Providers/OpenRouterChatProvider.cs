@@ -12,6 +12,9 @@ public sealed class OpenRouterChatProvider : OpenAiCompatibleChatProvider
     public override string Id => "openrouter";
     public override string DisplayName => "OpenRouter (cloud)";
 
+    /// <summary>OpenRouter gateways many vision-capable models — allow image attachments.</summary>
+    public override bool SupportsVision => true;
+
     protected override string ApiKeyName => SecretKeys.OpenRouterApiKey;
     protected override string BaseUrl => Settings.Current.OpenRouter.BaseUrl;
 }

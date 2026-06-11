@@ -58,6 +58,32 @@ public sealed partial class MainPage : Page
     private void LocalContext_Toggled(object sender, RoutedEventArgs e)
         => ViewModel.UseLocalContext = LocalContextToggle.IsChecked == true;
 
+    /// <summary>Paperclip: pick documents/images to send with the next message.</summary>
+    private async void Attach_Click(object sender, RoutedEventArgs e)
+    {
+        // Unpackaged WinUI pickers need an explicit owner HWND.
+        if (((App)Application.Current).AppShell is not { } shell)
+            return;
+
+        var picker = new global::Windows.Storage.Pickers.FileOpenPicker();
+        WinRT.Interop.InitializeWithWindow.Initialize(
+            picker, WinRT.Interop.WindowNative.GetWindowHandle(shell));
+
+        foreach (var ext in WindowsAI.Core.Context.FileTextExtractor.SupportedExtensions
+                     .Concat(ViewModels.PendingAttachment.ImageExtensions))
+            picker.FileTypeFilter.Add(ext);
+
+        var files = await picker.PickMultipleFilesAsync();
+        if (files is { Count: > 0 })
+            ViewModel.AddAttachments(files.Select(f => f.Path));
+    }
+
+    private void RemoveAttachment_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).Tag is PendingAttachment attachment)
+            ViewModel.RemoveAttachmentCommand.Execute(attachment);
+    }
+
     /// <summary>Suggestion chip: drop its prompt into the composer ready to edit/send.</summary>
     private void Suggestion_Click(object sender, RoutedEventArgs e)
     {

@@ -28,6 +28,10 @@ public abstract class OpenAiCompatibleChatProvider : IChatProvider
     public bool IsLocal => false;
     public bool RequiresApiKey => true;
 
+    /// <summary>Whether this endpoint's models accept images. Off by default; vision-capable
+    /// cloud providers (Gemini, OpenRouter) override it.</summary>
+    public virtual bool SupportsVision => false;
+
     /// <summary>Name of the secret (in <see cref="ISecretStore"/>) holding this provider's API key.</summary>
     protected abstract string ApiKeyName { get; }
 
