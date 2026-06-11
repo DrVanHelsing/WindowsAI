@@ -128,17 +128,23 @@ function Save-Png([Drawing.Bitmap]$bmp, [string]$name) {
 function Get-PngBytes([int]$size, [bool]$withTile) {
     $bmp = New-Object Drawing.Bitmap $size, $size
     $g = [Drawing.Graphics]::FromImage($bmp)
-    Draw-Mark $g $size $withTile
+    Draw-Mark $g $size $withTile | Out-Null   # swallow any pipeline output from drawing
     $g.Dispose()
     $ms = New-Object IO.MemoryStream
     $bmp.Save($ms, [Drawing.Imaging.ImageFormat]::Png)
     $bmp.Dispose()
-    return $ms.ToArray()
+    $bytes = $ms.ToArray()
+    $ms.Dispose()
+    # Unary comma: return the byte[] as a single object. Without it PowerShell unrolls the
+    # array into the pipeline and callers receive boxed bytes (Object[]), which BinaryWriter
+    # can't write — that produced a header-only 125-byte ICO with no image data.
+    return ,$bytes
 }
 
 # ── AppIcon.ico: PNG-compressed multi-size ICO ───────────────────────────────
 $sizes = 16, 24, 32, 48, 64, 128, 256
-$images = $sizes | ForEach-Object { ,(Get-PngBytes $_ $true) }
+$images = New-Object 'System.Collections.Generic.List[byte[]]'
+foreach ($s in $sizes) { $images.Add((Get-PngBytes $s $true)) }
 
 $icoPath = Join-Path $assets "AppIcon.ico"
 $stream = [IO.File]::Create($icoPath)
