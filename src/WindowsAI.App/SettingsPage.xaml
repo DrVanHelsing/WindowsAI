@@ -10,6 +10,19 @@
     NavigationCacheMode="Required"
     mc:Ignorable="d">
 
+    <Page.Resources>
+        <!--  Square glass tile holding a provider glyph, shared by every settings row.  -->
+        <Style x:Key="SettingsIconTileStyle" TargetType="Border">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Background" Value="{StaticResource AccentFillSubtleBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource GlassStrokeSubtleBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
+        </Style>
+    </Page.Resources>
+
     <Grid Padding="28,24,28,16" RowSpacing="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -26,134 +39,163 @@
             <StackPanel
                 MaxWidth="640"
                 HorizontalAlignment="Stretch"
-                Spacing="14">
+                Spacing="10">
 
-                <!-- Local model -->
-                <Border Padding="20,16" Style="{StaticResource GlassCardStyle}">
-                    <StackPanel Spacing="10">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
+                <!--  Section label  -->
+                <TextBlock
+                    Margin="2,2,0,2"
+                    FontSize="11"
+                    CharacterSpacing="60"
+                    Foreground="{StaticResource TextTertiaryBrush}"
+                    Text="MODELS &amp; PROVIDERS" />
+
+                <!--  Local model (Ollama) — endpoint edited via a modal  -->
+                <Border Padding="18,14" Style="{StaticResource GlassCardStyle}">
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource SettingsIconTileStyle}">
                             <FontIcon
-                                FontSize="15"
+                                FontSize="16"
                                 Foreground="{StaticResource AccentTextBrush}"
                                 Glyph="&#xE977;" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Spacing="3">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="15"
                                 FontWeight="SemiBold"
                                 Foreground="{StaticResource TextPrimaryBrush}"
                                 Text="Local model (Ollama)" />
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="{StaticResource TextTertiaryBrush}"
+                                Text="Endpoint of your local Ollama server. Pull models with 'ollama pull'." />
+                            <TextBlock
+                                Margin="0,2,0,0"
+                                FontFamily="{StaticResource MonoFontFamily}"
+                                FontSize="12"
+                                Foreground="{StaticResource TextSecondaryBrush}"
+                                Text="{x:Bind ViewModel.OllamaEndpoint, Mode=OneWay}" />
                         </StackPanel>
-                        <TextBlock
-                            FontSize="12"
-                            Foreground="{StaticResource TextTertiaryBrush}"
-                            Text="Endpoint of your local Ollama server. Pull models with 'ollama pull'." />
-                        <Grid ColumnSpacing="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox x:Name="EndpointBox" Text="{x:Bind ViewModel.OllamaEndpoint, Mode=TwoWay}" />
-                            <Button
-                                Grid.Column="1"
-                                Click="SaveEndpoint_Click"
-                                Content="Save" />
-                        </Grid>
-                    </StackPanel>
+
+                        <Button
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            Click="ChangeEndpoint_Click"
+                            Content="Change…" />
+                    </Grid>
                 </Border>
 
-                <!-- OpenRouter -->
-                <Border Padding="20,16" Style="{StaticResource GlassCardStyle}">
-                    <StackPanel Spacing="10">
-                        <Grid>
-                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                <FontIcon
-                                    FontSize="15"
-                                    Foreground="{StaticResource AccentTextBrush}"
-                                    Glyph="&#xE968;" />
-                                <TextBlock
-                                    FontSize="16"
-                                    FontWeight="SemiBold"
-                                    Foreground="{StaticResource TextPrimaryBrush}"
-                                    Text="OpenRouter (cloud)" />
-                            </StackPanel>
+                <!--  OpenRouter (cloud)  -->
+                <Border Padding="18,14" Style="{StaticResource GlassCardStyle}">
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource SettingsIconTileStyle}">
+                            <FontIcon
+                                FontSize="16"
+                                Foreground="{StaticResource AccentTextBrush}"
+                                Glyph="&#xE968;" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Spacing="3">
                             <TextBlock
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Center"
-                                FontSize="11"
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                Foreground="{StaticResource TextPrimaryBrush}"
+                                Text="OpenRouter (cloud)" />
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="{StaticResource TextTertiaryBrush}"
+                                Text="Get a key at openrouter.ai. Stored encrypted (DPAPI) on this PC only." />
+                            <TextBlock
+                                Margin="0,2,0,0"
+                                FontSize="12"
                                 Foreground="{StaticResource AccentTextBrush}"
                                 Text="{x:Bind ViewModel.OpenRouterStatus, Mode=OneWay}" />
-                        </Grid>
-                        <TextBlock
-                            FontSize="12"
-                            Foreground="{StaticResource TextTertiaryBrush}"
-                            Text="Get a key at openrouter.ai. Stored encrypted (DPAPI) on this PC only." />
-                        <Grid ColumnSpacing="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <PasswordBox x:Name="OpenRouterKeyBox" PlaceholderText="sk-or-…" />
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="8">
                             <Button
-                                Grid.Column="1"
-                                Click="SaveOpenRouterKey_Click"
-                                Content="Save"
+                                Click="ManageOpenRouterKey_Click"
+                                Content="Manage…"
                                 Style="{StaticResource AccentButtonStyle}" />
                             <Button
-                                Grid.Column="2"
-                                Click="ClearOpenRouterKey_Click"
-                                Content="Clear" />
-                        </Grid>
-                    </StackPanel>
+                                Click="RemoveOpenRouterKey_Click"
+                                Content="Remove"
+                                Visibility="{x:Bind ViewModel.OpenRouterConfigured, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
 
-                <!-- Gemini -->
-                <Border Padding="20,16" Style="{StaticResource GlassCardStyle}">
-                    <StackPanel Spacing="10">
-                        <Grid>
-                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                <FontIcon
-                                    FontSize="15"
-                                    Foreground="{StaticResource AccentTextBrush}"
-                                    Glyph="&#xE753;" />
-                                <TextBlock
-                                    FontSize="16"
-                                    FontWeight="SemiBold"
-                                    Foreground="{StaticResource TextPrimaryBrush}"
-                                    Text="Gemini (cloud)" />
-                            </StackPanel>
+                <!--  Gemini (cloud)  -->
+                <Border Padding="18,14" Style="{StaticResource GlassCardStyle}">
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource SettingsIconTileStyle}">
+                            <FontIcon
+                                FontSize="16"
+                                Foreground="{StaticResource AccentTextBrush}"
+                                Glyph="&#xE753;" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Spacing="3">
                             <TextBlock
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Center"
-                                FontSize="11"
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                Foreground="{StaticResource TextPrimaryBrush}"
+                                Text="Gemini (cloud)" />
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="{StaticResource TextTertiaryBrush}"
+                                Text="Get a key from Google AI Studio. Stored encrypted (DPAPI) on this PC only." />
+                            <TextBlock
+                                Margin="0,2,0,0"
+                                FontSize="12"
                                 Foreground="{StaticResource AccentTextBrush}"
                                 Text="{x:Bind ViewModel.GeminiStatus, Mode=OneWay}" />
-                        </Grid>
-                        <TextBlock
-                            FontSize="12"
-                            Foreground="{StaticResource TextTertiaryBrush}"
-                            Text="Get a key from Google AI Studio. Stored encrypted (DPAPI) on this PC only." />
-                        <Grid ColumnSpacing="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <PasswordBox x:Name="GeminiKeyBox" PlaceholderText="AIza…" />
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="8">
                             <Button
-                                Grid.Column="1"
-                                Click="SaveGeminiKey_Click"
-                                Content="Save"
+                                Click="ManageGeminiKey_Click"
+                                Content="Manage…"
                                 Style="{StaticResource AccentButtonStyle}" />
                             <Button
-                                Grid.Column="2"
-                                Click="ClearGeminiKey_Click"
-                                Content="Clear" />
-                        </Grid>
-                    </StackPanel>
+                                Click="RemoveGeminiKey_Click"
+                                Content="Remove"
+                                Visibility="{x:Bind ViewModel.GeminiConfigured, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
 
                 <!-- About -->
-                <Border Padding="20,16" Style="{StaticResource GlassCardSubtleStyle}">
+                <Border
+                    Margin="0,6,0,0"
+                    Padding="20,16"
+                    Style="{StaticResource GlassCardSubtleStyle}">
                     <StackPanel Spacing="10">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <TextBlock

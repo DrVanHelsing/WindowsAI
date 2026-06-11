@@ -23,6 +23,13 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial string GeminiStatus { get; set; } = string.Empty;
 
+    /// <summary>True once a key is stored — drives the "Remove" button + "Add/Update" wording.</summary>
+    [ObservableProperty]
+    public partial bool OpenRouterConfigured { get; set; }
+
+    [ObservableProperty]
+    public partial bool GeminiConfigured { get; set; }
+
     public SettingsViewModel(ISettingsStore settings, ISecretStore secrets)
     {
         _settings = settings;
@@ -66,8 +73,13 @@ public partial class SettingsViewModel : ObservableObject
 
     private void RefreshStatuses()
     {
-        OpenRouterStatus = Describe(_secrets.Get(SecretKeys.OpenRouterApiKey));
-        GeminiStatus = Describe(_secrets.Get(SecretKeys.GeminiApiKey));
+        var openRouter = _secrets.Get(SecretKeys.OpenRouterApiKey);
+        var gemini = _secrets.Get(SecretKeys.GeminiApiKey);
+
+        OpenRouterConfigured = !string.IsNullOrWhiteSpace(openRouter);
+        GeminiConfigured = !string.IsNullOrWhiteSpace(gemini);
+        OpenRouterStatus = Describe(openRouter);
+        GeminiStatus = Describe(gemini);
     }
 
     private static string Describe(string? key)

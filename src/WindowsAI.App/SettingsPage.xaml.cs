@@ -1,10 +1,11 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WindowsAI_App.Controls;
 using WindowsAI_App.ViewModels;
 
 namespace WindowsAI_App;
 
-/// <summary>Settings: local endpoint and secure (DPAPI) cloud API-key management.</summary>
+/// <summary>Settings: local endpoint and secure (DPAPI) cloud API-key management, all via modals.</summary>
 public sealed partial class SettingsPage : Page
 {
     public SettingsViewModel ViewModel { get; }
@@ -19,24 +20,49 @@ public sealed partial class SettingsPage : Page
         InitializeComponent();
     }
 
-    private async void SaveEndpoint_Click(object sender, RoutedEventArgs e)
-        => await ViewModel.SaveOllamaEndpointAsync();
-
-    private void SaveOpenRouterKey_Click(object sender, RoutedEventArgs e)
+    private async void ChangeEndpoint_Click(object sender, RoutedEventArgs e)
     {
-        ViewModel.SaveOpenRouterKey(OpenRouterKeyBox.Password);
-        OpenRouterKeyBox.Password = string.Empty;
+        var endpoint = await DialogService.PromptTextAsync(
+            XamlRoot,
+            "Ollama endpoint",
+            "Where your local Ollama server is listening.",
+            initialText: ViewModel.OllamaEndpoint,
+            placeholder: "http://localhost:11434");
+
+        if (endpoint is not null)
+        {
+            ViewModel.OllamaEndpoint = endpoint;
+            await ViewModel.SaveOllamaEndpointAsync();
+        }
     }
 
-    private void ClearOpenRouterKey_Click(object sender, RoutedEventArgs e)
+    private async void ManageOpenRouterKey_Click(object sender, RoutedEventArgs e)
+    {
+        var key = await DialogService.PromptPasswordAsync(
+            XamlRoot,
+            "OpenRouter API key",
+            "Paste your key from openrouter.ai. It's stored encrypted (DPAPI) on this PC only.",
+            placeholder: "sk-or-…");
+
+        if (key is not null)
+            ViewModel.SaveOpenRouterKey(key);
+    }
+
+    private void RemoveOpenRouterKey_Click(object sender, RoutedEventArgs e)
         => ViewModel.ClearOpenRouterKey();
 
-    private void SaveGeminiKey_Click(object sender, RoutedEventArgs e)
+    private async void ManageGeminiKey_Click(object sender, RoutedEventArgs e)
     {
-        ViewModel.SaveGeminiKey(GeminiKeyBox.Password);
-        GeminiKeyBox.Password = string.Empty;
+        var key = await DialogService.PromptPasswordAsync(
+            XamlRoot,
+            "Gemini API key",
+            "Paste your key from Google AI Studio. It's stored encrypted (DPAPI) on this PC only.",
+            placeholder: "AIza…");
+
+        if (key is not null)
+            ViewModel.SaveGeminiKey(key);
     }
 
-    private void ClearGeminiKey_Click(object sender, RoutedEventArgs e)
+    private void RemoveGeminiKey_Click(object sender, RoutedEventArgs e)
         => ViewModel.ClearGeminiKey();
 }
