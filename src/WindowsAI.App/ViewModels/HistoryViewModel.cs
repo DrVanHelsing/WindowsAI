@@ -56,6 +56,18 @@ public partial class HistoryViewModel : ObservableObject
         await _store.DeleteAsync(id);
         await RefreshAsync();
     }
+
+    /// <summary>Gives a saved conversation a new title. No-op if it no longer exists.</summary>
+    public async Task RenameAsync(string id, string newTitle)
+    {
+        var convo = await _store.GetAsync(id);
+        if (convo is null)
+            return;
+
+        convo.Title = newTitle;
+        await _store.SaveAsync(convo);
+        await RefreshAsync();
+    }
 }
 
 /// <summary>A recency bucket of conversations ("Today", "Yesterday", …).</summary>

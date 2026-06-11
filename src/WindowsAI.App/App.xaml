@@ -117,6 +117,18 @@
                 <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
             </Style>
 
+            <!--
+                Modal dialogs — implicit style so every ContentDialog gets the glass surface.
+                Property setters only (no ControlTemplate); the corner radius comes from the
+                OverlayCornerRadius token already overridden in Tokens.xaml.
+            -->
+            <Style TargetType="ContentDialog">
+                <Setter Property="Background" Value="{StaticResource DialogSurfaceBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource GlassStrokeBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            </Style>
+
             <!--  Quiet circular icon button (hover fill comes from the default template)  -->
             <Style x:Key="IconButtonStyle" TargetType="Button">
                 <Setter Property="Background" Value="Transparent" />

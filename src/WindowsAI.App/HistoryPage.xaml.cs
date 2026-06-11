@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using WindowsAI_App.Controls;
 using WindowsAI_App.ViewModels;
 
 namespace WindowsAI_App;
@@ -33,23 +34,49 @@ public sealed partial class HistoryPage : Page
         ((App)Application.Current).AppShell?.ShowChat();
     }
 
-    private async void DeleteConfirmed_Click(object sender, RoutedEventArgs e)
+    private async void Rename_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement { Tag: string id })
-            await ViewModel.DeleteAsync(id);
+        if (sender is not FrameworkElement { Tag: ConversationSummary summary })
+            return;
+
+        var newTitle = await DialogService.PromptTextAsync(
+            XamlRoot,
+            "Rename conversation",
+            "Give this conversation a name.",
+            initialText: summary.Title,
+            placeholder: "Conversation name");
+
+        if (newTitle is not null && newTitle != summary.Title)
+            await ViewModel.RenameAsync(summary.Id, newTitle);
     }
 
-    // Hover-reveal: the delete button is dimmed until its row is pointed at.
-    private static void SetDeleteOpacity(object templateRoot, double opacity)
+    private async void Delete_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: ConversationSummary summary })
+            return;
+
+        var confirmed = await DialogService.ConfirmAsync(
+            XamlRoot,
+            "Delete conversation?",
+            $"“{summary.Title}” will be permanently deleted. This can’t be undone.",
+            confirmText: "Delete",
+            isDestructive: true);
+
+        if (confirmed)
+            await ViewModel.DeleteAsync(summary.Id);
+    }
+
+    // Hover-reveal: the row's action buttons are dimmed until the row is pointed at.
+    private static void SetActionsOpacity(object templateRoot, double opacity)
     {
         if (templateRoot is FrameworkElement root &&
-            root.FindName("DeleteButton") is FrameworkElement button)
-            button.Opacity = opacity;
+            root.FindName("RowActions") is FrameworkElement actions)
+            actions.Opacity = opacity;
     }
 
     private void Row_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
-        => SetDeleteOpacity(sender, 1);
+        => SetActionsOpacity(sender, 1);
 
     private void Row_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
-        => SetDeleteOpacity(sender, 0.35);
+        => SetActionsOpacity(sender, 0.35);
 }

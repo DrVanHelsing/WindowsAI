@@ -104,6 +104,9 @@
     <!--  Divider hairline  -->
     <SolidColorBrush x:Key="HairlineBrush" Color="#0FFFFFFF" />
 
+    <!--  Modal dialog surface — near-opaque dark indigo so content reads over the dimmed backdrop  -->
+    <SolidColorBrush x:Key="DialogSurfaceBrush" Color="#F21A1626" />
+
     <!-- ════════ Type ════════ -->
     <x:String x:Key="MonoFontFamily">Cascadia Code,Cascadia Mono,Consolas</x:String>
     <x:Double x:Key="TypeDisplaySize">28</x:Double>

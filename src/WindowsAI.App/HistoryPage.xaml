@@ -101,32 +101,32 @@
                                     Text="{x:Bind Meta}" />
                             </StackPanel>
 
-                            <!-- Delete — quiet until the row is hovered; confirms via flyout -->
-                            <Button
-                                x:Name="DeleteButton"
+                            <!-- Row actions — quiet until the row is hovered; each opens a modal -->
+                            <StackPanel
+                                x:Name="RowActions"
                                 Grid.Column="1"
                                 VerticalAlignment="Center"
                                 Opacity="0.35"
-                                Style="{StaticResource IconButtonStyle}"
-                                ToolTipService.ToolTip="Delete">
-                                <Button.OpacityTransition>
+                                Orientation="Horizontal"
+                                Spacing="2">
+                                <StackPanel.OpacityTransition>
                                     <ScalarTransition Duration="0:0:0.15" />
-                                </Button.OpacityTransition>
-                                <Button.Flyout>
-                                    <Flyout Placement="Left">
-                                        <StackPanel Spacing="10">
-                                            <TextBlock FontSize="13" Text="Delete this conversation?" />
-                                            <Button
-                                                HorizontalAlignment="Right"
-                                                Click="DeleteConfirmed_Click"
-                                                Content="Delete"
-                                                Style="{StaticResource AccentButtonStyle}"
-                                                Tag="{x:Bind Id}" />
-                                        </StackPanel>
-                                    </Flyout>
-                                </Button.Flyout>
-                                <FontIcon FontSize="14" Glyph="&#xE74D;" />
-                            </Button>
+                                </StackPanel.OpacityTransition>
+                                <Button
+                                    Click="Rename_Click"
+                                    Style="{StaticResource IconButtonStyle}"
+                                    Tag="{x:Bind}"
+                                    ToolTipService.ToolTip="Rename">
+                                    <FontIcon FontSize="14" Glyph="&#xE8AC;" />
+                                </Button>
+                                <Button
+                                    Click="Delete_Click"
+                                    Style="{StaticResource IconButtonStyle}"
+                                    Tag="{x:Bind}"
+                                    ToolTipService.ToolTip="Delete">
+                                    <FontIcon FontSize="14" Glyph="&#xE74D;" />
+                                </Button>
+                            </StackPanel>
                         </Grid>
                     </Border>
                 </DataTemplate>
