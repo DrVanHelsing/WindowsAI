@@ -549,16 +549,16 @@
                             </Button>
 
                             <!--  Active model pill  -->
-                            <Border Style="{StaticResource ComposerPillStyle}">
+                            <Border Style="{StaticResource ComposerPillStyle}" ToolTipService.ToolTip="{x:Bind ViewModel.ModelLabel, Mode=OneWay}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <FontIcon
                                         FontSize="10"
                                         Foreground="{StaticResource AccentTextBrush}"
-                                        Glyph="&#xE72E;" />
+                                        Glyph="{x:Bind ViewModel.ModelGlyph, Mode=OneWay}" />
                                     <TextBlock
                                         FontSize="11"
                                         Foreground="{StaticResource AccentTextBrush}"
-                                        Text="{x:Bind ViewModel.ModelLabel, Mode=OneWay}" />
+                                        Text="{x:Bind ViewModel.ModelShortLabel, Mode=OneWay}" />
                                 </StackPanel>
                             </Border>
 

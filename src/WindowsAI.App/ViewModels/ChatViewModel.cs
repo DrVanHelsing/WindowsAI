@@ -71,6 +71,24 @@ public partial class ChatViewModel : ObservableObject
 
     public string ModelLabel => _orchestrator.ActiveModelLabel;
 
+    /// <summary>Compact badge text — the active model's <see cref="ModelOption.ShortName"/>.</summary>
+    public string ModelShortLabel
+    {
+        get
+        {
+            if (SelectedModel is { } selected)
+                return selected.ShortName;
+
+            // Before the catalog loads, derive the same way ModelOption.ShortName does.
+            var id = _activeModel.Current.ModelId;
+            return id[(id.LastIndexOf('/') + 1)..];
+        }
+    }
+
+    /// <summary>Badge glyph for the model's source: cloud, or a PC for on-device models.</summary>
+    public string ModelGlyph =>
+        (SelectedModel?.IsLocal ?? _orchestrator.ActiveProvider.IsLocal) ? "" : "";
+
     public ChatViewModel(
         ChatOrchestrator orchestrator,
         IModelCatalog catalog,
@@ -158,7 +176,14 @@ public partial class ChatViewModel : ObservableObject
             await _activeModel.SetAsync(fallback.ProviderId, fallback.ModelId);
         }
 
+        NotifyModelBadgeChanged();
+    }
+
+    private void NotifyModelBadgeChanged()
+    {
         OnPropertyChanged(nameof(ModelLabel));
+        OnPropertyChanged(nameof(ModelShortLabel));
+        OnPropertyChanged(nameof(ModelGlyph));
     }
 
     partial void OnSelectedModelChanged(ModelOption? value)
@@ -180,7 +205,7 @@ public partial class ChatViewModel : ObservableObject
             ?? SelectedModel;
         _applyingSelection = false;
 
-        OnPropertyChanged(nameof(ModelLabel));
+        NotifyModelBadgeChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanSend))]

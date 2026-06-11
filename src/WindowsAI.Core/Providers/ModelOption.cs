@@ -29,4 +29,11 @@ public sealed class ModelOption
 
     /// <summary>Short label distinguishing on-device models from cloud ones.</summary>
     public string Kind => IsLocal ? "Local" : "Cloud";
+
+    /// <summary>
+    /// Compact display name for badges/pills: the model id without its vendor path
+    /// ("google/gemma-4-31b-it:free" → "gemma-4-31b-it:free"). Derived, so every model —
+    /// local or cloud, present or future — gets one automatically.
+    /// </summary>
+    public string ShortName => ModelId[(ModelId.LastIndexOf('/') + 1)..];
 }

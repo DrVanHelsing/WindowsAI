@@ -548,7 +548,8 @@
                             Margin="16,0"
                             VerticalAlignment="Center"
                             Orientation="Horizontal"
-                            Spacing="6">
+                            Spacing="6"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.ModelLabel, Mode=OneWay}">
                             <ProgressRing
                                 Width="10"
                                 Height="10"
@@ -557,12 +558,12 @@
                             <FontIcon
                                 FontSize="10"
                                 Foreground="{StaticResource AccentBrush}"
-                                Glyph="&#xE72E;"
+                                Glyph="{x:Bind ViewModel.ModelGlyph, Mode=OneWay}"
                                 Visibility="{x:Bind conv:Vis.IfNot(ViewModel.IsBusy), Mode=OneWay}" />
                             <TextBlock
                                 FontSize="11"
                                 Foreground="{StaticResource TextSecondaryBrush}"
-                                Text="{x:Bind ViewModel.ModelLabel, Mode=OneWay}"
+                                Text="{x:Bind ViewModel.ModelShortLabel, Mode=OneWay}"
                                 TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                     </Grid>
