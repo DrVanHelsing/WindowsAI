@@ -96,6 +96,19 @@
                 <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
             </Style>
 
+            <!--
+                Source chip — a found local file shown under a reply (click to open). A squircle
+                (RadiusLarge), not a full pill, so a grid of them reads as tiles rather than
+                tablets. Shared by the shell and the overlay so the two stay in sync.
+            -->
+            <Style x:Key="SourceChipStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource GlassFillSubtleBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource GlassStrokeSubtleBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="{StaticResource RadiusLarge}" />
+                <Setter Property="Padding" Value="10,6" />
+            </Style>
+
             <!--  Page title — used by History / Models / Settings headers  -->
             <Style x:Key="PageTitleStyle" TargetType="TextBlock">
                 <Setter Property="FontSize" Value="{StaticResource TypeDisplaySize}" />

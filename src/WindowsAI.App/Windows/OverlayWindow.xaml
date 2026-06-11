@@ -261,13 +261,7 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Border
-                                                        Padding="9,5"
-                                                        Background="{StaticResource GlassFillSubtleBrush}"
-                                                        BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
-                                                        BorderThickness="1"
-                                                        CornerRadius="{StaticResource RadiusPill}"
-                                                        ToolTipService.ToolTip="{Binding Path}">
+                                                    <Border Style="{StaticResource SourceChipStyle}" ToolTipService.ToolTip="{Binding Path}">
                                                         <StackPanel Orientation="Horizontal" Spacing="6">
                                                             <FontIcon
                                                                 FontSize="12"

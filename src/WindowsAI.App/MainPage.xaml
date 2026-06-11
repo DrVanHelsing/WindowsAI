@@ -230,13 +230,7 @@
                                 </GridView.ItemContainerStyle>
                                 <GridView.ItemTemplate>
                                     <DataTemplate x:DataType="ctx:LocalDocument">
-                                        <Border
-                                            Padding="11,7"
-                                            Background="{StaticResource GlassFillSubtleBrush}"
-                                            BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="{StaticResource RadiusPill}"
-                                            ToolTipService.ToolTip="{x:Bind Path}">
+                                        <Border Style="{StaticResource SourceChipStyle}" ToolTipService.ToolTip="{x:Bind Path}">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
                                                 <FontIcon
                                                     FontSize="15"
