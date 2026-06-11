@@ -382,15 +382,24 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <!--  Privacy / model badge  -->
-                    <Border
-                        Grid.Column="0"
-                        Padding="11,6"
-                        Background="{StaticResource GlassFillSubtleBrush}"
-                        BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
-                        BorderThickness="1"
-                        CornerRadius="{StaticResource RadiusPill}">
-                        <StackPanel Orientation="Horizontal" Spacing="5">
+                    <!--  Privacy / model badge — capsule geometry mirrors the search pill  -->
+                    <Grid Grid.Column="0">
+                        <Border
+                            Height="44"
+                            Background="{StaticResource GlassFillBrush}"
+                            BorderBrush="{StaticResource GlassStrokeBrush}"
+                            BorderThickness="1"
+                            CornerRadius="22" />
+                        <Border
+                            Height="44"
+                            Background="{StaticResource GlassSheenBrush}"
+                            CornerRadius="22"
+                            IsHitTestVisible="False" />
+                        <StackPanel
+                            Margin="16,0"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="6">
                             <ProgressRing
                                 Width="10"
                                 Height="10"
@@ -404,9 +413,10 @@
                             <TextBlock
                                 FontSize="11"
                                 Foreground="{StaticResource TextSecondaryBrush}"
-                                Text="{x:Bind ViewModel.ModelLabel, Mode=OneWay}" />
+                                Text="{x:Bind ViewModel.ModelLabel, Mode=OneWay}"
+                                TextTrimming="CharacterEllipsis" />
                         </StackPanel>
-                    </Border>
+                    </Grid>
 
                     <!--  Keyboard hint  -->
                     <TextBlock
@@ -417,13 +427,18 @@
                         Foreground="{StaticResource TextGhostBrush}"
                         Text="Alt+Space · Esc" />
 
-                    <!--  Open the full app  -->
+                    <!--  Open the full app — capsule geometry mirrors the search pill  -->
                     <Button
                         Grid.Column="2"
+                        Height="44"
+                        Padding="16,0"
+                        VerticalAlignment="Center"
+                        Background="{StaticResource GlassFillBrush}"
+                        BorderBrush="{StaticResource GlassStrokeBrush}"
+                        BorderThickness="1"
                         Click="OpenApp_Click"
-                        Style="{StaticResource OverlayActionButtonStyle}"
-                        CornerRadius="{StaticResource RadiusPill}"
-                        Padding="12,6"
+                        CornerRadius="22"
+                        Foreground="{StaticResource TextSecondaryBrush}"
                         ToolTipService.ToolTip="Open WindowsAI">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <FontIcon FontSize="11" Glyph="&#xE8A7;" />
