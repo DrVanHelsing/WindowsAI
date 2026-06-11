@@ -66,6 +66,9 @@ public partial class ChatViewModel : ObservableObject
 
     public bool IsNotBusy => !IsBusy;
 
+    /// <summary>Id of the conversation being built — saved to history after each exchange.</summary>
+    public string CurrentConversationId => _current.Id;
+
     public string ModelLabel => _orchestrator.ActiveModelLabel;
 
     public ChatViewModel(

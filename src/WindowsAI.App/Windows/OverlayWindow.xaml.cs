@@ -34,6 +34,7 @@ public sealed partial class OverlayWindow : Window
 
     // ── Live launcher search state ──
     private readonly OverlaySearchService _search;
+    private readonly OverlayRecentsStore _recents;
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _debounce;
     private readonly List<SearchRowViewModel> _selectableRows = new();
     private CancellationTokenSource? _searchCts;
@@ -83,6 +84,7 @@ public sealed partial class OverlayWindow : Window
         ViewModel.UseLocalContext = true;
 
         _search = App.Services.GetRequiredService<OverlaySearchService>();
+        _recents = App.Services.GetRequiredService<OverlayRecentsStore>();
         _debounce = DispatcherQueue.CreateTimer();
         _debounce.Interval = TimeSpan.FromMilliseconds(180);
         _debounce.IsRepeating = false;
@@ -188,6 +190,9 @@ public sealed partial class OverlayWindow : Window
         SearchPanel.Visibility = searching ? Visibility.Visible : Visibility.Collapsed;
         ResultsList.Visibility = !searching && ViewModel.Messages.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         EmptyPanel.Visibility = !searching && ViewModel.Messages.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        // With a conversation on screen the footer button carries it into the full app.
+        OpenAppLabel.Text = ViewModel.Messages.Count > 0 ? "Continue in app" : "Open app";
     }
 
     // ── Live launcher search ────────────────────────────────────────────────
@@ -336,6 +341,12 @@ public sealed partial class OverlayWindow : Window
             return;
         }
 
+        // Quick-access memory: the item, and the query that found it (fire-and-forget).
+        var query = SearchBox.Text.Trim();
+        _ = _recents.RecordItemAsync(hit);
+        if (query.Length > 0)
+            _ = _recents.RecordQueryAsync(query);
+
         SearchBox.Text = string.Empty;
         HideOverlay();
     }
@@ -356,7 +367,10 @@ public sealed partial class OverlayWindow : Window
 
     // ── Empty state: recents + quick actions ────────────────────────────────
 
-    /// <summary>Loads the three most recent conversations into the empty-state list.</summary>
+    /// <summary>
+    /// Loads the empty-state quick access: recent AI conversations, recently launched
+    /// items, and recent search queries.
+    /// </summary>
     private async Task RefreshRecentsAsync()
     {
         try
@@ -365,11 +379,40 @@ public sealed partial class OverlayWindow : Window
             var recents = (await store.ListAsync()).Take(3).ToList();
             RecentsList.ItemsSource = recents.Select(c => new ConversationSummary(c)).ToList();
             RecentsLabel.Visibility = recents.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+            // Launched items are replayed through the same row VM the live list uses.
+            var items = await _recents.GetItemsAsync();
+            RecentItemsList.ItemsSource = items
+                .Select(i => SearchRowViewModel.ForHit(new SearchHit(i.Kind, i.Name, i.Detail, i.Target)))
+                .ToList();
+            RecentItemsLabel.Visibility = items.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+            var queries = await _recents.GetQueriesAsync();
+            RecentQueriesList.ItemsSource = queries.ToList();
+            RecentQueriesLabel.Visibility = queries.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
         catch
         {
             // Recents are decoration — never block the overlay on history I/O.
         }
+    }
+
+    /// <summary>Re-opens a recently launched item.</summary>
+    private void RecentItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).Tag is SearchRowViewModel { Hit: { } hit })
+            Launch(hit);
+    }
+
+    /// <summary>Drops a recent query back into the box, re-running the live search.</summary>
+    private void RecentQuery_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).Tag is not string query)
+            return;
+
+        SearchBox.Text = query;
+        SearchBox.Focus(FocusState.Programmatic);
+        SearchBox.SelectionStart = SearchBox.Text.Length;
     }
 
     /// <summary>Opens a recent conversation in the full app and dismisses the overlay.</summary>
@@ -393,9 +436,21 @@ public sealed partial class OverlayWindow : Window
         SearchBox.SelectionStart = SearchBox.Text.Length;
     }
 
-    private void OpenApp_Click(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// "Open app" — or, when a conversation is on screen, "Continue in app": opens the
+    /// shell and loads the same session into it (it was persisted after each exchange).
+    /// </summary>
+    private async void OpenApp_Click(object sender, RoutedEventArgs e)
     {
-        ((App)Application.Current).ShowMainApp();
+        var app = (App)Application.Current;
+        app.ShowMainApp();
+
+        if (ViewModel.Messages.Count > 0)
+        {
+            await App.GetService<ChatViewModel>().LoadConversationAsync(ViewModel.CurrentConversationId);
+            app.AppShell?.ShowChat();
+        }
+
         HideOverlay();
     }
 

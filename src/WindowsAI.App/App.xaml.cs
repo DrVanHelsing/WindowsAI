@@ -59,6 +59,7 @@ public partial class App : Application
         services.AddSingleton<WindowsAI.Services.Search.AppCatalog>();
         services.AddSingleton<WindowsAI.Services.Search.FileNameSearch>();
         services.AddSingleton<WindowsAI.Services.Search.OverlaySearchService>();
+        services.AddSingleton<WindowsAI.Core.Search.OverlayRecentsStore>();
 
         // View models. ChatViewModel is a singleton so the active model and conversation
         // stay in sync across the overlay, the chat page, and the models page.

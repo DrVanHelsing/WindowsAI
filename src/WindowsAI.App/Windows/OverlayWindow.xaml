@@ -333,6 +333,83 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
+                    <!--  Recently launched search hits — replay with one click  -->
+                    <TextBlock
+                        x:Name="RecentItemsLabel"
+                        Margin="4,10,0,0"
+                        FontSize="11"
+                        CharacterSpacing="60"
+                        Foreground="{StaticResource TextTertiaryBrush}"
+                        Text="RECENTLY OPENED"
+                        Visibility="Collapsed" />
+                    <ItemsControl x:Name="RecentItemsList">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="6" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button
+                                    Click="RecentItem_Click"
+                                    Style="{StaticResource OverlayActionButtonStyle}"
+                                    Tag="{Binding}">
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <FontIcon
+                                            FontSize="13"
+                                            Foreground="{StaticResource AccentTextBrush}"
+                                            Glyph="{Binding Glyph}" />
+                                        <StackPanel Spacing="1">
+                                            <TextBlock
+                                                FontSize="13"
+                                                Foreground="{StaticResource TextPrimaryBrush}"
+                                                Text="{Binding Title}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="{StaticResource TextTertiaryBrush}"
+                                                Text="{Binding Subtitle}"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!--  Recent queries — one click re-runs the live search  -->
+                    <TextBlock
+                        x:Name="RecentQueriesLabel"
+                        Margin="4,10,0,0"
+                        FontSize="11"
+                        CharacterSpacing="60"
+                        Foreground="{StaticResource TextTertiaryBrush}"
+                        Text="RECENT SEARCHES"
+                        Visibility="Collapsed" />
+                    <ItemsControl x:Name="RecentQueriesList">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="6" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button
+                                    Click="RecentQuery_Click"
+                                    Style="{StaticResource OverlayActionButtonStyle}"
+                                    Tag="{Binding}">
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <FontIcon
+                                            FontSize="12"
+                                            Foreground="{StaticResource TextTertiaryBrush}"
+                                            Glyph="&#xE721;" />
+                                        <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
                     <TextBlock
                         Margin="4,10,0,0"
                         FontSize="11"
@@ -514,7 +591,10 @@
                         ToolTipService.ToolTip="Open WindowsAI">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <FontIcon FontSize="11" Glyph="&#xE8A7;" />
-                            <TextBlock FontSize="11" Text="Open app" />
+                            <TextBlock
+                                x:Name="OpenAppLabel"
+                                FontSize="11"
+                                Text="Open app" />
                         </StackPanel>
                     </Button>
                 </Grid>

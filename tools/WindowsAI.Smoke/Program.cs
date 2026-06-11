@@ -148,6 +148,32 @@ try
         Check("best match prefers prefix app over file", ReferenceEquals(picked, bestApp));
     }
 
+    // 3d) Overlay recents: most-recent-first, de-duped, capped, survives reload.
+    Console.WriteLine("Overlay recents store");
+    {
+        var path = Path.Combine(tmp, "recents.json");
+        var store = new WindowsAI.Core.Search.OverlayRecentsStore(path);
+
+        var hitA = new WindowsAI.Core.Search.SearchHit(WindowsAI.Core.Search.SearchHitKind.App, "Alpha", "App", "shell:AppsFolder\\a");
+        var hitB = new WindowsAI.Core.Search.SearchHit(WindowsAI.Core.Search.SearchHitKind.File, "beta.txt", "C:\\", "C:\\beta.txt");
+        await store.RecordItemAsync(hitA);
+        await store.RecordItemAsync(hitB);
+        await store.RecordItemAsync(hitA); // re-open → moves to front, no duplicate
+
+        var items = await store.GetItemsAsync();
+        Check("items de-duped, most-recent-first", items.Count == 2 && items[0].Name == "Alpha");
+
+        await store.RecordQueryAsync("one");
+        await store.RecordQueryAsync("two");
+        await store.RecordQueryAsync("three");
+        await store.RecordQueryAsync("four"); // cap is 3 — "one" falls off
+        var queries = await store.GetQueriesAsync();
+        Check("queries capped at 3, newest first", queries.Count == 3 && queries[0] == "four" && !queries.Contains("one"));
+
+        var reloaded = new WindowsAI.Core.Search.OverlayRecentsStore(path);
+        Check("recents persist across reload", (await reloaded.GetItemsAsync()).Count == 2);
+    }
+
     // 4) Local context retrieval against the live Windows Search index.
     Console.WriteLine("Local context retrieval (Windows Search index)");
     {
