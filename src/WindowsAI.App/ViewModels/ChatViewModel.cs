@@ -3,10 +3,12 @@ using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.AI;
+using Microsoft.UI.Dispatching;
 using WindowsAI.Core.Chat;
 using WindowsAI.Core.Context;
 using WindowsAI.Core.History;
 using WindowsAI.Core.Providers;
+using WindowsAI_App.Agents;
 
 namespace WindowsAI_App.ViewModels;
 
@@ -136,36 +138,36 @@ public partial class ChatViewModel : ObservableObject
         Messages.Add(reply);
 
         IsBusy = true;
-        ChatMessage? contextMessage = null;
+        ChatMessage? toolHint = null;
         try
         {
-            // Local-first RAG: surface matching files from this PC as a transient
-            // system message. Removed after the exchange so it never bloats later turns.
+            // Local-first RAG, agentic: when "Search my PC" is on the model is given tools to
+            // search the index and open found files, and decides when to use them. The tool
+            // delegates drive IsSearchingFiles + the reply's source chips. Tools are built per
+            // send so the right view-model instance (shell vs overlay) is updated.
+            IReadOnlyList<AITool>? tools = null;
             if (UseLocalContext)
             {
-                IsSearchingFiles = true;
-                IReadOnlyList<LocalDocument> documents;
-                try
-                {
-                    documents = await _localContext.SearchAsync(text, maxResults: 4);
-                }
-                finally
-                {
-                    IsSearchingFiles = false;
-                }
+                var dispatcher = DispatcherQueue.GetForCurrentThread();
+                tools = AgentToolFactory.CreateLocalTools(
+                    _localContext,
+                    dispatcher,
+                    searching => IsSearchingFiles = searching,
+                    docs => AppendSources(reply, docs));
 
-                if (documents.Count > 0)
-                {
-                    contextMessage = new ChatMessage(ChatRole.System, BuildContextBlock(documents));
-                    _conversation.Add(contextMessage);
-                    reply.Sources = documents;
-                }
+                // Transient guidance so even small models reach for the tools. Removed after
+                // the exchange so it never bloats later turns or the saved transcript.
+                toolHint = new ChatMessage(ChatRole.System,
+                    "You can call tools to access this PC. When the user asks about their own files " +
+                    "or local content, call search_my_pc first. Open a file with open_path only when " +
+                    "the user asks you to open something, and cite file names you used.");
+                _conversation.Add(toolHint);
             }
 
             _conversation.Add(new ChatMessage(ChatRole.User, text));
 
             var sb = new StringBuilder();
-            await foreach (var delta in _orchestrator.StreamReplyAsync(_conversation))
+            await foreach (var delta in _orchestrator.StreamReplyAsync(_conversation, tools))
             {
                 sb.Append(delta);
                 reply.Text = sb.ToString();
@@ -180,8 +182,9 @@ public partial class ChatViewModel : ObservableObject
         }
         finally
         {
-            if (contextMessage is not null)
-                _conversation.Remove(contextMessage);
+            if (toolHint is not null)
+                _conversation.Remove(toolHint);
+            IsSearchingFiles = false;
             IsBusy = false;
         }
 
@@ -190,22 +193,17 @@ public partial class ChatViewModel : ObservableObject
 
     private bool CanSend() => !IsBusy;
 
-    /// <summary>Formats retrieved files as a context block the model can cite from.</summary>
-    private static string BuildContextBlock(IReadOnlyList<LocalDocument> documents)
+    /// <summary>Merges newly-found files into a reply's source chips, de-duped by path.</summary>
+    private static void AppendSources(ChatMessageViewModel reply, IReadOnlyList<LocalDocument> documents)
     {
-        var sb = new StringBuilder();
-        sb.AppendLine(
-            "The user enabled local file search. The following files from their PC may be " +
-            "relevant to the next question. Use them when helpful and cite file names.");
-
-        for (int i = 0; i < documents.Count; i++)
+        var merged = new List<LocalDocument>(reply.Sources ?? Array.Empty<LocalDocument>());
+        foreach (var doc in documents)
         {
-            sb.AppendLine();
-            sb.AppendLine($"[{i + 1}] {documents[i].Path}");
-            sb.AppendLine(documents[i].Snippet);
+            if (!merged.Any(m => string.Equals(m.Path, doc.Path, StringComparison.OrdinalIgnoreCase)))
+                merged.Add(doc);
         }
 
-        return sb.ToString();
+        reply.Sources = merged;
     }
 
     /// <summary>Starts a fresh conversation, clearing the screen and the model context.</summary>

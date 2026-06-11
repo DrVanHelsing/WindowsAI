@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -147,7 +148,7 @@ try
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
         try
         {
-            await foreach (var delta in sp.GetRequiredService<ChatOrchestrator>().StreamReplyAsync(conversation, cts.Token))
+            await foreach (var delta in sp.GetRequiredService<ChatOrchestrator>().StreamReplyAsync(conversation, tools: null, cts.Token))
                 sb.Append(delta);
 
             var reply = sb.ToString().Trim();
@@ -157,6 +158,48 @@ try
         catch (Exception ex)
         {
             Check("local model streamed a non-empty reply", false, $"exception: {ex.Message}");
+        }
+    }
+
+    // 7) Agent tool-calling loop (provider-independent: scripted stub client + real tool).
+    //    Verifies the same FunctionInvokingChatClient wiring the orchestrator uses: the model
+    //    requests a tool, it is invoked with the right args, the result is fed back, and a
+    //    final text reply is produced.
+    Console.WriteLine("Agent tool-calling loop (scripted)");
+    {
+        var toolInvoked = false;
+        string? receivedValue = null;
+
+        var echo = AIFunctionFactory.Create(
+            (string value) => { toolInvoked = true; receivedValue = value; return $"echoed:{value}"; },
+            name: "test_echo",
+            description: "Echoes the input value.");
+
+        var client = new ScriptedToolClient()
+            .AsBuilder()
+            .UseFunctionInvocation()
+            .Build();
+
+        var options = new ChatOptions { Tools = new List<AITool> { echo } };
+        var messages = new List<ChatMessage> { new(ChatRole.User, "Use the tool.") };
+
+        var sb = new StringBuilder();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        try
+        {
+            await foreach (var update in client.GetStreamingResponseAsync(messages, options, cts.Token))
+                if (!string.IsNullOrEmpty(update.Text))
+                    sb.Append(update.Text);
+
+            var final = sb.ToString();
+            Check("tool was invoked by the loop", toolInvoked, $"value=\"{receivedValue}\"");
+            Check("tool received the model's argument", receivedValue == "ping", $"value=\"{receivedValue}\"");
+            Check("final reply reflects the tool result", final.Contains("echoed:ping", StringComparison.OrdinalIgnoreCase),
+                $"reply=\"{Truncate(final, 80)}\"");
+        }
+        catch (Exception ex)
+        {
+            Check("agent tool-calling loop", false, $"exception: {ex.Message}");
         }
     }
 }
@@ -178,4 +221,55 @@ file sealed class InMemorySecretStore : ISecretStore
     public void Set(string key, string secret) => _store[key] = secret;
     public string? Get(string key) => _store.TryGetValue(key, out var v) ? v : null;
     public void Delete(string key) => _store.Remove(key);
+}
+
+/// <summary>
+/// A deterministic <see cref="IChatClient"/> for testing the tool-calling loop without a real
+/// model: the first turn (no tool results yet) asks to call <c>test_echo("ping")</c>; once the
+/// result comes back it returns a final text reply that includes the result.
+/// </summary>
+file sealed class ScriptedToolClient : IChatClient
+{
+    public void Dispose() { }
+
+    public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+    public Task<ChatResponse> GetResponseAsync(
+        IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var contents = Script(messages).SelectMany(u => u.Contents).ToList();
+        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, contents)));
+    }
+
+    public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+        IEnumerable<ChatMessage> messages, ChatOptions? options = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        foreach (var update in Script(messages))
+        {
+            await Task.Yield();
+            yield return update;
+        }
+    }
+
+    private static IEnumerable<ChatResponseUpdate> Script(IEnumerable<ChatMessage> messages)
+    {
+        var result = messages
+            .SelectMany(m => m.Contents)
+            .OfType<FunctionResultContent>()
+            .LastOrDefault();
+
+        if (result is null)
+        {
+            var call = new FunctionCallContent(
+                callId: "call-1",
+                name: "test_echo",
+                arguments: new Dictionary<string, object?> { ["value"] = "ping" });
+            yield return new ChatResponseUpdate(ChatRole.Assistant, new List<AIContent> { call });
+        }
+        else
+        {
+            yield return new ChatResponseUpdate(ChatRole.Assistant, $"Final: {result.Result}");
+        }
+    }
 }

@@ -74,9 +74,11 @@ independent. Both persist into the same history. The active model is a single so
 ## Automated test harness ✅
 
 `tools/WindowsAI.Smoke` — a headless console runner that exercises the Core paths the UI depends on.
-Run with `dotnet run --project tools/WindowsAI.Smoke`. Current result: **13/13 checks pass**, covering
-settings round-trip, conversation save/list/get/delete, active-model persistence + `Changed` event
-(incl. no-op on unchanged value), catalog discovery (local + cloud), and live local streaming.
+Run with `dotnet run --project tools/WindowsAI.Smoke`. Current result: **19/19 checks pass** (with local
+Ollama + `nomic-embed-text` available), covering settings round-trip, conversation save/list/get/delete,
+active-model persistence + `Changed` event (incl. no-op on unchanged value), Windows Search retrieval +
+embedding re-rank, catalog discovery (local + cloud), live local streaming, and the agent tool-calling
+loop (scripted stub client → tool invoked with the right args → final reply reflects the result).
 
 ## 🚧 Currently in progress
 
@@ -93,12 +95,26 @@ settings round-trip, conversation save/list/get/delete, active-model persistence
 - ✅ **Chat integration**: `ILocalContextRetriever` (Core) → opt-in "Search my PC" toggle in
   the composer and overlay pill → matching files injected as a transient system message →
   source chips rendered under the reply.
-- ⏭ Embedding re-rank: Ollama `nomic-embed-text` + sqlite-vec over retrieved candidates
-  (hybrid recall → semantic precision).
+- ✅ **Embedding re-rank** (`OllamaEmbeddingClient` + `RerankingContextRetriever`): over-fetches a
+  keyword pool from the index, then re-orders by cosine similarity of local `nomic-embed-text`
+  embeddings (hybrid recall → semantic precision); falls back to keyword order if embeddings are
+  unavailable. Covered by a smoke check.
+
+## Phase 5 — Agent tool-calling ✅ (built; cloud-model run pending)
+
+- ✅ **Tool-calling loop** in `ChatOrchestrator` via Microsoft.Extensions.AI's
+  `FunctionInvokingChatClient` — `StreamReplyAsync` takes optional `AITool`s; models that reject
+  tools (e.g. Gemma via Ollama) fall back to a plain reply before the first token.
+- ✅ **Tools** (`AgentToolFactory`, built per-send so the shell and overlay update independently):
+  `search_my_pc` (wraps the Windows Search RAG; drives the "Searching your PC…" sparkle + source
+  chips) and `open_path` (opens a file/folder in its default app — **constrained** to paths a prior
+  `search_my_pc` actually surfaced this conversation).
+- ✅ Exposed only when the **Search my PC** toggle is on (privacy + keeps the default local path
+  tool-free). Covered by a provider-independent smoke check (scripted stub client + real tool).
 
 ## ⏭ Next
 
-- ⏭ Agent functionality (tool-calling loop in `ChatOrchestrator`).
+- ⏭ More tools (web search, current date/time); per-tool surfacing of agent steps in the transcript.
 
 ## 💡 Later
 
