@@ -10,8 +10,10 @@ using Microsoft.UI.Xaml.Media;
 using Windows.Graphics;
 using Windows.System;
 using WindowsAI.Core.History;
+using WindowsAI.Core.Search;
 using WindowsAI.Services;
 using WindowsAI.Services.Interop;
+using WindowsAI.Services.Search;
 using WindowsAI_App.ViewModels;
 using WinRT;
 using WinRT.Interop;
@@ -29,6 +31,15 @@ public sealed partial class OverlayWindow : Window
 
     private readonly AppWindow _appWindow;
     private bool _initializedModels;
+
+    // ── Live launcher search state ──
+    private readonly OverlaySearchService _search;
+    private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _debounce;
+    private readonly List<SearchRowViewModel> _selectableRows = new();
+    private CancellationTokenSource? _searchCts;
+    private Task? _pendingSearch;
+    private string _lastResultsQuery = string.Empty;
+    private int _selectedIndex = -1;
 
     public ChatViewModel ViewModel { get; }
 
@@ -66,6 +77,21 @@ public sealed partial class OverlayWindow : Window
 
         ViewModel.Messages.CollectionChanged += OnMessagesChanged;
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+
+        // The overlay has no RAG toggle: when a query routes to the AI it always gets the
+        // local-file tools and decides itself whether to search this PC.
+        ViewModel.UseLocalContext = true;
+
+        _search = App.Services.GetRequiredService<OverlaySearchService>();
+        _debounce = DispatcherQueue.CreateTimer();
+        _debounce.Interval = TimeSpan.FromMilliseconds(180);
+        _debounce.IsRepeating = false;
+        _debounce.Tick += (_, _) => _ = RunSearchAsync(SearchBox.Text.Trim());
+
+        SearchBox.TextChanged += SearchBox_TextChanged;
+
+        // Warm the apps-folder cache so the first keystroke doesn't pay the COM enumeration.
+        _ = Task.Run(() => App.Services.GetRequiredService<AppCatalog>().Count);
     }
 
     // ── Show / hide ─────────────────────────────────────────────────────────
@@ -146,11 +172,187 @@ public sealed partial class OverlayWindow : Window
 
     private void OnMessagesChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        EmptyPanel.Visibility = ViewModel.Messages.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        UpdateBodyVisibility();
 
         if (ViewModel.Messages.Count > 0)
             ResultsList.ScrollIntoView(ViewModel.Messages[^1]);
     }
+
+    /// <summary>
+    /// One body surface at a time: live results while a query is typed, otherwise the
+    /// chat when a conversation is active, otherwise the empty state (recents + TRY).
+    /// </summary>
+    private void UpdateBodyVisibility()
+    {
+        var searching = SearchBox.Text.Trim().Length > 0;
+        SearchPanel.Visibility = searching ? Visibility.Visible : Visibility.Collapsed;
+        ResultsList.Visibility = !searching && ViewModel.Messages.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        EmptyPanel.Visibility = !searching && ViewModel.Messages.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // ── Live launcher search ────────────────────────────────────────────────
+
+    private void SearchBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+    {
+        var text = SearchBox.Text.Trim();
+        if (text.Length == 0)
+        {
+            _debounce.Stop();
+            _searchCts?.Cancel();
+            _lastResultsQuery = string.Empty;
+            UpdateBodyVisibility();
+            return;
+        }
+
+        UpdateBodyVisibility();
+        _debounce.Stop();
+        _debounce.Start();
+    }
+
+    private async Task RunSearchAsync(string query)
+    {
+        if (query.Length == 0)
+            return;
+
+        _searchCts?.Cancel();
+        var cts = _searchCts = new CancellationTokenSource();
+
+        var task = _search.SearchAsync(query, cts.Token);
+        _pendingSearch = task;
+        try
+        {
+            var results = await task;
+
+            // Stale reply (user kept typing) — a newer search owns the UI now.
+            if (cts.IsCancellationRequested || query != SearchBox.Text.Trim())
+                return;
+
+            BuildRows(results);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch
+        {
+            // Search failures must never take the overlay down — the Ask-AI path remains.
+        }
+    }
+
+    private void BuildRows(OverlaySearchResults results)
+    {
+        var rows = new List<SearchRowViewModel>();
+        void AddSection(string header, IEnumerable<SearchHit> hits)
+        {
+            var list = hits.ToList();
+            if (list.Count == 0)
+                return;
+            rows.Add(SearchRowViewModel.Header(header));
+            rows.AddRange(list.Select(SearchRowViewModel.ForHit));
+        }
+
+        if (results.BestMatch is { } best)
+            AddSection("BEST MATCH", [best]);
+        AddSection("APPS", results.Apps);
+        AddSection("FILES", results.Files);
+        AddSection("SETTINGS", results.Settings);
+        rows.Add(SearchRowViewModel.AskAi(results.Query));
+
+        SearchRowsList.ItemsSource = rows;
+        _selectableRows.Clear();
+        _selectableRows.AddRange(rows.Where(r => r.IsSelectable));
+        _lastResultsQuery = results.Query;
+
+        // Default selection mirrors Enter's routing: prompt-like or empty → Ask AI,
+        // otherwise the best match (first selectable row).
+        var askAiDefault = results.IsEmpty || PromptClassifier.IsLikelyPrompt(results.Query);
+        Select(askAiDefault ? _selectableRows.Count - 1 : 0);
+    }
+
+    private void Select(int index)
+    {
+        if (_selectedIndex >= 0 && _selectedIndex < _selectableRows.Count)
+            _selectableRows[_selectedIndex].IsSelected = false;
+
+        _selectedIndex = _selectableRows.Count == 0 ? -1 : Math.Clamp(index, 0, _selectableRows.Count - 1);
+        if (_selectedIndex >= 0)
+            _selectableRows[_selectedIndex].IsSelected = true;
+    }
+
+    private void MoveSelection(int delta)
+    {
+        if (_selectableRows.Count == 0)
+            return;
+        // Wrap around like the Start menu does.
+        var next = (_selectedIndex + delta + _selectableRows.Count) % _selectableRows.Count;
+        Select(next);
+    }
+
+    /// <summary>Enter / Go: open what's selected — or hand the query to the AI.</summary>
+    private async Task RouteCurrentQueryAsync()
+    {
+        var text = SearchBox.Text.Trim();
+        if (text.Length == 0)
+            return;
+
+        // If results for the current text are still in flight, let them land so Enter
+        // acts on what the user sees (or would see a frame later).
+        if (_lastResultsQuery != text && _pendingSearch is { } pending)
+        {
+            try { await pending; } catch { /* routed below regardless */ }
+        }
+
+        var selected = _lastResultsQuery == text && _selectedIndex >= 0
+            ? _selectableRows[_selectedIndex]
+            : null;
+
+        if (selected is { Hit: { } hit })
+        {
+            Launch(hit);
+            return;
+        }
+
+        // Ask-AI row selected, no results yet, or prompt-like text → the AI.
+        SendToAi();
+    }
+
+    private void SendToAi()
+    {
+        if (ViewModel.SendCommand.CanExecute(null))
+            ViewModel.SendCommand.Execute(null); // clears Input → search panel yields to chat
+    }
+
+    private void Launch(SearchHit hit)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(hit.Target)
+            {
+                UseShellExecute = true,
+            });
+        }
+        catch
+        {
+            // Target gone/unlaunchable — keep the overlay calm.
+            return;
+        }
+
+        SearchBox.Text = string.Empty;
+        HideOverlay();
+    }
+
+    private void SearchRow_Tapped(object sender, TappedRoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).DataContext is not SearchRowViewModel row)
+            return;
+
+        if (row.Hit is { } hit)
+            Launch(hit);
+        else if (row.IsAskAi)
+            SendToAi();
+    }
+
+    private async void Go_Click(object sender, RoutedEventArgs e)
+        => await RouteCurrentQueryAsync();
 
     // ── Empty state: recents + quick actions ────────────────────────────────
 
@@ -197,18 +399,29 @@ public sealed partial class OverlayWindow : Window
         HideOverlay();
     }
 
-    private void LocalContext_Toggled(object sender, RoutedEventArgs e)
-        => ViewModel.UseLocalContext = LocalContextToggle.IsChecked == true;
-
     // ── Input ───────────────────────────────────────────────────────────────
 
-    private void SearchBox_KeyDown(object sender, KeyRoutedEventArgs e)
+    private async void SearchBox_KeyDown(object sender, KeyRoutedEventArgs e)
     {
         switch (e.Key)
         {
             case VirtualKey.Escape:
                 e.Handled = true;
-                HideOverlay();
+                // First Esc backs out of the query, second dismisses the overlay.
+                if (SearchBox.Text.Length > 0)
+                    SearchBox.Text = string.Empty;
+                else
+                    HideOverlay();
+                break;
+
+            case VirtualKey.Down:
+                e.Handled = true;
+                MoveSelection(+1);
+                break;
+
+            case VirtualKey.Up:
+                e.Handled = true;
+                MoveSelection(-1);
                 break;
 
             case VirtualKey.Enter:
@@ -218,8 +431,7 @@ public sealed partial class OverlayWindow : Window
                 if (shift) return;
 
                 e.Handled = true;
-                if (ViewModel.SendCommand.CanExecute(null))
-                    ViewModel.SendCommand.Execute(null);
+                await RouteCurrentQueryAsync();
                 break;
         }
     }

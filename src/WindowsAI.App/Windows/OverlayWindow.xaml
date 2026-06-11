@@ -150,21 +150,22 @@
                         </TextBox.Resources>
                     </TextBox>
 
-                    <!--  Local-RAG toggle: include matching files from this PC  -->
-                    <ToggleButton
-                        x:Name="LocalContextToggle"
+                    <!--  Go: same action as Enter (open best match / ask the AI)  -->
+                    <Button
                         Grid.Column="2"
-                        Padding="8"
+                        Width="34"
+                        Height="34"
+                        Padding="0"
                         VerticalAlignment="Center"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        Checked="LocalContext_Toggled"
-                        CornerRadius="16"
-                        Foreground="{StaticResource TextTertiaryBrush}"
-                        ToolTipService.ToolTip="Search my PC files for context"
-                        Unchecked="LocalContext_Toggled">
+                        Background="{StaticResource AccentFillMediumBrush}"
+                        BorderBrush="{StaticResource AccentStrokeBrush}"
+                        BorderThickness="1"
+                        Click="Go_Click"
+                        CornerRadius="17"
+                        Foreground="{StaticResource AccentTextBrush}"
+                        ToolTipService.ToolTip="Search — opens the best match, or asks the AI">
                         <FontIcon FontSize="13" Glyph="&#xE721;" />
-                    </ToggleButton>
+                    </Button>
                 </Grid>
                 </Grid>
 
@@ -367,6 +368,77 @@
                         </StackPanel>
                     </Button>
                 </StackPanel>
+
+                <!-- Live launcher results — grouped, Windows-Search style. Selection is
+                     keyboard-driven from the search box; focus never leaves the box. -->
+                <ScrollViewer
+                    x:Name="SearchPanel"
+                    Padding="16,0,16,10"
+                    VerticalScrollBarVisibility="Auto"
+                    Visibility="Collapsed">
+                    <ItemsControl x:Name="SearchRowsList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SearchRowViewModel">
+                                <Grid>
+                                    <!--  Section header  -->
+                                    <TextBlock
+                                        Margin="4,14,0,6"
+                                        FontSize="11"
+                                        CharacterSpacing="60"
+                                        Foreground="{StaticResource TextTertiaryBrush}"
+                                        Text="{x:Bind Title}"
+                                        Visibility="{x:Bind conv:Vis.If(IsHeader)}" />
+
+                                    <!--  Launchable hit / Ask-AI row  -->
+                                    <Grid
+                                        MinHeight="44"
+                                        Background="Transparent"
+                                        CornerRadius="{StaticResource RadiusMedium}"
+                                        Tapped="SearchRow_Tapped"
+                                        Visibility="{x:Bind conv:Vis.If(IsSelectable)}">
+                                        <Border
+                                            Background="{StaticResource GlassHoverBrush}"
+                                            BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="{StaticResource RadiusMedium}"
+                                            Visibility="{x:Bind conv:Vis.If(IsSelected), Mode=OneWay}" />
+                                        <StackPanel
+                                            Margin="12,6"
+                                            VerticalAlignment="Center"
+                                            Orientation="Horizontal"
+                                            Spacing="12">
+                                            <FontIcon
+                                                FontSize="15"
+                                                Foreground="{StaticResource AccentTextBrush}"
+                                                Glyph="{x:Bind Glyph}"
+                                                Visibility="{x:Bind conv:Vis.IfNot(IsAskAi)}" />
+                                            <controls:SparkleIcon
+                                                Width="15"
+                                                Height="15"
+                                                VerticalAlignment="Center"
+                                                Visibility="{x:Bind conv:Vis.If(IsAskAi)}" />
+                                            <StackPanel VerticalAlignment="Center" Spacing="1">
+                                                <TextBlock
+                                                    MaxWidth="300"
+                                                    FontSize="13"
+                                                    Foreground="{StaticResource TextPrimaryBrush}"
+                                                    Text="{x:Bind Title}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    MaxWidth="300"
+                                                    FontSize="11"
+                                                    Foreground="{StaticResource TextTertiaryBrush}"
+                                                    Text="{x:Bind Subtitle}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    Visibility="{x:Bind conv:Vis.If(HasSubtitle)}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </Grid>
 
             <!-- ── Footer ──────────────────────────────────────────── -->

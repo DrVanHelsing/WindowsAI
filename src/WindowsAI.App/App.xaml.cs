@@ -55,6 +55,11 @@ public partial class App : Application
                 sp.GetRequiredService<WindowsAI.Services.Search.WindowsSearchRetriever>(),
                 sp.GetRequiredService<WindowsAI.Core.Context.IEmbeddingClient>()));
 
+        // Overlay launcher search: apps + file names + settings, fanned out per keystroke.
+        services.AddSingleton<WindowsAI.Services.Search.AppCatalog>();
+        services.AddSingleton<WindowsAI.Services.Search.FileNameSearch>();
+        services.AddSingleton<WindowsAI.Services.Search.OverlaySearchService>();
+
         // View models. ChatViewModel is a singleton so the active model and conversation
         // stay in sync across the overlay, the chat page, and the models page.
         services.AddSingleton<ChatViewModel>();
