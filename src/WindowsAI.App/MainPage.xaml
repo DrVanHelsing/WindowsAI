@@ -433,13 +433,7 @@
                             VerticalAlignment="Center">
 
                             <!--  Active model pill  -->
-                            <Border
-                                Padding="12,6"
-                                VerticalAlignment="Center"
-                                Background="{StaticResource AccentFillSubtleBrush}"
-                                BorderBrush="{StaticResource AccentStrokeBrush}"
-                                BorderThickness="1"
-                                CornerRadius="{StaticResource RadiusPill}">
+                            <Border Style="{StaticResource ComposerPillStyle}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <FontIcon
                                         FontSize="10"
@@ -452,20 +446,36 @@
                                 </StackPanel>
                             </Border>
 
-                            <!--  Local-RAG toggle: include matching files from this PC  -->
+                            <!--  Local-RAG toggle: include matching files from this PC.
+                                  Shares the model pill's geometry; glass when off, accent when on.  -->
                             <ToggleButton
                                 x:Name="LocalContextToggle"
-                                Padding="10,5"
-                                VerticalAlignment="Center"
-                                Background="{StaticResource GlassFillSubtleBrush}"
-                                BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
-                                BorderThickness="1"
                                 Checked="LocalContext_Toggled"
-                                CornerRadius="{StaticResource RadiusPill}"
-                                FontSize="11"
-                                Foreground="{StaticResource TextSecondaryBrush}"
+                                Style="{StaticResource ComposerTogglePillStyle}"
                                 ToolTipService.ToolTip="Include matching files from this PC as context"
                                 Unchecked="LocalContext_Toggled">
+                                <ToggleButton.Resources>
+                                    <!--  Off (glass)  -->
+                                    <StaticResource x:Key="ToggleButtonBackground" ResourceKey="GlassFillSubtleBrush" />
+                                    <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="GlassHoverBrush" />
+                                    <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="GlassPressedBrush" />
+                                    <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="GlassStrokeSubtleBrush" />
+                                    <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="GlassStrokeSubtleBrush" />
+                                    <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="GlassStrokeSubtleBrush" />
+                                    <StaticResource x:Key="ToggleButtonForeground" ResourceKey="TextSecondaryBrush" />
+                                    <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="TextPrimaryBrush" />
+                                    <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="TextPrimaryBrush" />
+                                    <!--  On (accent — mirrors the model badge)  -->
+                                    <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="AccentFillSubtleBrush" />
+                                    <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="AccentFillMediumBrush" />
+                                    <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="AccentFillMediumBrush" />
+                                    <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="AccentStrokeBrush" />
+                                    <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="AccentStrokeBrush" />
+                                    <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="AccentStrokeBrush" />
+                                    <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="AccentTextBrush" />
+                                    <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="AccentTextBrush" />
+                                    <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="AccentTextBrush" />
+                                </ToggleButton.Resources>
                                 <StackPanel Orientation="Horizontal" Spacing="5">
                                     <FontIcon FontSize="11" Glyph="&#xE721;" />
                                     <TextBlock Text="Search my PC" />

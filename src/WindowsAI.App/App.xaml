@@ -70,6 +70,32 @@
                 <Setter Property="Padding" Value="12,6" />
             </Style>
 
+            <!--
+                Composer pills — the active-model badge (a Border) and the "Search my PC"
+                ToggleButton share one geometry (padding · pill radius · caption type) so they
+                read as a matched set. The toggle's on-brand checked look (accent, mirroring the
+                badge) comes from local ToggleButton* brush overrides on the instance, not a
+                ControlTemplate — templates fail silently here (see project memory).
+            -->
+            <Style x:Key="ComposerPillStyle" TargetType="Border">
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Padding" Value="11,6" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+                <Setter Property="Background" Value="{StaticResource AccentFillSubtleBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource AccentStrokeBrush}" />
+            </Style>
+
+            <Style x:Key="ComposerTogglePillStyle" TargetType="ToggleButton">
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="Padding" Value="11,6" />
+                <Setter Property="FontSize" Value="{StaticResource TypeCaptionSize}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+            </Style>
+
             <!--  Page title — used by History / Models / Settings headers  -->
             <Style x:Key="PageTitleStyle" TargetType="TextBlock">
                 <Setter Property="FontSize" Value="{StaticResource TypeDisplaySize}" />
