@@ -116,6 +116,38 @@ try
             !FileTextExtractor.CanExtract("a.png") && !FileTextExtractor.CanExtract("a.exe"));
     }
 
+    // 3c) Overlay launcher search: prompt classifier, settings catalog, app enumeration,
+    //     filename index lookup, and best-match ranking.
+    Console.WriteLine("Overlay launcher search");
+    {
+        Check("classifier: question -> prompt", WindowsAI.Core.Search.PromptClassifier.IsLikelyPrompt("what is dns?"));
+        Check("classifier: imperative -> prompt", WindowsAI.Core.Search.PromptClassifier.IsLikelyPrompt("write a thank you note"));
+        Check("classifier: long natural language -> prompt",
+            WindowsAI.Core.Search.PromptClassifier.IsLikelyPrompt("the meeting notes from tuesday need to be turned into an email"));
+        Check("classifier: app name -> search", !WindowsAI.Core.Search.PromptClassifier.IsLikelyPrompt("slack"));
+        Check("classifier: file name -> search", !WindowsAI.Core.Search.PromptClassifier.IsLikelyPrompt("tax report.pdf"));
+        Check("classifier: two keywords -> search", !WindowsAI.Core.Search.PromptClassifier.IsLikelyPrompt("isc workshop"));
+
+        var bluetooth = WindowsAI.Services.Search.SettingsCatalog.Search("bluetooth", 3);
+        Check("settings catalog finds bluetooth", bluetooth.Count > 0 && bluetooth[0].Target.StartsWith("ms-settings:"));
+        Check("settings catalog keyword match (dark mode)",
+            WindowsAI.Services.Search.SettingsCatalog.Search("dark mode", 3).Any(s => s.Name == "Colors"));
+
+        var appCatalog = new WindowsAI.Services.Search.AppCatalog();
+        Check("apps folder enumerates installed apps", appCatalog.Count > 0, $"count={appCatalog.Count}");
+        var settingsApp = await appCatalog.SearchAsync("settings", 4);
+        Check("app search finds Settings", settingsApp.Any(a => a.Name.Contains("Settings", StringComparison.OrdinalIgnoreCase)),
+            $"hits={string.Join(", ", settingsApp.Select(a => a.Name))}");
+
+        var fileHits = await new WindowsAI.Services.Search.FileNameSearch().SearchAsync("windows", 5);
+        Check("filename search returns indexed hits", fileHits.Count > 0, $"count={fileHits.Count}");
+
+        var bestApp = new WindowsAI.Core.Search.SearchHit(WindowsAI.Core.Search.SearchHitKind.App, "Slack", "App", "shell:AppsFolder\\x");
+        var bestFile = new WindowsAI.Core.Search.SearchHit(WindowsAI.Core.Search.SearchHitKind.File, "slack-notes.txt", "C:\\", "C:\\slack-notes.txt");
+        var picked = WindowsAI.Services.Search.OverlaySearchService.PickBestMatch("sla", [bestApp], [bestFile], []);
+        Check("best match prefers prefix app over file", ReferenceEquals(picked, bestApp));
+    }
+
     // 4) Local context retrieval against the live Windows Search index.
     Console.WriteLine("Local context retrieval (Windows Search index)");
     {
