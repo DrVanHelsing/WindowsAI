@@ -107,6 +107,11 @@
     <!--  Modal dialog surface — near-opaque dark indigo so content reads over the dimmed backdrop  -->
     <SolidColorBrush x:Key="DialogSurfaceBrush" Color="#F21A1626" />
 
+    <!--  Overlay readability scrim (over the transparent backdrop) + main-window sidebar veil.
+          Both flip light/dark live via ThemeSyncService, which mutates these shared instances.  -->
+    <SolidColorBrush x:Key="OverlayScrimBrush" Color="#B30D0A1C" />
+    <SolidColorBrush x:Key="SidebarFillBrush" Color="#590A0816" />
+
     <!-- ════════ Type ════════ -->
     <x:String x:Key="MonoFontFamily">Cascadia Code,Cascadia Mono,Consolas</x:String>
     <x:Double x:Key="TypeDisplaySize">28</x:Double>

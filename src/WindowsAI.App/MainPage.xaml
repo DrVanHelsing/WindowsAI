@@ -124,7 +124,12 @@
         </Style>
     </Page.Resources>
 
-    <Grid>
+    <Grid
+        x:Name="RootGrid"
+        AllowDrop="True"
+        DragOver="Page_DragOver"
+        DragLeave="Page_DragLeave"
+        Drop="Page_Drop">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
@@ -533,31 +538,34 @@
 
                             <!--  Attach files — documents become context, images go to vision models  -->
                             <Button
+                                Width="44"
+                                Height="44"
                                 MinWidth="0"
                                 MinHeight="0"
-                                Padding="9,7"
+                                Padding="0"
                                 VerticalAlignment="Center"
-                                Background="{StaticResource GlassFillSubtleBrush}"
-                                BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                                Background="{StaticResource GlassFillBrush}"
+                                BorderBrush="{StaticResource GlassStrokeBrush}"
                                 BorderThickness="1"
                                 Click="Attach_Click"
-                                CornerRadius="{StaticResource RadiusPill}"
+                                CornerRadius="22"
                                 Foreground="{StaticResource TextSecondaryBrush}"
                                 IsEnabled="{x:Bind ViewModel.IsNotBusy, Mode=OneWay}"
                                 ToolTipService.ToolTip="Attach files — documents and images">
-                                <FontIcon FontSize="12" Glyph="&#xE723;" />
+                                <FontIcon FontSize="16" Glyph="&#xE723;" />
                             </Button>
 
-                            <!--  Active model pill  -->
+                            <!--  Active model pill — mirrors the overlay footer badge  -->
                             <Border Style="{StaticResource ComposerPillStyle}" ToolTipService.ToolTip="{x:Bind ViewModel.ModelLabel, Mode=OneWay}">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                     <FontIcon
-                                        FontSize="10"
-                                        Foreground="{StaticResource AccentTextBrush}"
+                                        FontSize="14"
+                                        Foreground="{StaticResource AccentBrush}"
                                         Glyph="{x:Bind ViewModel.ModelGlyph, Mode=OneWay}" />
                                     <TextBlock
-                                        FontSize="11"
-                                        Foreground="{StaticResource AccentTextBrush}"
+                                        FontSize="12"
+                                        VerticalAlignment="Center"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
                                         Text="{x:Bind ViewModel.ModelShortLabel, Mode=OneWay}" />
                                 </StackPanel>
                             </Border>
@@ -592,9 +600,9 @@
                                     <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="AccentTextBrush" />
                                     <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="AccentTextBrush" />
                                 </ToggleButton.Resources>
-                                <StackPanel Orientation="Horizontal" Spacing="5">
-                                    <FontIcon FontSize="11" Glyph="&#xE721;" />
-                                    <TextBlock Text="Search my PC" />
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <FontIcon FontSize="14" Glyph="&#xE721;" />
+                                    <TextBlock VerticalAlignment="Center" Text="Search my PC" />
                                 </StackPanel>
                             </ToggleButton>
 
@@ -649,6 +657,43 @@
                 </Grid>
             </Border>
         </StackPanel>
+
+        <!-- ── Drag-and-drop affordance — shown while dragging files over the chat ── -->
+        <Border
+            x:Name="DropAffordance"
+            Grid.RowSpan="2"
+            Margin="16"
+            Background="{StaticResource AccentFillSubtleBrush}"
+            BorderBrush="{StaticResource AccentBrush}"
+            BorderThickness="2"
+            CornerRadius="{StaticResource RadiusXLarge}"
+            IsHitTestVisible="False"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.OpacityTransition>
+                <ScalarTransition Duration="0:0:0.15" />
+            </Border.OpacityTransition>
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Orientation="Vertical"
+                Spacing="12">
+                <FontIcon
+                    FontSize="36"
+                    Foreground="{StaticResource AccentTextBrush}"
+                    Glyph="&#xE8E5;" />
+                <TextBlock
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    Foreground="{StaticResource TextPrimaryBrush}"
+                    Text="Drop files to attach" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="12"
+                    Foreground="{StaticResource TextSecondaryBrush}"
+                    Text="Documents become context · images go to vision models" />
+            </StackPanel>
+        </Border>
 
     </Grid>
 </Page>

@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.System;
 using WindowsAI_App.ViewModels;
 
@@ -132,6 +133,58 @@ public sealed partial class MainPage : Page
     private void Message_PointerEntered(object sender, PointerRoutedEventArgs e) => SetActionsRowOpacity(sender, 1);
 
     private void Message_PointerExited(object sender, PointerRoutedEventArgs e) => SetActionsRowOpacity(sender, 0);
+
+    // ── Drag-and-drop: drop Explorer files onto the chat to attach them ──────
+
+    private void Page_DragOver(object sender, DragEventArgs e)
+    {
+        if (!e.DataView.Contains(StandardDataFormats.StorageItems))
+            return;
+
+        e.AcceptedOperation = DataPackageOperation.Copy;
+        if (e.DragUIOverride is { } ui)
+        {
+            ui.Caption = "Attach to chat";
+            ui.IsContentVisible = false;
+            ui.IsGlyphVisible = false;
+        }
+        ShowDropAffordance(true);
+    }
+
+    private void Page_DragLeave(object sender, DragEventArgs e) => ShowDropAffordance(false);
+
+    private async void Page_Drop(object sender, DragEventArgs e)
+    {
+        ShowDropAffordance(false);
+        if (!e.DataView.Contains(StandardDataFormats.StorageItems))
+            return;
+
+        // Hold the deferral until the async item walk completes (the DataView is
+        // only valid for the duration of the drop).
+        var deferral = e.GetDeferral();
+        try
+        {
+            var items = await e.DataView.GetStorageItemsAsync();
+            var paths = items.OfType<global::Windows.Storage.StorageFile>()
+                             .Select(f => f.Path)
+                             .Where(p => !string.IsNullOrEmpty(p))
+                             .ToList();
+            if (paths.Count > 0)
+                ViewModel.AddAttachments(paths);
+        }
+        finally
+        {
+            deferral.Complete();
+        }
+    }
+
+    private void ShowDropAffordance(bool show)
+    {
+        DropAffordance.Visibility = Visibility.Visible;
+        DropAffordance.Opacity = show ? 1 : 0;
+        if (!show)
+            DropAffordance.Visibility = Visibility.Collapsed;
+    }
 
     private void InputBox_KeyDown(object sender, KeyRoutedEventArgs e)
     {

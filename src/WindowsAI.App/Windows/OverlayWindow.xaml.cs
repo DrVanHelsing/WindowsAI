@@ -47,6 +47,9 @@ public sealed partial class OverlayWindow : Window
     /// <summary>Native handle — used to attach the global hotkey.</summary>
     public IntPtr Hwnd { get; }
 
+    /// <summary>Root element whose RequestedTheme ThemeSyncService flips to track the OS light/dark setting.</summary>
+    public FrameworkElement ThemeRoot => RootHost;
+
     public bool IsOverlayVisible => _appWindow.IsVisible;
 
     public OverlayWindow()
