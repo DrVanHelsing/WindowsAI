@@ -15,7 +15,7 @@
                 nested element syntax which the WinUI XAML compiler rejects in shared dicts.
             -->
             <Style x:Key="NavRadioButtonStyle" TargetType="RadioButton">
-                <Setter Property="Foreground" Value="#AAFFFFFF" />
+                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="Padding" Value="12,10" />
                 <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -88,12 +88,12 @@
 
                                 <Border
                                     x:Name="HoverFill"
-                                    Background="#0AFFFFFF"
+                                    Background="{StaticResource GlassHoverBrush}"
                                     CornerRadius="{TemplateBinding CornerRadius}"
                                     Opacity="0" />
                                 <Border
                                     x:Name="PressedFill"
-                                    Background="#0FFFFFFF"
+                                    Background="{StaticResource GlassPressedBrush}"
                                     CornerRadius="{TemplateBinding CornerRadius}"
                                     Opacity="0" />
                                 <Border
@@ -166,13 +166,13 @@
                     VerticalAlignment="Center">
                     <TextBlock
                         FontSize="16"
-                        Foreground="#7A6CFF"
+                        Foreground="{StaticResource AccentTextBrush}"
                         Text="✦"
                         VerticalAlignment="Center" />
                     <TextBlock
                         FontSize="14"
                         FontWeight="SemiBold"
-                        Foreground="White"
+                        Foreground="{StaticResource TextPrimaryBrush}"
                         Text="WindowsAI"
                         VerticalAlignment="Center" />
                 </StackPanel>
@@ -197,7 +197,7 @@
                 BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
                 BorderThickness="1"
                 CornerRadius="{StaticResource RadiusMedium}"
-                Foreground="White"
+                Foreground="{StaticResource TextPrimaryBrush}"
                 Padding="12,10"
                 Click="NewChatButton_Click">
                 <StackPanel Orientation="Horizontal" Spacing="8">
@@ -264,7 +264,7 @@
                 Margin="18,0,18,16"
                 VerticalAlignment="Bottom"
                 FontSize="11"
-                Foreground="#33FFFFFF"
+                Foreground="{StaticResource TextGhostBrush}"
                 Text="WindowsAI · Preview" />
 
         </Grid>
@@ -274,7 +274,7 @@
             Grid.Column="0"
             Width="1"
             HorizontalAlignment="Right"
-            Fill="#08FFFFFF" />
+            Fill="{StaticResource HairlineBrush}" />
 
         <!-- ═══════════════ CONTENT FRAME ══════════════════════════════════ -->
         <Frame x:Name="ContentFrame" Grid.Column="1" />

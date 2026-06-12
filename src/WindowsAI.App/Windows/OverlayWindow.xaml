@@ -282,7 +282,7 @@
                                     Visibility="{x:Bind conv:Vis.If(IsUser)}">
                                     <TextBlock
                                         FontSize="14"
-                                        Foreground="White"
+                                        Foreground="{StaticResource TextPrimaryBrush}"
                                         Text="{x:Bind Text, Mode=OneWay}"
                                         TextWrapping="Wrap" />
                                 </Border>
