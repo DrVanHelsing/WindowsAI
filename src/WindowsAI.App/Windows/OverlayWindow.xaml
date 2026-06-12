@@ -368,22 +368,44 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button
-                                    Click="Recent_Click"
-                                    Style="{StaticResource OverlayActionButtonStyle}"
-                                    Tag="{Binding Id}">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock
-                                            FontSize="13"
-                                            Foreground="{StaticResource TextPrimaryBrush}"
-                                            Text="{Binding Title}"
-                                            TextTrimming="CharacterEllipsis" />
-                                        <TextBlock
-                                            FontSize="11"
+                                <Grid PointerEntered="RecentRow_PointerEntered" PointerExited="RecentRow_PointerExited">
+                                    <Button
+                                        Click="Recent_Click"
+                                        Style="{StaticResource OverlayActionButtonStyle}"
+                                        Tag="{Binding Id}">
+                                        <StackPanel Margin="0,0,24,0" Spacing="2">
+                                            <TextBlock
+                                                FontSize="13"
+                                                Foreground="{StaticResource TextPrimaryBrush}"
+                                                Text="{Binding Title}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="{StaticResource TextTertiaryBrush}"
+                                                Text="{Binding Meta}" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button
+                                        x:Name="RowDelete"
+                                        Margin="0,0,8,0"
+                                        Padding="5"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Click="RemoveRecent_Click"
+                                        Opacity="0"
+                                        Tag="{Binding Id}"
+                                        ToolTipService.ToolTip="Remove from recents">
+                                        <Button.OpacityTransition>
+                                            <ScalarTransition Duration="0:0:0.12" />
+                                        </Button.OpacityTransition>
+                                        <FontIcon
+                                            FontSize="10"
                                             Foreground="{StaticResource TextTertiaryBrush}"
-                                            Text="{Binding Meta}" />
-                                    </StackPanel>
-                                </Button>
+                                            Glyph="&#xE711;" />
+                                    </Button>
+                                </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -405,37 +427,59 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:SearchRowViewModel">
-                                <Button
-                                    Click="RecentItem_Click"
-                                    Style="{StaticResource OverlayActionButtonStyle}"
-                                    Tag="{x:Bind}">
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <!--  Real shell icon once loaded; the glyph is the placeholder until then.  -->
-                                        <Image
-                                            Width="20"
-                                            Height="20"
-                                            VerticalAlignment="Center"
-                                            Source="{x:Bind Icon, Mode=OneWay}"
-                                            Visibility="{x:Bind conv:Vis.If(ShowImage), Mode=OneWay}" />
-                                        <FontIcon
-                                            FontSize="13"
-                                            Foreground="{StaticResource AccentTextBrush}"
-                                            Glyph="{x:Bind Glyph}"
-                                            Visibility="{x:Bind conv:Vis.If(ShowGlyph), Mode=OneWay}" />
-                                        <StackPanel Spacing="1" VerticalAlignment="Center">
-                                            <TextBlock
+                                <Grid PointerEntered="RecentRow_PointerEntered" PointerExited="RecentRow_PointerExited">
+                                    <Button
+                                        Click="RecentItem_Click"
+                                        Style="{StaticResource OverlayActionButtonStyle}"
+                                        Tag="{x:Bind}">
+                                        <StackPanel Margin="0,0,24,0" Orientation="Horizontal" Spacing="10">
+                                            <!--  Real shell icon once loaded; the glyph is the placeholder until then.  -->
+                                            <Image
+                                                Width="20"
+                                                Height="20"
+                                                VerticalAlignment="Center"
+                                                Source="{x:Bind Icon, Mode=OneWay}"
+                                                Visibility="{x:Bind conv:Vis.If(ShowImage), Mode=OneWay}" />
+                                            <FontIcon
                                                 FontSize="13"
-                                                Foreground="{StaticResource TextPrimaryBrush}"
-                                                Text="{x:Bind Title}"
-                                                TextTrimming="CharacterEllipsis" />
-                                            <TextBlock
-                                                FontSize="11"
-                                                Foreground="{StaticResource TextTertiaryBrush}"
-                                                Text="{x:Bind Subtitle}"
-                                                TextTrimming="CharacterEllipsis" />
+                                                Foreground="{StaticResource AccentTextBrush}"
+                                                Glyph="{x:Bind Glyph}"
+                                                Visibility="{x:Bind conv:Vis.If(ShowGlyph), Mode=OneWay}" />
+                                            <StackPanel Spacing="1" VerticalAlignment="Center">
+                                                <TextBlock
+                                                    FontSize="13"
+                                                    Foreground="{StaticResource TextPrimaryBrush}"
+                                                    Text="{x:Bind Title}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    FontSize="11"
+                                                    Foreground="{StaticResource TextTertiaryBrush}"
+                                                    Text="{x:Bind Subtitle}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
                                         </StackPanel>
-                                    </StackPanel>
-                                </Button>
+                                    </Button>
+                                    <Button
+                                        x:Name="RowDelete"
+                                        Margin="0,0,8,0"
+                                        Padding="5"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Click="RemoveRecentItem_Click"
+                                        Opacity="0"
+                                        Tag="{x:Bind}"
+                                        ToolTipService.ToolTip="Remove from recents">
+                                        <Button.OpacityTransition>
+                                            <ScalarTransition Duration="0:0:0.12" />
+                                        </Button.OpacityTransition>
+                                        <FontIcon
+                                            FontSize="10"
+                                            Foreground="{StaticResource TextTertiaryBrush}"
+                                            Glyph="&#xE711;" />
+                                    </Button>
+                                </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -457,18 +501,40 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button
-                                    Click="RecentQuery_Click"
-                                    Style="{StaticResource OverlayActionButtonStyle}"
-                                    Tag="{Binding}">
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Grid PointerEntered="RecentRow_PointerEntered" PointerExited="RecentRow_PointerExited">
+                                    <Button
+                                        Click="RecentQuery_Click"
+                                        Style="{StaticResource OverlayActionButtonStyle}"
+                                        Tag="{Binding}">
+                                        <StackPanel Margin="0,0,24,0" Orientation="Horizontal" Spacing="10">
+                                            <FontIcon
+                                                FontSize="12"
+                                                Foreground="{StaticResource TextTertiaryBrush}"
+                                                Glyph="&#xE721;" />
+                                            <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button
+                                        x:Name="RowDelete"
+                                        Margin="0,0,8,0"
+                                        Padding="5"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Click="RemoveRecentQuery_Click"
+                                        Opacity="0"
+                                        Tag="{Binding}"
+                                        ToolTipService.ToolTip="Remove from recents">
+                                        <Button.OpacityTransition>
+                                            <ScalarTransition Duration="0:0:0.12" />
+                                        </Button.OpacityTransition>
                                         <FontIcon
-                                            FontSize="12"
+                                            FontSize="10"
                                             Foreground="{StaticResource TextTertiaryBrush}"
-                                            Glyph="&#xE721;" />
-                                        <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                </Button>
+                                            Glyph="&#xE711;" />
+                                    </Button>
+                                </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

@@ -87,6 +87,22 @@ public sealed class OverlayRecentsStore
         await SaveAsync(payload, ct);
     }
 
+    /// <summary>Forgets a single launched item (matched by target).</summary>
+    public async Task RemoveItemAsync(string target, CancellationToken ct = default)
+    {
+        var payload = await LoadAsync(ct);
+        if (payload.Items.RemoveAll(i => string.Equals(i.Target, target, StringComparison.OrdinalIgnoreCase)) > 0)
+            await SaveAsync(payload, ct);
+    }
+
+    /// <summary>Forgets a single recent query.</summary>
+    public async Task RemoveQueryAsync(string query, CancellationToken ct = default)
+    {
+        var payload = await LoadAsync(ct);
+        if (payload.Queries.RemoveAll(q => string.Equals(q, query, StringComparison.OrdinalIgnoreCase)) > 0)
+            await SaveAsync(payload, ct);
+    }
+
     private async Task<Payload> LoadAsync(CancellationToken ct)
     {
         if (_cache is not null)

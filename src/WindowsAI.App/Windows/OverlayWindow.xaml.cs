@@ -502,6 +502,49 @@ public sealed partial class OverlayWindow : Window
         HideOverlay();
     }
 
+    // Hover-reveal: each recents row dims its ✕ delete button until the row is pointed at.
+    private static void SetRowDeleteOpacity(object sender, double opacity)
+    {
+        if (sender is FrameworkElement root && root.FindName("RowDelete") is FrameworkElement del)
+            del.Opacity = opacity;
+    }
+
+    private void RecentRow_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        => SetRowDeleteOpacity(sender, 1);
+
+    private void RecentRow_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        => SetRowDeleteOpacity(sender, 0);
+
+    /// <summary>Forgets a recent conversation (deletes it from history) and refreshes.</summary>
+    private async void RemoveRecent_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).Tag is not string id)
+            return;
+
+        await App.Services.GetRequiredService<IConversationStore>().DeleteAsync(id);
+        await RefreshRecentsAsync();
+    }
+
+    /// <summary>Forgets a recently launched item and refreshes.</summary>
+    private async void RemoveRecentItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).Tag is not SearchRowViewModel { Hit: { } hit })
+            return;
+
+        await _recents.RemoveItemAsync(hit.Target);
+        await RefreshRecentsAsync();
+    }
+
+    /// <summary>Forgets a recent search query and refreshes.</summary>
+    private async void RemoveRecentQuery_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).Tag is not string query)
+            return;
+
+        await _recents.RemoveQueryAsync(query);
+        await RefreshRecentsAsync();
+    }
+
     /// <summary>
     /// "Open app" — or, when a conversation is on screen, "Continue in app": opens the
     /// shell and loads the same session into it (it was persisted after each exchange).
