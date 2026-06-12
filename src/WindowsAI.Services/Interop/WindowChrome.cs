@@ -38,6 +38,18 @@ public static class WindowChrome
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, uint attribute, ref uint value, int size);
 
     /// <summary>
+    /// Tints the native Win11 window border (DWM-drawn) to an RGB color so the window edge
+    /// follows the OS accent. The window keeps its native frame + rounded corners; only the
+    /// 1px border line is recolored. Call again to re-tint when the accent changes.
+    /// </summary>
+    public static void SetBorderColor(IntPtr hwnd, byte r, byte g, byte b)
+    {
+        // DWMWA_BORDER_COLOR takes a COLORREF: 0x00BBGGRR.
+        var colorref = (uint)(r | (g << 8) | (b << 16));
+        _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref colorref, sizeof(uint));
+    }
+
+    /// <summary>
     /// Removes the chrome Windows 11 draws around a borderless window: the 1px light
     /// border (SetBorderAndTitleBar(false, false) alone still leaves it) and the rounded
     /// corners (whose anti-aliased arc otherwise shows as a white edge on our panel).

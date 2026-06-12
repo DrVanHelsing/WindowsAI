@@ -5,9 +5,9 @@ using Microsoft.UI.Xaml.Media.Animation;
 namespace WindowsAI_App;
 
 /// <summary>
-/// The full application window: a custom sidebar + content frame shell.
-/// BrandBar is designated as the drag region so the window can be moved by
-/// dragging the top of the sidebar; caption buttons float over the content column.
+/// The full application window: a full-width title strip over a sidebar + content
+/// frame shell. AppTitleBar spans the whole top as the drag region, so the window
+/// is grabbable across its full width; caption buttons sit at its right.
 /// </summary>
 public sealed partial class MainWindow : Window
 {
@@ -17,15 +17,20 @@ public sealed partial class MainWindow : Window
     /// <summary>Root element whose RequestedTheme ThemeSyncService flips to drive built-in control styles.</summary>
     public FrameworkElement ThemeRoot => RootGrid;
 
+    /// <summary>Native handle — lets ThemeSyncService tint the window border to the OS accent.</summary>
+    public IntPtr Hwnd { get; }
+
     public MainWindow()
     {
         InitializeComponent();
+
+        Hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
 
         // Slightly heavier tint than the overlay so long-form chat stays readable.
         Backdrop = Helpers.GlassBackdrop.Apply(this, tintOpacity: 0.55f, luminosityOpacity: 0.70f);
 
         ExtendsContentIntoTitleBar = true;
-        SetTitleBar(BrandBar);
+        SetTitleBar(AppTitleBar);
 
         AppWindow.SetIcon("Assets/AppIcon.ico");
 
