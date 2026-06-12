@@ -165,13 +165,12 @@ public sealed partial class OverlayWindow : Window
 
         if (ViewModel.IsBusy)
         {
-            ThinkingFrame.Opacity = 1;
-            ThinkingSpinStoryboard.Begin();
+            ThinkingPulseStoryboard.Begin();
         }
         else
         {
-            ThinkingFrame.Opacity = 0;
-            ThinkingSpinStoryboard.Stop();
+            ThinkingPulseStoryboard.Stop();
+            AccentFrame.Opacity = 0.6; // settle back to the resting accent edge
         }
     }
 

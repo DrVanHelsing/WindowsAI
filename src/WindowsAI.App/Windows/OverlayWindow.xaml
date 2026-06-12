@@ -64,16 +64,19 @@
                     Duration="0:0:0.14" />
             </Storyboard>
 
-            <!-- Running light: the comet gradient orbits the panel frame during inference.
-                 Gradient-transform animation is dependent (CPU-ticked) by design. -->
-            <Storyboard x:Name="ThinkingSpinStoryboard" RepeatBehavior="Forever">
+            <!-- Thinking pulse: the persistent accent edge gently breathes while the LLM
+                 works (replaces the old orbiting rainbow comet). -->
+            <Storyboard x:Name="ThinkingPulseStoryboard" AutoReverse="True" RepeatBehavior="Forever">
                 <DoubleAnimation
-                    EnableDependentAnimation="True"
-                    Storyboard.TargetName="ThinkingSpin"
-                    Storyboard.TargetProperty="Angle"
-                    From="0"
-                    To="360"
-                    Duration="0:0:1.6" />
+                    Storyboard.TargetName="AccentFrame"
+                    Storyboard.TargetProperty="Opacity"
+                    From="0.5"
+                    To="1.0"
+                    Duration="0:0:0.9">
+                    <DoubleAnimation.EasingFunction>
+                        <SineEase EasingMode="EaseInOut" />
+                    </DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
             </Storyboard>
 
             <!-- Quiet glass action row (recents / suggestions) -->
@@ -722,45 +725,18 @@
             </Rectangle.Fill>
         </Rectangle>
 
-        <!-- Edge-lit hairline at the very right -->
-        <Rectangle
-            Width="1"
-            HorizontalAlignment="Right"
-            Opacity="0.14">
-            <Rectangle.Fill>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Offset="0.0" Color="Transparent" />
-                    <GradientStop Offset="0.15" Color="White" />
-                    <GradientStop Offset="0.85" Color="White" />
-                    <GradientStop Offset="1.0" Color="Transparent" />
-                </LinearGradientBrush>
-            </Rectangle.Fill>
-        </Rectangle>
-
-        <!-- Thinking frame: a rainbow comet orbits the panel edge while the LLM works.
-             The rotating gradient sweeps a bright band along the 2.5px border. -->
+        <!-- Accent edge: the panel's right border follows the OS accent color. It sits
+             persistently at rest and gently pulses while the assistant is thinking
+             (replaces the old running-light rainbow comet). -->
         <Border
-            x:Name="ThinkingFrame"
-            BorderThickness="2.5"
+            x:Name="AccentFrame"
+            BorderBrush="{StaticResource AccentBrush}"
+            BorderThickness="0,0,1.5,0"
             IsHitTestVisible="False"
-            Opacity="0">
+            Opacity="0.6">
             <Border.OpacityTransition>
                 <ScalarTransition Duration="0:0:0.3" />
             </Border.OpacityTransition>
-            <Border.BorderBrush>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <LinearGradientBrush.RelativeTransform>
-                        <RotateTransform x:Name="ThinkingSpin" CenterX="0.5" CenterY="0.5" />
-                    </LinearGradientBrush.RelativeTransform>
-                    <GradientStop Offset="0.0" Color="#004F8CFF" />
-                    <GradientStop Offset="0.38" Color="#004F8CFF" />
-                    <GradientStop Offset="0.46" Color="#FF4F8CFF" />
-                    <GradientStop Offset="0.50" Color="#FFFF6BD6" />
-                    <GradientStop Offset="0.54" Color="#FF4DE3FF" />
-                    <GradientStop Offset="0.62" Color="#004DE3FF" />
-                    <GradientStop Offset="1.0" Color="#004DE3FF" />
-                </LinearGradientBrush>
-            </Border.BorderBrush>
         </Border>
 
         <!-- Drop affordance: revealed while Explorer files are dragged over the overlay -->
