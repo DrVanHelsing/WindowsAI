@@ -7,6 +7,7 @@ using WindowsAI.Services.Hotkeys;
 using WindowsAI.Services.Inference;
 using WindowsAI.Services.Security;
 using WindowsAI.Services.Tray;
+using WindowsAI_App.Services;
 using WindowsAI_App.ViewModels;
 using WindowsAI_App.Windows;
 
@@ -27,6 +28,7 @@ public partial class App : Application
     private HotkeyManager? _hotkey;
     private NativeTrayIcon? _tray;
     private MainWindow? _mainWindow;
+    private ThemeSyncService? _themeSync;
 
     /// <summary>Application-wide service provider.</summary>
     public static IServiceProvider Services { get; private set; } = default!;
@@ -66,6 +68,9 @@ public partial class App : Application
         services.AddSingleton<ChatViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<HistoryViewModel>();
+
+        // Keeps every window in step with the Windows light/dark + accent settings, live.
+        services.AddSingleton<ThemeSyncService>();
 
         return services.BuildServiceProvider();
     }
@@ -109,6 +114,12 @@ public partial class App : Application
         // global hotkey and tray icon remain available. It is never Activated here — the app
         // lives in the tray until summoned.
         _overlay = new OverlayWindow();
+
+        // Start theme/accent sync before the first window is shown so the overlay opens in the
+        // correct theme, then bring the overlay under its control.
+        _themeSync = Services.GetRequiredService<ThemeSyncService>();
+        _themeSync.Start();
+        _themeSync.RegisterWindow(_overlay.ThemeRoot);
 
         // Bind the global summon hotkey to the overlay's HWND. Registration can fail
         // transiently (e.g. a previous instance not fully exited still holds the chord),
@@ -158,6 +169,8 @@ public partial class App : Application
             _mainWindow = new MainWindow();
             // Drop the reference when the window is closed so it can be reopened later.
             _mainWindow.Closed += (_, _) => _mainWindow = null;
+            // Follow the OS theme/accent (and flip the acrylic tint) for the lifetime of the window.
+            _themeSync?.RegisterWindow(_mainWindow.ThemeRoot, _mainWindow.Backdrop);
         }
 
         _mainWindow.Activate();

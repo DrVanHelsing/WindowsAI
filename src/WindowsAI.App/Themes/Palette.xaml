@@ -3,50 +3,11 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!--  Brand accent — a vivid indigo between the gradient's blue (#4F8CFF) and purple (#9B6BFF).  -->
-    <Color x:Key="SystemAccentColor">#7A6CFF</Color>
-    <Color x:Key="SystemAccentColorLight1">#8C80FF</Color>
-    <Color x:Key="SystemAccentColorLight2">#9E94FF</Color>
-    <Color x:Key="SystemAccentColorLight3">#B0A8FF</Color>
-    <Color x:Key="SystemAccentColorDark1">#6859E6</Color>
-    <Color x:Key="SystemAccentColorDark2">#5547CC</Color>
-    <Color x:Key="SystemAccentColorDark3">#4234B3</Color>
-
-    <Color x:Key="BrandAccentColor">#7A6CFF</Color>
-    <Color x:Key="BrandAccentColorHover">#9385FF</Color>
-    <Color x:Key="BrandAccentColorPressed">#6354F0</Color>
-
-    <ResourceDictionary.ThemeDictionaries>
-
-        <!--  Dark (default / dark-first)  -->
-        <ResourceDictionary x:Key="Default">
-            <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#7A6CFF" />
-            <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#E67A6CFF" />
-            <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#CC7A6CFF" />
-            <SolidColorBrush x:Key="TextOnAccentFillColorPrimaryBrush" Color="#FFFFFF" />
-            <SolidColorBrush x:Key="TextOnAccentFillColorSecondaryBrush" Color="#E6FFFFFF" />
-            <SolidColorBrush x:Key="BrandAccentBrush" Color="#7A6CFF" />
-            <SolidColorBrush x:Key="BrandAccentSubtleBrush" Color="#297A6CFF" />
-            <SolidColorBrush x:Key="BrandStrokeBrush" Color="#477A6CFF" />
-            <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#12FFFFFF" />
-            <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="#0AFFFFFF" />
-        </ResourceDictionary>
-
-        <!--  Light (kept coherent for a future theme toggle)  -->
-        <ResourceDictionary x:Key="Light">
-            <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#6354F0" />
-            <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#E66354F0" />
-            <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#CC6354F0" />
-            <SolidColorBrush x:Key="TextOnAccentFillColorPrimaryBrush" Color="#FFFFFF" />
-            <SolidColorBrush x:Key="TextOnAccentFillColorSecondaryBrush" Color="#E6FFFFFF" />
-            <SolidColorBrush x:Key="BrandAccentBrush" Color="#6354F0" />
-            <SolidColorBrush x:Key="BrandAccentSubtleBrush" Color="#247A6CFF" />
-            <SolidColorBrush x:Key="BrandStrokeBrush" Color="#3D6354F0" />
-        </ResourceDictionary>
-
-    </ResourceDictionary.ThemeDictionaries>
-
     <!--
+        Accent now follows Windows: no SystemAccentColor* overrides here, so built-in WinUI controls
+        derive their accent brushes from the OS accent. The app's own accent-family tokens live in
+        Tokens.xaml and are re-derived from the OS accent live by ThemeSyncService.
+
         NOTE: keep this dictionary to colors + brushes only. The XAML toolchain compiles it
         standalone, and a <Style> here (even self-contained) crashes the compiler. The brand
         typography styles therefore live in App.xaml, which has the full merged scope.

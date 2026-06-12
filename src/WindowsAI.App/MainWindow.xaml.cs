@@ -11,12 +11,18 @@ namespace WindowsAI_App;
 /// </summary>
 public sealed partial class MainWindow : Window
 {
+    /// <summary>The live acrylic backdrop handle, so ThemeSyncService can flip its tint with the OS theme.</summary>
+    public Helpers.GlassBackdropHandle Backdrop { get; }
+
+    /// <summary>Root element whose RequestedTheme ThemeSyncService flips to drive built-in control styles.</summary>
+    public FrameworkElement ThemeRoot => RootGrid;
+
     public MainWindow()
     {
         InitializeComponent();
 
         // Slightly heavier tint than the overlay so long-form chat stays readable.
-        Helpers.GlassBackdrop.Apply(this, tintOpacity: 0.55f, luminosityOpacity: 0.70f);
+        Backdrop = Helpers.GlassBackdrop.Apply(this, tintOpacity: 0.55f, luminosityOpacity: 0.70f);
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(BrandBar);

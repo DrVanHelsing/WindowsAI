@@ -4,8 +4,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="using:WindowsAI_App.Converters"
-    xmlns:local="using:WindowsAI_App"
-    RequestedTheme="Dark">
+    xmlns:local="using:WindowsAI_App">
+    <!--  No RequestedTheme: ThemeSyncService drives each window's RequestedTheme to follow Windows.  -->
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

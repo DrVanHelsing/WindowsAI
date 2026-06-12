@@ -14,7 +14,7 @@
         see-through, raise it for more contrast.
         NOTE (Window XAML): no x:Bind Converter= here — use conv:Vis function binds.
     -->
-    <Grid x:Name="RootHost" Background="#B30D0A1C" Opacity="0">
+    <Grid x:Name="RootHost" Background="{StaticResource OverlayScrimBrush}" Opacity="0">
         <Grid.RenderTransform>
             <TranslateTransform x:Name="RootSlide" X="-440" />
         </Grid.RenderTransform>
