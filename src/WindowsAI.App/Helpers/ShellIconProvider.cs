@@ -47,11 +47,12 @@ public static class ShellIconProvider
         return bmp;
     }
 
-    /// <summary>Runs the shell COM + GDI copy off the UI thread; returns premultiplied BGRA pixels.</summary>
+    /// <summary>Runs the shell COM + GDI copy off the UI thread; returns premultiplied top-down BGRA pixels.</summary>
     private static (byte[] data, int w, int h)? CapturePixels(string target, int pixelSize)
     {
         object? shellItem = null;
         IntPtr hbitmap = IntPtr.Zero;
+        IntPtr hdc = IntPtr.Zero;
         try
         {
             var iid = IID_IShellItemImageFactory;
@@ -60,21 +61,47 @@ public static class ShellIconProvider
                 return null;
 
             // No ICONONLY flag → a thumbnail where the shell has one (image previews, doc pages),
-            // falling back to the file-type / app icon. BIGGERSIZEOK lets it upscale to our box.
+            // falling back to the file-type / app icon. BIGGERSIZEOK lets the shell hand back a
+            // larger native asset (e.g. the 256px icon) that we downsample crisply for hi-DPI.
             var size = new SIZE { cx = pixelSize, cy = pixelSize };
             factory.GetImage(size, SIIGBF.BiggerSizeOk, out hbitmap);
             if (hbitmap == IntPtr.Zero)
                 return null;
 
             if (GetObject(hbitmap, Marshal.SizeOf<BITMAP>(), out var bm) == 0 ||
-                bm.bmBits == IntPtr.Zero || bm.bmBitsPixel != 32 || bm.bmWidth <= 0 || bm.bmHeight <= 0)
+                bm.bmBitsPixel != 32 || bm.bmWidth <= 0 || bm.bmHeight <= 0)
                 return null;
 
-            int w = bm.bmWidth, h = bm.bmHeight, stride = bm.bmWidthBytes;
+            int w = bm.bmWidth, h = bm.bmHeight;
+
+            // Don't trust the HBITMAP's in-memory row order (GetImage may hand back a bottom-up DIB,
+            // which copied straight reads upside-down). Ask GDI for the pixels with a *negative*
+            // height so they always come back top-down 32bpp BGRA, regardless of the source layout.
+            var header = new BITMAPINFOHEADER
+            {
+                biSize = (uint)Marshal.SizeOf<BITMAPINFOHEADER>(),
+                biWidth = w,
+                biHeight = -h, // negative → top-down
+                biPlanes = 1,
+                biBitCount = 32,
+                biCompression = 0, // BI_RGB
+            };
+
             var data = new byte[w * h * 4];
-            // Shell DIB section is top-down 32bpp premultiplied BGRA — copy row by row honoring stride.
-            for (int y = 0; y < h; y++)
-                Marshal.Copy(bm.bmBits + y * stride, data, y * w * 4, w * 4);
+            hdc = CreateCompatibleDC(IntPtr.Zero);
+            if (GetDIBits(hdc, hbitmap, 0, (uint)h, data, ref header, 0) == 0)
+                return null;
+
+            // GetDIBits yields straight (non-premultiplied) alpha; WriteableBitmap wants premultiplied
+            // BGRA, so fold alpha into the color channels — otherwise soft icon edges halo.
+            for (int i = 0; i < data.Length; i += 4)
+            {
+                byte a = data[i + 3];
+                if (a == 255) continue;
+                data[i] = (byte)(data[i] * a / 255);
+                data[i + 1] = (byte)(data[i + 1] * a / 255);
+                data[i + 2] = (byte)(data[i + 2] * a / 255);
+            }
 
             return (data, w, h);
         }
@@ -84,6 +111,8 @@ public static class ShellIconProvider
         }
         finally
         {
+            if (hdc != IntPtr.Zero)
+                DeleteDC(hdc);
             if (hbitmap != IntPtr.Zero)
                 DeleteObject(hbitmap);
             if (shellItem is not null)
@@ -138,8 +167,36 @@ public static class ShellIconProvider
         public IntPtr bmBits;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BITMAPINFOHEADER
+    {
+        public uint biSize;
+        public int biWidth;
+        public int biHeight;
+        public ushort biPlanes;
+        public ushort biBitCount;
+        public uint biCompression;
+        public uint biSizeImage;
+        public int biXPelsPerMeter;
+        public int biYPelsPerMeter;
+        public uint biClrUsed;
+        public uint biClrImportant;
+    }
+
     [DllImport("gdi32.dll", EntryPoint = "GetObjectW")]
     private static extern int GetObject(IntPtr handle, int c, out BITMAP bitmap);
+
+    [DllImport("gdi32.dll")]
+    private static extern int GetDIBits(
+        IntPtr hdc, IntPtr hbm, uint start, uint cLines,
+        [Out] byte[] lpvBits, ref BITMAPINFOHEADER lpbi, uint usage);
+
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DeleteDC(IntPtr hdc);
 
     [DllImport("gdi32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

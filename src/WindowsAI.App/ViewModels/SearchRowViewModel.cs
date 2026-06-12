@@ -61,8 +61,10 @@ public partial class SearchRowViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowGlyph));
     }
 
+    // Request well above the ~22px display size so the shell hands back a high-res native asset
+    // that downsamples crisply on hi-DPI displays.
     private async void BeginLoadIcon(string target)
-        => Icon = await ShellIconProvider.GetIconAsync(target, 48);
+        => Icon = await ShellIconProvider.GetIconAsync(target, 96);
 
     /// <summary>Keyboard-navigation highlight; focus itself stays in the search box.</summary>
     [ObservableProperty]
