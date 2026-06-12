@@ -484,11 +484,17 @@
                                             VerticalAlignment="Center"
                                             Orientation="Horizontal"
                                             Spacing="12">
+                                            <Image
+                                                Width="22"
+                                                Height="22"
+                                                VerticalAlignment="Center"
+                                                Source="{x:Bind Icon, Mode=OneWay}"
+                                                Visibility="{x:Bind conv:Vis.If(ShowImage), Mode=OneWay}" />
                                             <FontIcon
                                                 FontSize="15"
                                                 Foreground="{StaticResource AccentTextBrush}"
                                                 Glyph="{x:Bind Glyph}"
-                                                Visibility="{x:Bind conv:Vis.IfNot(IsAskAi)}" />
+                                                Visibility="{x:Bind conv:Vis.If(ShowGlyph), Mode=OneWay}" />
                                             <controls:SparkleIcon
                                                 Width="15"
                                                 Height="15"
