@@ -77,23 +77,26 @@
                 badge) comes from local ToggleButton* brush overrides on the instance, not a
                 ControlTemplate — templates fail silently here (see project memory).
             -->
+            <!--  Composer pills — match the overlay footer's 44px glass capsules for a cohesive look.  -->
             <Style x:Key="ComposerPillStyle" TargetType="Border">
                 <Setter Property="VerticalAlignment" Value="Center" />
-                <Setter Property="Padding" Value="11,6" />
+                <Setter Property="Height" Value="44" />
+                <Setter Property="Padding" Value="16,0" />
                 <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
-                <Setter Property="Background" Value="{StaticResource AccentFillSubtleBrush}" />
-                <Setter Property="BorderBrush" Value="{StaticResource AccentStrokeBrush}" />
+                <Setter Property="CornerRadius" Value="22" />
+                <Setter Property="Background" Value="{StaticResource GlassFillBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource GlassStrokeBrush}" />
             </Style>
 
             <Style x:Key="ComposerTogglePillStyle" TargetType="ToggleButton">
                 <Setter Property="VerticalAlignment" Value="Center" />
                 <Setter Property="MinWidth" Value="0" />
                 <Setter Property="MinHeight" Value="0" />
-                <Setter Property="Padding" Value="11,6" />
+                <Setter Property="Height" Value="44" />
+                <Setter Property="Padding" Value="16,0" />
                 <Setter Property="FontSize" Value="{StaticResource TypeCaptionSize}" />
                 <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+                <Setter Property="CornerRadius" Value="22" />
             </Style>
 
             <!--
