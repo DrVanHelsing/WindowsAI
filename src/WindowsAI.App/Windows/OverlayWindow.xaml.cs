@@ -299,8 +299,21 @@ public sealed partial class OverlayWindow : Window
     private async Task RouteCurrentQueryAsync()
     {
         var text = SearchBox.Text.Trim();
+
+        // A dropped file with no text still asks the AI (it substitutes a default question).
         if (text.Length == 0)
+        {
+            if (ViewModel.HasPendingAttachments)
+                SendToAi();
             return;
+        }
+
+        // Attachments mean the user wants to ask about the file, not launch a match.
+        if (ViewModel.HasPendingAttachments)
+        {
+            SendToAi();
+            return;
+        }
 
         // If results for the current text are still in flight, let them land so Enter
         // acts on what the user sees (or would see a frame later).
@@ -321,6 +334,64 @@ public sealed partial class OverlayWindow : Window
 
         // Ask-AI row selected, no results yet, or prompt-like text → the AI.
         SendToAi();
+    }
+
+    // ── Drag-and-drop: drop Explorer files onto the overlay to attach them ──────
+
+    private void RootHost_DragOver(object sender, DragEventArgs e)
+    {
+        if (!e.DataView.Contains(global::Windows.ApplicationModel.DataTransfer.StandardDataFormats.StorageItems))
+            return;
+
+        e.AcceptedOperation = global::Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy;
+        if (e.DragUIOverride is { } ui)
+        {
+            ui.Caption = "Attach to question";
+            ui.IsContentVisible = false;
+            ui.IsGlyphVisible = false;
+        }
+        ShowDropAffordance(true);
+    }
+
+    private void RootHost_DragLeave(object sender, DragEventArgs e) => ShowDropAffordance(false);
+
+    private async void RootHost_Drop(object sender, DragEventArgs e)
+    {
+        ShowDropAffordance(false);
+        if (!e.DataView.Contains(global::Windows.ApplicationModel.DataTransfer.StandardDataFormats.StorageItems))
+            return;
+
+        // Hold the deferral until the async item walk completes (the DataView is only valid
+        // for the duration of the drop).
+        var deferral = e.GetDeferral();
+        try
+        {
+            var items = await e.DataView.GetStorageItemsAsync();
+            var paths = items.OfType<global::Windows.Storage.StorageFile>()
+                             .Select(f => f.Path)
+                             .Where(p => !string.IsNullOrEmpty(p))
+                             .ToList();
+            if (paths.Count > 0)
+                ViewModel.AddAttachments(paths);
+        }
+        finally
+        {
+            deferral.Complete();
+        }
+    }
+
+    private void ShowDropAffordance(bool show)
+    {
+        DropAffordance.Visibility = Visibility.Visible;
+        DropAffordance.Opacity = show ? 1 : 0;
+        if (!show)
+            DropAffordance.Visibility = Visibility.Collapsed;
+    }
+
+    private void RemoveAttachment_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).Tag is PendingAttachment attachment)
+            ViewModel.RemoveAttachmentCommand.Execute(attachment);
     }
 
     private void SendToAi()

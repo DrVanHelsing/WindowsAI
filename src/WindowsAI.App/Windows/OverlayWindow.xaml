@@ -14,7 +14,14 @@
         see-through, raise it for more contrast.
         NOTE (Window XAML): no x:Bind Converter= here — use conv:Vis function binds.
     -->
-    <Grid x:Name="RootHost" Background="{StaticResource OverlayScrimBrush}" Opacity="0">
+    <Grid
+        x:Name="RootHost"
+        AllowDrop="True"
+        Background="{StaticResource OverlayScrimBrush}"
+        DragLeave="RootHost_DragLeave"
+        DragOver="RootHost_DragOver"
+        Drop="RootHost_Drop"
+        Opacity="0">
         <Grid.RenderTransform>
             <TranslateTransform x:Name="RootSlide" X="-440" />
         </Grid.RenderTransform>
@@ -90,6 +97,8 @@
         <!-- Panel content -->
         <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <!--  Pending attachments (drag-dropped files) sit between the search bar and the body  -->
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
@@ -185,8 +194,52 @@
                 </Button>
             </Grid>
 
+            <!-- ── Pending attachments — dropped files queued for the next question ── -->
+            <ItemsControl
+                Grid.Row="1"
+                Margin="20,0,20,10"
+                ItemsSource="{x:Bind ViewModel.PendingAttachments}"
+                Visibility="{x:Bind conv:Vis.If(ViewModel.HasPendingAttachments), Mode=OneWay}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="6" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PendingAttachment">
+                        <Border Style="{StaticResource SourceChipStyle}" ToolTipService.ToolTip="{x:Bind Path}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon
+                                    FontSize="13"
+                                    Foreground="{StaticResource AccentTextBrush}"
+                                    Glyph="{x:Bind controls:FileGlyphs.For(Name)}" />
+                                <TextBlock
+                                    MaxWidth="150"
+                                    VerticalAlignment="Center"
+                                    FontSize="12"
+                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    Text="{x:Bind Name}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <Button
+                                    Padding="3"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Click="RemoveAttachment_Click"
+                                    Tag="{x:Bind}"
+                                    ToolTipService.ToolTip="Remove attachment">
+                                    <FontIcon
+                                        FontSize="9"
+                                        Foreground="{StaticResource TextTertiaryBrush}"
+                                        Glyph="&#xE711;" />
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
             <!-- ── Body: messages OR empty state ───────────────────── -->
-            <Grid Grid.Row="1">
+            <Grid Grid.Row="2">
 
                 <!-- Messages -->
                 <ListView
@@ -349,26 +402,34 @@
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate>
+                            <DataTemplate x:DataType="vm:SearchRowViewModel">
                                 <Button
                                     Click="RecentItem_Click"
                                     Style="{StaticResource OverlayActionButtonStyle}"
-                                    Tag="{Binding}">
+                                    Tag="{x:Bind}">
                                     <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <!--  Real shell icon once loaded; the glyph is the placeholder until then.  -->
+                                        <Image
+                                            Width="20"
+                                            Height="20"
+                                            VerticalAlignment="Center"
+                                            Source="{x:Bind Icon, Mode=OneWay}"
+                                            Visibility="{x:Bind conv:Vis.If(ShowImage), Mode=OneWay}" />
                                         <FontIcon
                                             FontSize="13"
                                             Foreground="{StaticResource AccentTextBrush}"
-                                            Glyph="{Binding Glyph}" />
-                                        <StackPanel Spacing="1">
+                                            Glyph="{x:Bind Glyph}"
+                                            Visibility="{x:Bind conv:Vis.If(ShowGlyph), Mode=OneWay}" />
+                                        <StackPanel Spacing="1" VerticalAlignment="Center">
                                             <TextBlock
                                                 FontSize="13"
                                                 Foreground="{StaticResource TextPrimaryBrush}"
-                                                Text="{Binding Title}"
+                                                Text="{x:Bind Title}"
                                                 TextTrimming="CharacterEllipsis" />
                                             <TextBlock
                                                 FontSize="11"
                                                 Foreground="{StaticResource TextTertiaryBrush}"
-                                                Text="{Binding Subtitle}"
+                                                Text="{x:Bind Subtitle}"
                                                 TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
                                     </StackPanel>
@@ -526,7 +587,7 @@
 
             <!-- ── Footer ──────────────────────────────────────────── -->
             <Border
-                Grid.Row="2"
+                Grid.Row="3"
                 Padding="18,14"
                 BorderBrush="{StaticResource HairlineBrush}"
                 BorderThickness="0,1,0,0">
@@ -667,6 +728,38 @@
                     <GradientStop Offset="1.0" Color="#004DE3FF" />
                 </LinearGradientBrush>
             </Border.BorderBrush>
+        </Border>
+
+        <!-- Drop affordance: revealed while Explorer files are dragged over the overlay -->
+        <Border
+            x:Name="DropAffordance"
+            Margin="10"
+            Background="{StaticResource AccentFillSubtleBrush}"
+            BorderBrush="{StaticResource AccentStrokeBrush}"
+            BorderThickness="2"
+            CornerRadius="18"
+            IsHitTestVisible="False"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.OpacityTransition>
+                <ScalarTransition Duration="0:0:0.15" />
+            </Border.OpacityTransition>
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="10">
+                <FontIcon
+                    HorizontalAlignment="Center"
+                    FontSize="32"
+                    Foreground="{StaticResource AccentTextBrush}"
+                    Glyph="&#xE8E5;" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="15"
+                    FontWeight="SemiBold"
+                    Foreground="{StaticResource TextPrimaryBrush}"
+                    Text="Drop files to attach" />
+            </StackPanel>
         </Border>
 
     </Grid>
