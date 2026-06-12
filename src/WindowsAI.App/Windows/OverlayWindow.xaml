@@ -472,41 +472,6 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-
-                    <TextBlock
-                        Margin="4,10,0,0"
-                        FontSize="11"
-                        CharacterSpacing="60"
-                        Foreground="{StaticResource TextTertiaryBrush}"
-                        Text="TRY" />
-
-                    <Button
-                        Click="Suggestion_Click"
-                        Style="{StaticResource OverlayActionButtonStyle}"
-                        Tag="Summarize this for me: ">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <FontIcon FontSize="13" Foreground="{StaticResource AccentTextBrush}" Glyph="&#xE8BC;" />
-                            <TextBlock Text="Summarize a block of text" />
-                        </StackPanel>
-                    </Button>
-                    <Button
-                        Click="Suggestion_Click"
-                        Style="{StaticResource OverlayActionButtonStyle}"
-                        Tag="Translate this to English: ">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <FontIcon FontSize="13" Foreground="{StaticResource AccentTextBrush}" Glyph="&#xE775;" />
-                            <TextBlock Text="Translate something" />
-                        </StackPanel>
-                    </Button>
-                    <Button
-                        Click="Suggestion_Click"
-                        Style="{StaticResource OverlayActionButtonStyle}"
-                        Tag="Write a one-line PowerShell command to ">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <FontIcon FontSize="13" Foreground="{StaticResource AccentTextBrush}" Glyph="&#xE756;" />
-                            <TextBlock Text="Get a PowerShell one-liner" />
-                        </StackPanel>
-                    </Button>
                 </StackPanel>
 
                 <!-- Live launcher results — grouped, Windows-Search style. Selection is

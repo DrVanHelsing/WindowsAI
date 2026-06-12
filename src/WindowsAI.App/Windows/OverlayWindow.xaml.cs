@@ -502,14 +502,6 @@ public sealed partial class OverlayWindow : Window
         HideOverlay();
     }
 
-    /// <summary>Quick-action chip: drop its prompt stub into the search box.</summary>
-    private void Suggestion_Click(object sender, RoutedEventArgs e)
-    {
-        ViewModel.Input = (string)((FrameworkElement)sender).Tag;
-        SearchBox.Focus(FocusState.Programmatic);
-        SearchBox.SelectionStart = SearchBox.Text.Length;
-    }
-
     /// <summary>
     /// "Open app" — or, when a conversation is on screen, "Continue in app": opens the
     /// shell and loads the same session into it (it was persisted after each exchange).
