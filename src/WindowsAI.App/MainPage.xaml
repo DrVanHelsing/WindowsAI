@@ -124,7 +124,12 @@
         </Style>
     </Page.Resources>
 
-    <Grid>
+    <Grid
+        x:Name="RootGrid"
+        AllowDrop="True"
+        DragOver="Page_DragOver"
+        DragLeave="Page_DragLeave"
+        Drop="Page_Drop">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
@@ -652,6 +657,43 @@
                 </Grid>
             </Border>
         </StackPanel>
+
+        <!-- ── Drag-and-drop affordance — shown while dragging files over the chat ── -->
+        <Border
+            x:Name="DropAffordance"
+            Grid.RowSpan="2"
+            Margin="16"
+            Background="{StaticResource AccentFillSubtleBrush}"
+            BorderBrush="{StaticResource AccentBrush}"
+            BorderThickness="2"
+            CornerRadius="{StaticResource RadiusXLarge}"
+            IsHitTestVisible="False"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.OpacityTransition>
+                <ScalarTransition Duration="0:0:0.15" />
+            </Border.OpacityTransition>
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Orientation="Vertical"
+                Spacing="12">
+                <FontIcon
+                    FontSize="36"
+                    Foreground="{StaticResource AccentTextBrush}"
+                    Glyph="&#xE8E5;" />
+                <TextBlock
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    Foreground="{StaticResource TextPrimaryBrush}"
+                    Text="Drop files to attach" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="12"
+                    Foreground="{StaticResource TextSecondaryBrush}"
+                    Text="Documents become context · images go to vision models" />
+            </StackPanel>
+        </Border>
 
     </Grid>
 </Page>
