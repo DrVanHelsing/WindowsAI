@@ -148,6 +148,8 @@
                         Background="Transparent"
                         BorderThickness="0"
                         FontSize="16"
+                        Foreground="{StaticResource TextPrimaryBrush}"
+                        SelectionHighlightColor="{StaticResource AccentBrush}"
                         KeyDown="SearchBox_KeyDown"
                         PlaceholderText="Ask anything…"
                         Text="{x:Bind ViewModel.Input, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">

@@ -509,6 +509,8 @@
                         Background="Transparent"
                         BorderThickness="0"
                         FontSize="15"
+                        Foreground="{StaticResource TextPrimaryBrush}"
+                        SelectionHighlightColor="{StaticResource AccentBrush}"
                         IsEnabled="{x:Bind ViewModel.IsNotBusy, Mode=OneWay}"
                         KeyDown="InputBox_KeyDown"
                         PlaceholderText="Ask WindowsAI…"
