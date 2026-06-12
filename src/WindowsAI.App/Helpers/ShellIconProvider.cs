@@ -34,7 +34,8 @@ public static class ShellIconProvider
         var captured = await Task.Run(() => CapturePixels(target, pixelSize)).ConfigureAwait(true);
         if (captured is not var (data, w, h) || data is null)
         {
-            Cache[key] = null;
+            // Don't cache the miss: a Store-app icon the shell hasn't extracted yet can fail
+            // transiently (E_PENDING), so a later open should retry rather than be stuck on the glyph.
             return null;
         }
 
@@ -64,7 +65,22 @@ public static class ShellIconProvider
             // falling back to the file-type / app icon. BIGGERSIZEOK lets the shell hand back a
             // larger native asset (e.g. the 256px icon) that we downsample crisply for hi-DPI.
             var size = new SIZE { cx = pixelSize, cy = pixelSize };
-            factory.GetImage(size, SIIGBF.BiggerSizeOk, out hbitmap);
+
+            // Store-app icons the shell hasn't extracted yet return E_PENDING on the first call —
+            // the documented contract is to retry. Without this, packaged apps (e.g. WhatsApp) get
+            // stuck on the placeholder glyph the very first time they're shown.
+            for (int attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    factory.GetImage(size, SIIGBF.BiggerSizeOk, out hbitmap);
+                    break;
+                }
+                catch (COMException ex) when (ex.HResult == E_PENDING && attempt < 8)
+                {
+                    System.Threading.Thread.Sleep(60);
+                }
+            }
             if (hbitmap == IntPtr.Zero)
                 return null;
 
@@ -123,6 +139,9 @@ public static class ShellIconProvider
     // ── Interop ──────────────────────────────────────────────────────────────
 
     private static Guid IID_IShellItemImageFactory = new("bcc18b79-ba16-442f-80c4-8a59c30c463b");
+
+    // The image isn't ready yet — retry the extract (IShellItemImageFactory contract).
+    private const int E_PENDING = unchecked((int)0x8000000A);
 
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
     private static extern void SHCreateItemFromParsingName(
