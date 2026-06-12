@@ -110,6 +110,10 @@ public partial class App : Application
         // background so it doesn't delay the overlay appearing; any failure is silent.
         _ = OllamaLauncher.EnsureRunningAsync(settingsStore);
 
+        // Build the shared WebView2 environment up front so the first math/table bubble
+        // (RichMessageView) renders without a cold-start stall.
+        Controls.RichMessageView.PrewarmEnvironment();
+
         // Create the overlay once and keep it alive (hidden) for the whole session so the
         // global hotkey and tray icon remain available. It is never Activated here — the app
         // lives in the tray until summoned.
