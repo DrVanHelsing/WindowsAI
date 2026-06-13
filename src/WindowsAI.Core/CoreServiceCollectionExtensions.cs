@@ -33,6 +33,10 @@ public static class CoreServiceCollectionExtensions
         // Text-to-image (OpenRouter image modality); depends on ISecretStore from the host.
         services.AddSingleton<ImageGenerationService>();
 
+        // Visual intelligence: answers questions about a captured screen region via a
+        // configurable OpenRouter vision model (always cloud, regardless of the active model).
+        services.AddSingleton<VisionService>();
+
         // Local embeddings for semantic re-ranking of "Search my PC" results. The host
         // composes this with its platform retriever (see RerankingContextRetriever).
         services.AddSingleton<IEmbeddingClient, OllamaEmbeddingClient>();

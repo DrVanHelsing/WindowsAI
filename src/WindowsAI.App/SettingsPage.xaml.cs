@@ -145,6 +145,22 @@ public sealed partial class SettingsPage : Page
         }
     }
 
+    private async void ChangeVisionModel_Click(object sender, RoutedEventArgs e)
+    {
+        var id = await DialogService.PromptTextAsync(
+            XamlRoot,
+            "Vision model",
+            "OpenRouter model id used for screen-capture questions (Alt+Shift+S). Must accept images.",
+            initialText: ViewModel.VisionModelId,
+            placeholder: "meta-llama/llama-3.2-11b-vision-instruct:free");
+
+        if (id is not null)
+        {
+            ViewModel.VisionModelId = id;
+            await ViewModel.SaveVisionModelAsync();
+        }
+    }
+
     private async void ManageOpenRouterKey_Click(object sender, RoutedEventArgs e)
     {
         var key = await DialogService.PromptPasswordAsync(

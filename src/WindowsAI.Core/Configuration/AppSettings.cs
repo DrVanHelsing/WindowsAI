@@ -81,6 +81,13 @@ public sealed class OpenRouterSettings
 
     /// <summary>Model used for text-to-image generation (OpenRouter, image modality).</summary>
     public string ImageModelId { get; set; } = "google/gemini-2.5-flash-image-preview";
+
+    /// <summary>
+    /// Vision model used by the screen-capture "ask about this region" flow. Must be a
+    /// multimodal model on OpenRouter; defaults to a free one so the feature works out of the
+    /// box once an OpenRouter key is added. User-configurable in Settings.
+    /// </summary>
+    public string VisionModelId { get; set; } = "meta-llama/llama-3.2-11b-vision-instruct:free";
 }
 
 /// <summary>Configuration for Google Gemini via its OpenAI-compatible endpoint (opt-in).</summary>

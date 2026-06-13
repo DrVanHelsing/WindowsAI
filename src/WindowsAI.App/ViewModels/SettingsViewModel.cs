@@ -20,6 +20,10 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial string OllamaEndpoint { get; set; }
 
+    /// <summary>OpenRouter model used for the screen-capture "ask about this region" flow (must support vision).</summary>
+    [ObservableProperty]
+    public partial string VisionModelId { get; set; }
+
     /// <summary>Light/dark selection bound to the theme RadioButtons (0 = Windows default, 1 = Light, 2 = Dark).</summary>
     [ObservableProperty]
     public partial int ThemeIndex { get; set; }
@@ -47,6 +51,7 @@ public partial class SettingsViewModel : ObservableObject
         _theme = theme;
 
         OllamaEndpoint = _settings.Current.LocalModel.Endpoint;
+        VisionModelId = _settings.Current.OpenRouter.VisionModelId;
 
         _initializing = true;
         ThemeIndex = (int)_settings.Current.Appearance.Theme;
@@ -78,6 +83,12 @@ public partial class SettingsViewModel : ObservableObject
     public async Task SaveOllamaEndpointAsync()
     {
         _settings.Current.LocalModel.Endpoint = OllamaEndpoint.Trim();
+        await _settings.SaveAsync();
+    }
+
+    public async Task SaveVisionModelAsync()
+    {
+        _settings.Current.OpenRouter.VisionModelId = VisionModelId.Trim();
         await _settings.SaveAsync();
     }
 

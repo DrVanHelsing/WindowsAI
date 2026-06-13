@@ -173,6 +173,31 @@
                                 FontSize="12"
                                 Foreground="{StaticResource AccentTextBrush}"
                                 Text="{x:Bind ViewModel.OpenRouterStatus, Mode=OneWay}" />
+
+                            <!--  Vision model for the screen-capture flow (Alt+Shift+S)  -->
+                            <Grid Margin="0,10,0,0" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Spacing="2">
+                                    <TextBlock
+                                        FontSize="12"
+                                        Foreground="{StaticResource TextTertiaryBrush}"
+                                        Text="Vision model — for screen-capture questions (Alt+Shift+S)" />
+                                    <TextBlock
+                                        FontFamily="{StaticResource MonoFontFamily}"
+                                        FontSize="12"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Text="{x:Bind ViewModel.VisionModelId, Mode=OneWay}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="1"
+                                    VerticalAlignment="Bottom"
+                                    Click="ChangeVisionModel_Click"
+                                    Content="Change…" />
+                            </Grid>
                         </StackPanel>
 
                         <StackPanel
@@ -294,7 +319,7 @@
                                 Grid.Column="1"
                                 FontSize="12"
                                 Foreground="{StaticResource TextSecondaryBrush}"
-                                Text="Alt + Space  ·  Esc to dismiss" />
+                                Text="Alt + Space  ·  Writing tools: Ctrl + Shift + Space  ·  Ask about screen: Alt + Shift + S" />
 
                             <TextBlock
                                 Grid.Row="2"

@@ -15,4 +15,12 @@ public readonly record struct HotkeyDefinition(uint Modifiers, uint VirtualKey)
     /// </summary>
     public static HotkeyDefinition WritingTools { get; } =
         new(NativeMethods.MOD_CONTROL | NativeMethods.MOD_SHIFT, 0x20 /* VK_SPACE */);
+
+    /// <summary>
+    /// Default visual-intelligence hotkey: Alt+Shift+S. Dims the screen, lets the user drag a
+    /// region, and asks a vision model about it. "S" for screen/snip; chosen to avoid Win+Shift+S
+    /// (the OS Snipping Tool chord) while staying mnemonic.
+    /// </summary>
+    public static HotkeyDefinition VisualIntelligence { get; } =
+        new(NativeMethods.MOD_ALT | NativeMethods.MOD_SHIFT, 0x53 /* VK_S */);
 }

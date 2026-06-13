@@ -30,6 +30,7 @@ public partial class App : Application
     private MainWindow? _mainWindow;
     private ThemeSyncService? _themeSync;
     private WritingToolsController? _writingTools;
+    private VisualIntelligenceController? _visualIntelligence;
 
     /// <summary>Application-wide service provider.</summary>
     public static IServiceProvider Services { get; private set; } = default!;
@@ -53,6 +54,9 @@ public partial class App : Application
         // Type-anywhere writing tools: synthesizes the copy/paste chords to read and replace
         // the selection in whatever app has focus.
         services.AddSingleton<WindowsAI.Services.Writing.TextSelectionService>();
+
+        // Visual intelligence: grabs a screen region (GDI) to ask a vision model about.
+        services.AddSingleton<WindowsAI.Services.Capture.ScreenCaptureService>();
 
         // Local RAG: keyword retrieval over the Windows Search index, then semantic
         // re-ranking via local embeddings (falls back to keyword order if unavailable).
@@ -131,9 +135,10 @@ public partial class App : Application
         _themeSync.RegisterWindow(_overlay.ThemeRoot);
 
         // Bind the global hotkeys to the overlay's HWND: Alt+Space summons the overlay,
-        // Ctrl+Shift+Space opens the writing tools over the current selection. Registration
-        // can fail transiently (e.g. a previous instance not fully exited still holds a chord),
-        // so retry instead of failing silently forever.
+        // Ctrl+Shift+Space opens the writing tools over the current selection, and Alt+Shift+S
+        // starts a visual-intelligence region capture. Registration can fail transiently (e.g. a
+        // previous instance not fully exited still holds a chord), so retry instead of failing
+        // silently forever.
         _hotkey = new HotkeyManager(_overlay.Hwnd);
         _hotkey.Add(HotkeyDefinition.Default, () => _overlay?.ToggleOverlay());
 
@@ -143,6 +148,13 @@ public partial class App : Application
             _overlay.DispatcherQueue,
             window => _themeSync?.RegisterWindow(window.ThemeRoot));
         _hotkey.Add(HotkeyDefinition.WritingTools, () => _writingTools?.Trigger());
+
+        _visualIntelligence = new VisualIntelligenceController(
+            Services.GetRequiredService<WindowsAI.Services.Capture.ScreenCaptureService>(),
+            Services.GetRequiredService<WindowsAI.Core.Providers.VisionService>(),
+            _overlay.DispatcherQueue,
+            window => _themeSync?.RegisterWindow(window.ThemeRoot));
+        _hotkey.Add(HotkeyDefinition.VisualIntelligence, () => _visualIntelligence?.Trigger());
 
         _ = RegisterHotkeyWithRetryAsync();
 

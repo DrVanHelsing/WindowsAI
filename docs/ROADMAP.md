@@ -131,6 +131,28 @@ loop (scripted stub client → tool invoked with the right args → final reply 
 - 🚧 **Cross-app paste injection pending manual check** — the final Ctrl+V into a third-party app
   needs real (trusted) keyboard input, which the automated QA harness can't synthesize.
 
+## Phase 7 — Visual intelligence ✅ (built; live vision round-trip pending)
+
+- ✅ **Region capture** (`WindowsAI.Services/Capture/ScreenCaptureService`): grabs the monitor under
+  the cursor via GDI (`CopyFromScreen`) into a frozen bitmap, then crops the user's selection to a
+  PNG. Capturing up front means the selection is drawn against a still image and we never capture
+  our own dimming overlay.
+- ✅ **Capture surface** (`RegionCaptureWindow`): borderless, always-on-top, fullscreen over the
+  cursor's monitor. Shows the frozen screenshot, dims it with a four-rectangle scrim that
+  "spotlights" the dragged selection, and reads the cursor monitor's DPI to map the DIP selection
+  back to physical pixels for the crop. **Verified by screen capture** — dim+banner state and the
+  drag → spotlight → ask card both render on-brand.
+- ✅ **Ask card + vision model** (`WindowsAI.Core/Providers/VisionService`): after a region is
+  selected, an inline card shows the crop thumbnail, a question box, and a streamed answer. The
+  request always runs on a **configurable OpenRouter vision model** (`OpenRouterSettings.VisionModelId`,
+  default `meta-llama/llama-3.2-11b-vision-instruct:free`) regardless of the active chat model —
+  visual intelligence needs a multimodal backend even when the everyday model is local text-only.
+- ✅ **Hotkey + Settings**: `Alt+Shift+S` (`HotkeyDefinition.VisualIntelligence`, multiplexed through
+  the same `HotkeyManager` subclass) opens the capture; the vision model id is editable on the
+  Settings page under OpenRouter.
+- 🚧 **Live vision round-trip pending** — needs an OpenRouter key + a real model call; the streaming
+  path reuses the proven `OpenRouterChatProvider` image-attachment client.
+
 ## Unit tests ✅
 
 `tests/WindowsAI.Core.Tests` (xUnit) — the first dedicated unit-test project. **11 tests** cover the
@@ -140,6 +162,10 @@ writing-tools action catalog, prompt shape, and result cleaning. Run with
 ## ⏭ Next
 
 - ⏭ Manually verify writing-tools paste injection across Notepad / Word / Chrome / VS Code.
+- ⏭ Live visual-intelligence round-trip: add an OpenRouter key, capture a region, confirm a real
+  vision-model answer streams (and tune the default free model if it's been deprecated upstream).
+- ⏭ Google OAuth (Desktop client) as an alternative to a Gemini API key — user is creating the
+  OAuth client ID; scaffold the loopback flow next.
 - ⏭ More tools (web search, current date/time); per-tool surfacing of agent steps in the transcript.
 
 ## 💡 Later
