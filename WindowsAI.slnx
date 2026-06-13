@@ -6,4 +6,7 @@
     <Project Path="src/WindowsAI.Core/WindowsAI.Core.csproj" />
     <Project Path="src/WindowsAI.Services/WindowsAI.Services.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WindowsAI.Core.Tests/WindowsAI.Core.Tests.csproj" />
+  </Folder>
 </Solution>

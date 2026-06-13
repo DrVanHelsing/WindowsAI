@@ -4,6 +4,7 @@ using WindowsAI.Core.Configuration;
 using WindowsAI.Core.Context;
 using WindowsAI.Core.History;
 using WindowsAI.Core.Providers;
+using WindowsAI.Core.Writing;
 
 namespace WindowsAI.Core;
 
@@ -24,6 +25,10 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<IModelCatalog, ModelCatalog>();
         services.AddSingleton<ActiveModelService>();
         services.AddSingleton<ChatOrchestrator>();
+
+        // Type-anywhere writing tools (proofread / rewrite / tone / summarize). UI-agnostic:
+        // it transforms a text selection via the active model.
+        services.AddSingleton<WritingToolsService>();
 
         // Text-to-image (OpenRouter image modality); depends on ISecretStore from the host.
         services.AddSingleton<ImageGenerationService>();
