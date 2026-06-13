@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="WindowsAI_App.Windows.WritingToolsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:WindowsAI_App.Controls">
+
+    <!--
+        Type-anywhere writing-tools popup. Borderless, transparent backdrop (set in code-behind);
+        this root Grid is the readability scrim + rounded card. Content is driven from code-behind
+        (action buttons built from WritingAction.All, result streamed in) so there are no x:Bind
+        converters in this Window XAML — see the project's silent-XamlCompiler-error note.
+    -->
+    <Grid
+        x:Name="RootHost"
+        Background="{StaticResource OverlayScrimBrush}"
+        CornerRadius="14">
+        <Grid.RenderTransform>
+            <TranslateTransform x:Name="RootSlide" Y="-8" />
+        </Grid.RenderTransform>
+
+        <Grid.Resources>
+            <Storyboard x:Name="ShowStoryboard">
+                <DoubleAnimation
+                    Storyboard.TargetName="RootSlide"
+                    Storyboard.TargetProperty="Y"
+                    To="0"
+                    Duration="0:0:0.2">
+                    <DoubleAnimation.EasingFunction>
+                        <BackEase Amplitude="0.3" EasingMode="EaseOut" />
+                    </DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+                <DoubleAnimation
+                    Storyboard.TargetName="RootHost"
+                    Storyboard.TargetProperty="Opacity"
+                    From="0"
+                    To="1"
+                    Duration="0:0:0.14" />
+            </Storyboard>
+
+            <!-- Action row in the menu state -->
+            <Style x:Key="WritingActionButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource GlassFillSubtleBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource GlassStrokeSubtleBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
+                <Setter Property="Padding" Value="12,10" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                <Setter Property="FontSize" Value="14" />
+            </Style>
+        </Grid.Resources>
+
+        <!-- Specular sheen over the card -->
+        <Rectangle
+            Fill="{StaticResource GlassSheenBrush}"
+            IsHitTestVisible="False"
+            RadiusX="14"
+            RadiusY="14" />
+
+        <Grid Margin="16,14,16,16" RowSpacing="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- ── Header ── -->
+            <StackPanel
+                Grid.Row="0"
+                Orientation="Horizontal"
+                Spacing="8">
+                <controls:SparkleIcon
+                    Width="18"
+                    Height="18"
+                    VerticalAlignment="Center" />
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    FontWeight="SemiBold"
+                    Foreground="{StaticResource TextPrimaryBrush}"
+                    Text="Writing tools" />
+            </StackPanel>
+
+            <!-- ── Selected-text preview ── -->
+            <Border
+                Grid.Row="1"
+                Padding="10,8"
+                Background="{StaticResource GlassFillSubtleBrush}"
+                BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusMedium}">
+                <TextBlock
+                    x:Name="SelectionPreview"
+                    MaxLines="2"
+                    FontSize="12"
+                    Foreground="{StaticResource TextTertiaryBrush}"
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="Wrap" />
+            </Border>
+
+            <!-- ── Actions state ── -->
+            <ScrollViewer
+                x:Name="ActionsScroller"
+                Grid.Row="2"
+                VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="ActionsPanel" Spacing="6">
+                    <StackPanel.ChildrenTransitions>
+                        <TransitionCollection>
+                            <EntranceThemeTransition FromVerticalOffset="10" IsStaggeringEnabled="True" />
+                        </TransitionCollection>
+                    </StackPanel.ChildrenTransitions>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ── Result state ── -->
+            <Grid x:Name="ResultPanel" Grid.Row="2" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Border
+                    Grid.Row="0"
+                    Padding="12,10"
+                    Background="{StaticResource GlassFillBrush}"
+                    BorderBrush="{StaticResource GlassStrokeBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusMedium}">
+                    <Grid>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <TextBlock
+                                x:Name="ResultText"
+                                FontSize="14"
+                                Foreground="{StaticResource TextPrimaryBrush}"
+                                IsTextSelectionEnabled="True"
+                                TextWrapping="Wrap" />
+                        </ScrollViewer>
+
+                        <!-- Thinking indicator while the model streams -->
+                        <StackPanel
+                            x:Name="ThinkingRow"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            Visibility="Collapsed">
+                            <ProgressRing
+                                Width="16"
+                                Height="16"
+                                Foreground="{StaticResource AccentBrush}"
+                                IsActive="True" />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontSize="13"
+                                Foreground="{StaticResource TextTertiaryBrush}"
+                                Text="Thinking…" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Result actions -->
+                <Grid Grid.Row="1" Margin="0,10,0,0" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button
+                        x:Name="BackButton"
+                        Grid.Column="0"
+                        Padding="10,8"
+                        Background="{StaticResource GlassFillSubtleBrush}"
+                        BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                        BorderThickness="1"
+                        Click="Back_Click"
+                        CornerRadius="{StaticResource RadiusMedium}"
+                        Foreground="{StaticResource TextSecondaryBrush}"
+                        ToolTipService.ToolTip="Back to actions">
+                        <FontIcon FontSize="13" Glyph="&#xE72B;" />
+                    </Button>
+
+                    <Button
+                        x:Name="CopyButton"
+                        Grid.Column="1"
+                        Padding="10,8"
+                        Background="{StaticResource GlassFillSubtleBrush}"
+                        BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                        BorderThickness="1"
+                        Click="Copy_Click"
+                        CornerRadius="{StaticResource RadiusMedium}"
+                        Foreground="{StaticResource TextSecondaryBrush}"
+                        ToolTipService.ToolTip="Copy result">
+                        <FontIcon FontSize="13" Glyph="&#xE8C8;" />
+                    </Button>
+
+                    <Button
+                        x:Name="ReplaceButton"
+                        Grid.Column="3"
+                        Padding="16,8"
+                        Background="{StaticResource AccentFillMediumBrush}"
+                        BorderBrush="{StaticResource AccentStrokeBrush}"
+                        BorderThickness="1"
+                        Click="Replace_Click"
+                        CornerRadius="{StaticResource RadiusMedium}"
+                        Foreground="{StaticResource AccentTextBrush}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon FontSize="13" Glyph="&#xE8E5;" />
+                            <TextBlock FontSize="14" Text="Replace" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <!-- Accent edge for the card -->
+        <Border
+            BorderBrush="{StaticResource AccentBrush}"
+            BorderThickness="1"
+            CornerRadius="14"
+            IsHitTestVisible="False"
+            Opacity="0.5" />
+    </Grid>
+</Window>

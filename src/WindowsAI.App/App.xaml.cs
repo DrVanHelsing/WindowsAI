@@ -29,6 +29,7 @@ public partial class App : Application
     private NativeTrayIcon? _tray;
     private MainWindow? _mainWindow;
     private ThemeSyncService? _themeSync;
+    private WritingToolsController? _writingTools;
 
     /// <summary>Application-wide service provider.</summary>
     public static IServiceProvider Services { get; private set; } = default!;
@@ -48,6 +49,10 @@ public partial class App : Application
 
         // Windows-specific services.
         services.AddSingleton<ISecretStore, DpapiSecretStore>();
+
+        // Type-anywhere writing tools: synthesizes the copy/paste chords to read and replace
+        // the selection in whatever app has focus.
+        services.AddSingleton<WindowsAI.Services.Writing.TextSelectionService>();
 
         // Local RAG: keyword retrieval over the Windows Search index, then semantic
         // re-ranking via local embeddings (falls back to keyword order if unavailable).
@@ -125,11 +130,20 @@ public partial class App : Application
         _themeSync.Start();
         _themeSync.RegisterWindow(_overlay.ThemeRoot);
 
-        // Bind the global summon hotkey to the overlay's HWND. Registration can fail
-        // transiently (e.g. a previous instance not fully exited still holds the chord),
+        // Bind the global hotkeys to the overlay's HWND: Alt+Space summons the overlay,
+        // Ctrl+Shift+Space opens the writing tools over the current selection. Registration
+        // can fail transiently (e.g. a previous instance not fully exited still holds a chord),
         // so retry instead of failing silently forever.
         _hotkey = new HotkeyManager(_overlay.Hwnd);
-        _hotkey.Pressed += () => _overlay?.ToggleOverlay();
+        _hotkey.Add(HotkeyDefinition.Default, () => _overlay?.ToggleOverlay());
+
+        _writingTools = new WritingToolsController(
+            Services.GetRequiredService<WindowsAI.Services.Writing.TextSelectionService>(),
+            Services.GetRequiredService<WindowsAI.Core.Writing.WritingToolsService>(),
+            _overlay.DispatcherQueue,
+            window => _themeSync?.RegisterWindow(window.ThemeRoot));
+        _hotkey.Add(HotkeyDefinition.WritingTools, () => _writingTools?.Trigger());
+
         _ = RegisterHotkeyWithRetryAsync();
 
         // Native tray icon + menu. Built on Win32 (not H.NotifyIcon's XAML flyout) so it has
@@ -149,7 +163,7 @@ public partial class App : Application
     {
         for (var attempt = 0; attempt < 15; attempt++)
         {
-            if (_hotkey is null || _hotkey.Register(HotkeyDefinition.Default))
+            if (_hotkey is null || _hotkey.TryRegisterPending())
                 return;
             await Task.Delay(1000);
         }

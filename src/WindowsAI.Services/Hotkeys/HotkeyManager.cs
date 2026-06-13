@@ -3,21 +3,25 @@ using WindowsAI.Services.Interop;
 namespace WindowsAI.Services.Hotkeys;
 
 /// <summary>
-/// Registers a single global hotkey against a window and raises <see cref="Pressed"/> when
-/// it fires. Uses a window subclass to observe <c>WM_HOTKEY</c> without disturbing WinUI's
-/// own message handling. Attach to any always-present HWND (e.g. the hidden overlay window).
+/// Registers one or more global hotkeys against a window and invokes each chord's callback when
+/// it fires. A single window subclass observes <c>WM_HOTKEY</c> for all of them (without
+/// disturbing WinUI's own message handling) and dispatches by hotkey id. Attach to any
+/// always-present HWND (e.g. the hidden overlay window).
 /// </summary>
 public sealed class HotkeyManager : IDisposable
 {
-    private const int HotkeyId = 0x4157; // "AW"
+    private const int FirstHotkeyId = 0x4157; // "AW"
     private const nuint SubclassId = 1;
 
     private readonly IntPtr _hwnd;
     private readonly NativeMethods.SubclassProc _proc; // held to prevent GC of the callback
-    private bool _registered;
+    private readonly Dictionary<int, Registration> _hotkeys = new();
+    private int _nextId = FirstHotkeyId;
 
-    /// <summary>Raised on the UI thread when the hotkey is pressed.</summary>
-    public event Action? Pressed;
+    private sealed record Registration(HotkeyDefinition Definition, Action OnPressed)
+    {
+        public bool Registered { get; set; }
+    }
 
     public HotkeyManager(IntPtr hwnd)
     {
@@ -26,22 +30,50 @@ public sealed class HotkeyManager : IDisposable
         NativeMethods.SetWindowSubclass(_hwnd, _proc, SubclassId, 0);
     }
 
-    /// <summary>(Re)registers the given hotkey. Returns false if the chord is already taken.</summary>
-    public bool Register(HotkeyDefinition hotkey)
+    /// <summary>
+    /// Reserves a hotkey slot with its callback and attempts to register the chord. Returns an
+    /// id usable with <see cref="TryRegister"/> for later retries. The chord may not be live yet
+    /// (another app can still hold it); check the return of <see cref="TryRegister"/>.
+    /// </summary>
+    public int Add(HotkeyDefinition hotkey, Action onPressed)
     {
-        if (_registered)
-            NativeMethods.UnregisterHotKey(_hwnd, HotkeyId);
+        var id = _nextId++;
+        _hotkeys[id] = new Registration(hotkey, onPressed);
+        TryRegister(id);
+        return id;
+    }
 
-        _registered = NativeMethods.RegisterHotKey(
-            _hwnd, HotkeyId, hotkey.Modifiers | NativeMethods.MOD_NOREPEAT, hotkey.VirtualKey);
-        return _registered;
+    /// <summary>(Re)attempts to register a previously-added hotkey. Returns false if the chord is taken.</summary>
+    public bool TryRegister(int id)
+    {
+        if (!_hotkeys.TryGetValue(id, out var reg))
+            return false;
+
+        if (reg.Registered)
+            NativeMethods.UnregisterHotKey(_hwnd, id);
+
+        reg.Registered = NativeMethods.RegisterHotKey(
+            _hwnd, id, reg.Definition.Modifiers | NativeMethods.MOD_NOREPEAT, reg.Definition.VirtualKey);
+        return reg.Registered;
+    }
+
+    /// <summary>True once every added hotkey has successfully registered its chord.</summary>
+    public bool AllRegistered => _hotkeys.Values.All(r => r.Registered);
+
+    /// <summary>Re-attempts registration for any hotkey not yet live. Returns true when all are live.</summary>
+    public bool TryRegisterPending()
+    {
+        foreach (var (id, reg) in _hotkeys)
+            if (!reg.Registered)
+                TryRegister(id);
+        return AllRegistered;
     }
 
     private IntPtr SubclassProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam, nuint id, nuint data)
     {
-        if (msg == NativeMethods.WM_HOTKEY && (int)wParam == HotkeyId)
+        if (msg == NativeMethods.WM_HOTKEY && _hotkeys.TryGetValue((int)wParam, out var reg))
         {
-            Pressed?.Invoke();
+            reg.OnPressed();
             return IntPtr.Zero;
         }
 
@@ -50,8 +82,9 @@ public sealed class HotkeyManager : IDisposable
 
     public void Dispose()
     {
-        if (_registered)
-            NativeMethods.UnregisterHotKey(_hwnd, HotkeyId);
+        foreach (var (id, reg) in _hotkeys)
+            if (reg.Registered)
+                NativeMethods.UnregisterHotKey(_hwnd, id);
 
         NativeMethods.RemoveWindowSubclass(_hwnd, _proc, SubclassId);
     }
