@@ -1,0 +1,93 @@
+/*
+  Glass-tuned styling for the WebView2 rich renderer. Colors mirror the app's design tokens
+  (Tokens.xaml) via CSS variables so the bubble matches the native renderer in both themes.
+  Background stays transparent so the liquid glass shows through.
+*/
+:root, body.theme-dark {
+    --text: #F2FFFFFF;
+    --text2: #9AFFFFFF;
+    --accent: #A99BFF;
+    --code-bg: rgba(0, 0, 0, 0.40);
+    --code-header: rgba(255, 255, 255, 0.10);
+    --hair: rgba(255, 255, 255, 0.12);
+    --inline-bg: rgba(122, 108, 255, 0.18);
+}
+
+body.theme-light {
+    --text: #E6000000;
+    --text2: #99000000;
+    --accent: #6354F0;
+    --code-bg: rgba(0, 0, 0, 0.05);
+    --code-header: rgba(0, 0, 0, 0.05);
+    --hair: rgba(0, 0, 0, 0.12);
+    --inline-bg: rgba(99, 84, 240, 0.12);
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--text);
+    font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+    font-size: 15px;
+    line-height: 25px;
+    overflow: hidden;
+}
+
+#content {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+#content > :first-child { margin-top: 0; }
+#content > :last-child { margin-bottom: 0; }
+
+p { margin: 0 0 10px; }
+
+h1, h2, h3, h4 { font-weight: 600; margin: 12px 0 6px; line-height: 1.3; }
+h1 { font-size: 20px; }
+h2 { font-size: 18px; }
+h3 { font-size: 16px; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+ul, ol { margin: 0 0 10px; padding-left: 22px; }
+li { margin: 2px 0; }
+
+code {
+    background: var(--inline-bg);
+    padding: 1px 5px;
+    border-radius: 5px;
+    font-family: 'Cascadia Code', 'Cascadia Mono', Consolas, monospace;
+    font-size: 13.5px;
+}
+
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--hair);
+    border-radius: 10px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    margin: 0 0 10px;
+}
+
+pre code { background: none; padding: 0; font-size: 13px; line-height: 20px; }
+
+blockquote {
+    margin: 6px 0 10px;
+    padding: 4px 12px;
+    border-left: 3px solid var(--accent);
+    color: var(--text2);
+}
+
+hr { border: none; border-top: 1px solid var(--hair); margin: 12px 0; }
+
+table { border-collapse: collapse; margin: 4px 0 10px; font-size: 14px; }
+th, td { border: 1px solid var(--hair); padding: 6px 12px; text-align: left; }
+th { font-weight: 600; background: var(--code-header); }
+
+img { max-width: 100%; height: auto; border-radius: 10px; }
+
+.katex { font-size: 1.05em; color: var(--text); }
+.katex-display { margin: 8px 0; overflow-x: auto; overflow-y: hidden; }

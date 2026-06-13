@@ -51,6 +51,9 @@ public sealed class OpenRouterSettings
     public string BaseUrl { get; set; } = "https://openrouter.ai/api/v1";
 
     public string DefaultModelId { get; set; } = "google/gemma-4-31b-it:free";
+
+    /// <summary>Model used for text-to-image generation (OpenRouter, image modality).</summary>
+    public string ImageModelId { get; set; } = "google/gemini-2.5-flash-image-preview";
 }
 
 /// <summary>Configuration for Google Gemini via its OpenAI-compatible endpoint (opt-in).</summary>

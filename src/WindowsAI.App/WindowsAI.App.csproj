@@ -29,6 +29,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+    <!-- RichMessageView's vendored WebView2 assets (KaTeX, markdown-it, highlight.js) —
+         served at runtime from BaseDirectory via a virtual host mapping, so copy them out. -->
+    <Content Include="Assets\richview\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

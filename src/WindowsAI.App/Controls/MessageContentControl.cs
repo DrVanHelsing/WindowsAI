@@ -30,13 +30,22 @@ public sealed partial class MessageContentControl : ContentControl
     }
 
     private readonly StackPanel _host = new() { Spacing = 10 };
+    private readonly Grid _root = new();
     private List<Block> _blocks = [];
+
+    // Adaptive swap: stream on the native panel, then hand a settled math/complex message to the
+    // WebView2 + KaTeX engine for true typesetting. The debounce waits out streaming so we only
+    // pay the web view once, on the final text.
+    private RichMessageView? _richView;
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _richDebounce;
+    private bool _richActive;
 
     public MessageContentControl()
     {
         IsTabStop = false;
         HorizontalContentAlignment = HorizontalAlignment.Stretch;
-        Content = _host;
+        _root.Children.Add(_host);
+        Content = _root;
     }
 
     // ── Block model ─────────────────────────────────────────────────────────
@@ -287,6 +296,79 @@ public sealed partial class MessageContentControl : ContentControl
         }
 
         _blocks = fresh;
+
+        MaybeScheduleRich();
+    }
+
+    // ── Adaptive WebView2 + KaTeX swap ───────────────────────────────────────
+
+    /// <summary>True when the text has real LaTeX math the native unicode pass can't typeset properly.</summary>
+    private static bool NeedsRichEngine(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return false;
+
+        if (text.Contains("$$", StringComparison.Ordinal) ||
+            text.Contains("\\(", StringComparison.Ordinal) ||
+            text.Contains("\\[", StringComparison.Ordinal))
+            return true;
+
+        // A `$…$` span that isn't currency (non-space, non-digit right after the opener).
+        for (int i = 0; i < text.Length - 1; i++)
+        {
+            if (text[i] != '$') continue;
+            var c = text[i + 1];
+            if (!char.IsWhiteSpace(c) && !char.IsAsciiDigit(c) && text.IndexOf('$', i + 1) > i + 1)
+                return true;
+        }
+        return false;
+    }
+
+    private void MaybeScheduleRich()
+    {
+        if (!NeedsRichEngine(Text))
+        {
+            _richDebounce?.Stop();
+            ShowRich(false);
+            return;
+        }
+
+        // Debounce so we wait out streaming and only spin up the web view on the settled text.
+        _richDebounce ??= CreateRichDebounce();
+        _richDebounce.Stop();
+        _richDebounce.Start();
+    }
+
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer CreateRichDebounce()
+    {
+        var timer = DispatcherQueue.CreateTimer();
+        timer.Interval = TimeSpan.FromMilliseconds(350);
+        timer.IsRepeating = false;
+        timer.Tick += (_, _) =>
+        {
+            _richView ??= CreateRichView();
+            _richView.Markdown = Text;
+            ShowRich(true);
+        };
+        return timer;
+    }
+
+    private RichMessageView CreateRichView()
+    {
+        var view = new RichMessageView { Visibility = Visibility.Collapsed };
+        _root.Children.Add(view);
+        return view;
+    }
+
+    private void ShowRich(bool rich)
+    {
+        if (_richActive == rich)
+            return;
+        _richActive = rich;
+
+        _host.Visibility = rich ? Visibility.Collapsed : Visibility.Visible;
+        if (_richView is not null)
+            _richView.Visibility = rich ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private static UIElement Render(Block block) => block switch

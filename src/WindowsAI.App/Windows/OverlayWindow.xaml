@@ -14,7 +14,14 @@
         see-through, raise it for more contrast.
         NOTE (Window XAML): no x:Bind Converter= here — use conv:Vis function binds.
     -->
-    <Grid x:Name="RootHost" Background="{StaticResource OverlayScrimBrush}" Opacity="0">
+    <Grid
+        x:Name="RootHost"
+        AllowDrop="True"
+        Background="{StaticResource OverlayScrimBrush}"
+        DragLeave="RootHost_DragLeave"
+        DragOver="RootHost_DragOver"
+        Drop="RootHost_Drop"
+        Opacity="0">
         <Grid.RenderTransform>
             <TranslateTransform x:Name="RootSlide" X="-440" />
         </Grid.RenderTransform>
@@ -57,16 +64,19 @@
                     Duration="0:0:0.14" />
             </Storyboard>
 
-            <!-- Running light: the comet gradient orbits the panel frame during inference.
-                 Gradient-transform animation is dependent (CPU-ticked) by design. -->
-            <Storyboard x:Name="ThinkingSpinStoryboard" RepeatBehavior="Forever">
+            <!-- Thinking pulse: the persistent accent edge gently breathes while the LLM
+                 works (replaces the old orbiting rainbow comet). -->
+            <Storyboard x:Name="ThinkingPulseStoryboard" AutoReverse="True" RepeatBehavior="Forever">
                 <DoubleAnimation
-                    EnableDependentAnimation="True"
-                    Storyboard.TargetName="ThinkingSpin"
-                    Storyboard.TargetProperty="Angle"
-                    From="0"
-                    To="360"
-                    Duration="0:0:1.6" />
+                    Storyboard.TargetName="AccentFrame"
+                    Storyboard.TargetProperty="Opacity"
+                    From="0.5"
+                    To="1.0"
+                    Duration="0:0:0.9">
+                    <DoubleAnimation.EasingFunction>
+                        <SineEase EasingMode="EaseInOut" />
+                    </DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
             </Storyboard>
 
             <!-- Quiet glass action row (recents / suggestions) -->
@@ -90,6 +100,8 @@
         <!-- Panel content -->
         <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <!--  Pending attachments (drag-dropped files) sit between the search bar and the body  -->
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
@@ -139,6 +151,8 @@
                         Background="Transparent"
                         BorderThickness="0"
                         FontSize="16"
+                        Foreground="{StaticResource TextPrimaryBrush}"
+                        SelectionHighlightColor="{StaticResource AccentBrush}"
                         KeyDown="SearchBox_KeyDown"
                         PlaceholderText="Ask anything…"
                         Text="{x:Bind ViewModel.Input, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
@@ -185,8 +199,52 @@
                 </Button>
             </Grid>
 
+            <!-- ── Pending attachments — dropped files queued for the next question ── -->
+            <ItemsControl
+                Grid.Row="1"
+                Margin="20,0,20,10"
+                ItemsSource="{x:Bind ViewModel.PendingAttachments}"
+                Visibility="{x:Bind conv:Vis.If(ViewModel.HasPendingAttachments), Mode=OneWay}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="6" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PendingAttachment">
+                        <Border Style="{StaticResource SourceChipStyle}" ToolTipService.ToolTip="{x:Bind Path}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon
+                                    FontSize="13"
+                                    Foreground="{StaticResource AccentTextBrush}"
+                                    Glyph="{x:Bind controls:FileGlyphs.For(Name)}" />
+                                <TextBlock
+                                    MaxWidth="150"
+                                    VerticalAlignment="Center"
+                                    FontSize="12"
+                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    Text="{x:Bind Name}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <Button
+                                    Padding="3"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Click="RemoveAttachment_Click"
+                                    Tag="{x:Bind}"
+                                    ToolTipService.ToolTip="Remove attachment">
+                                    <FontIcon
+                                        FontSize="9"
+                                        Foreground="{StaticResource TextTertiaryBrush}"
+                                        Glyph="&#xE711;" />
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
             <!-- ── Body: messages OR empty state ───────────────────── -->
-            <Grid Grid.Row="1">
+            <Grid Grid.Row="2">
 
                 <!-- Messages -->
                 <ListView
@@ -227,7 +285,7 @@
                                     Visibility="{x:Bind conv:Vis.If(IsUser)}">
                                     <TextBlock
                                         FontSize="14"
-                                        Foreground="White"
+                                        Foreground="{StaticResource TextPrimaryBrush}"
                                         Text="{x:Bind Text, Mode=OneWay}"
                                         TextWrapping="Wrap" />
                                 </Border>
@@ -313,22 +371,44 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button
-                                    Click="Recent_Click"
-                                    Style="{StaticResource OverlayActionButtonStyle}"
-                                    Tag="{Binding Id}">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock
-                                            FontSize="13"
-                                            Foreground="{StaticResource TextPrimaryBrush}"
-                                            Text="{Binding Title}"
-                                            TextTrimming="CharacterEllipsis" />
-                                        <TextBlock
-                                            FontSize="11"
+                                <Grid PointerEntered="RecentRow_PointerEntered" PointerExited="RecentRow_PointerExited">
+                                    <Button
+                                        Click="Recent_Click"
+                                        Style="{StaticResource OverlayActionButtonStyle}"
+                                        Tag="{Binding Id}">
+                                        <StackPanel Margin="0,0,24,0" Spacing="2">
+                                            <TextBlock
+                                                FontSize="13"
+                                                Foreground="{StaticResource TextPrimaryBrush}"
+                                                Text="{Binding Title}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="{StaticResource TextTertiaryBrush}"
+                                                Text="{Binding Meta}" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button
+                                        x:Name="RowDelete"
+                                        Margin="0,0,8,0"
+                                        Padding="5"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Click="RemoveRecent_Click"
+                                        Opacity="0"
+                                        Tag="{Binding Id}"
+                                        ToolTipService.ToolTip="Remove from recents">
+                                        <Button.OpacityTransition>
+                                            <ScalarTransition Duration="0:0:0.12" />
+                                        </Button.OpacityTransition>
+                                        <FontIcon
+                                            FontSize="10"
                                             Foreground="{StaticResource TextTertiaryBrush}"
-                                            Text="{Binding Meta}" />
-                                    </StackPanel>
-                                </Button>
+                                            Glyph="&#xE711;" />
+                                    </Button>
+                                </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -349,30 +429,60 @@
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button
-                                    Click="RecentItem_Click"
-                                    Style="{StaticResource OverlayActionButtonStyle}"
-                                    Tag="{Binding}">
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <FontIcon
-                                            FontSize="13"
-                                            Foreground="{StaticResource AccentTextBrush}"
-                                            Glyph="{Binding Glyph}" />
-                                        <StackPanel Spacing="1">
-                                            <TextBlock
+                            <DataTemplate x:DataType="vm:SearchRowViewModel">
+                                <Grid PointerEntered="RecentRow_PointerEntered" PointerExited="RecentRow_PointerExited">
+                                    <Button
+                                        Click="RecentItem_Click"
+                                        Style="{StaticResource OverlayActionButtonStyle}"
+                                        Tag="{x:Bind}">
+                                        <StackPanel Margin="0,0,24,0" Orientation="Horizontal" Spacing="10">
+                                            <!--  Real shell icon once loaded; the glyph is the placeholder until then.  -->
+                                            <Image
+                                                Width="20"
+                                                Height="20"
+                                                VerticalAlignment="Center"
+                                                Source="{x:Bind Icon, Mode=OneWay}"
+                                                Visibility="{x:Bind conv:Vis.If(ShowImage), Mode=OneWay}" />
+                                            <FontIcon
                                                 FontSize="13"
-                                                Foreground="{StaticResource TextPrimaryBrush}"
-                                                Text="{Binding Title}"
-                                                TextTrimming="CharacterEllipsis" />
-                                            <TextBlock
-                                                FontSize="11"
-                                                Foreground="{StaticResource TextTertiaryBrush}"
-                                                Text="{Binding Subtitle}"
-                                                TextTrimming="CharacterEllipsis" />
+                                                Foreground="{StaticResource AccentTextBrush}"
+                                                Glyph="{x:Bind Glyph}"
+                                                Visibility="{x:Bind conv:Vis.If(ShowGlyph), Mode=OneWay}" />
+                                            <StackPanel Spacing="1" VerticalAlignment="Center">
+                                                <TextBlock
+                                                    FontSize="13"
+                                                    Foreground="{StaticResource TextPrimaryBrush}"
+                                                    Text="{x:Bind Title}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    FontSize="11"
+                                                    Foreground="{StaticResource TextTertiaryBrush}"
+                                                    Text="{x:Bind Subtitle}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
                                         </StackPanel>
-                                    </StackPanel>
-                                </Button>
+                                    </Button>
+                                    <Button
+                                        x:Name="RowDelete"
+                                        Margin="0,0,8,0"
+                                        Padding="5"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Click="RemoveRecentItem_Click"
+                                        Opacity="0"
+                                        Tag="{x:Bind}"
+                                        ToolTipService.ToolTip="Remove from recents">
+                                        <Button.OpacityTransition>
+                                            <ScalarTransition Duration="0:0:0.12" />
+                                        </Button.OpacityTransition>
+                                        <FontIcon
+                                            FontSize="10"
+                                            Foreground="{StaticResource TextTertiaryBrush}"
+                                            Glyph="&#xE711;" />
+                                    </Button>
+                                </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -394,56 +504,43 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button
-                                    Click="RecentQuery_Click"
-                                    Style="{StaticResource OverlayActionButtonStyle}"
-                                    Tag="{Binding}">
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Grid PointerEntered="RecentRow_PointerEntered" PointerExited="RecentRow_PointerExited">
+                                    <Button
+                                        Click="RecentQuery_Click"
+                                        Style="{StaticResource OverlayActionButtonStyle}"
+                                        Tag="{Binding}">
+                                        <StackPanel Margin="0,0,24,0" Orientation="Horizontal" Spacing="10">
+                                            <FontIcon
+                                                FontSize="12"
+                                                Foreground="{StaticResource TextTertiaryBrush}"
+                                                Glyph="&#xE721;" />
+                                            <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button
+                                        x:Name="RowDelete"
+                                        Margin="0,0,8,0"
+                                        Padding="5"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Click="RemoveRecentQuery_Click"
+                                        Opacity="0"
+                                        Tag="{Binding}"
+                                        ToolTipService.ToolTip="Remove from recents">
+                                        <Button.OpacityTransition>
+                                            <ScalarTransition Duration="0:0:0.12" />
+                                        </Button.OpacityTransition>
                                         <FontIcon
-                                            FontSize="12"
+                                            FontSize="10"
                                             Foreground="{StaticResource TextTertiaryBrush}"
-                                            Glyph="&#xE721;" />
-                                        <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                </Button>
+                                            Glyph="&#xE711;" />
+                                    </Button>
+                                </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-
-                    <TextBlock
-                        Margin="4,10,0,0"
-                        FontSize="11"
-                        CharacterSpacing="60"
-                        Foreground="{StaticResource TextTertiaryBrush}"
-                        Text="TRY" />
-
-                    <Button
-                        Click="Suggestion_Click"
-                        Style="{StaticResource OverlayActionButtonStyle}"
-                        Tag="Summarize this for me: ">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <FontIcon FontSize="13" Foreground="{StaticResource AccentTextBrush}" Glyph="&#xE8BC;" />
-                            <TextBlock Text="Summarize a block of text" />
-                        </StackPanel>
-                    </Button>
-                    <Button
-                        Click="Suggestion_Click"
-                        Style="{StaticResource OverlayActionButtonStyle}"
-                        Tag="Translate this to English: ">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <FontIcon FontSize="13" Foreground="{StaticResource AccentTextBrush}" Glyph="&#xE775;" />
-                            <TextBlock Text="Translate something" />
-                        </StackPanel>
-                    </Button>
-                    <Button
-                        Click="Suggestion_Click"
-                        Style="{StaticResource OverlayActionButtonStyle}"
-                        Tag="Write a one-line PowerShell command to ">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <FontIcon FontSize="13" Foreground="{StaticResource AccentTextBrush}" Glyph="&#xE756;" />
-                            <TextBlock Text="Get a PowerShell one-liner" />
-                        </StackPanel>
-                    </Button>
                 </StackPanel>
 
                 <!-- Live launcher results — grouped, Windows-Search style. Selection is
@@ -526,7 +623,7 @@
 
             <!-- ── Footer ──────────────────────────────────────────── -->
             <Border
-                Grid.Row="2"
+                Grid.Row="3"
                 Padding="18,14"
                 BorderBrush="{StaticResource HairlineBrush}"
                 BorderThickness="0,1,0,0">
@@ -628,45 +725,50 @@
             </Rectangle.Fill>
         </Rectangle>
 
-        <!-- Edge-lit hairline at the very right -->
-        <Rectangle
-            Width="1"
-            HorizontalAlignment="Right"
-            Opacity="0.14">
-            <Rectangle.Fill>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Offset="0.0" Color="Transparent" />
-                    <GradientStop Offset="0.15" Color="White" />
-                    <GradientStop Offset="0.85" Color="White" />
-                    <GradientStop Offset="1.0" Color="Transparent" />
-                </LinearGradientBrush>
-            </Rectangle.Fill>
-        </Rectangle>
-
-        <!-- Thinking frame: a rainbow comet orbits the panel edge while the LLM works.
-             The rotating gradient sweeps a bright band along the 2.5px border. -->
+        <!-- Accent edge: the panel's right border follows the OS accent color. It sits
+             persistently at rest and gently pulses while the assistant is thinking
+             (replaces the old running-light rainbow comet). -->
         <Border
-            x:Name="ThinkingFrame"
-            BorderThickness="2.5"
+            x:Name="AccentFrame"
+            BorderBrush="{StaticResource AccentBrush}"
+            BorderThickness="0,0,1.5,0"
             IsHitTestVisible="False"
-            Opacity="0">
+            Opacity="0.6">
             <Border.OpacityTransition>
                 <ScalarTransition Duration="0:0:0.3" />
             </Border.OpacityTransition>
-            <Border.BorderBrush>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <LinearGradientBrush.RelativeTransform>
-                        <RotateTransform x:Name="ThinkingSpin" CenterX="0.5" CenterY="0.5" />
-                    </LinearGradientBrush.RelativeTransform>
-                    <GradientStop Offset="0.0" Color="#004F8CFF" />
-                    <GradientStop Offset="0.38" Color="#004F8CFF" />
-                    <GradientStop Offset="0.46" Color="#FF4F8CFF" />
-                    <GradientStop Offset="0.50" Color="#FFFF6BD6" />
-                    <GradientStop Offset="0.54" Color="#FF4DE3FF" />
-                    <GradientStop Offset="0.62" Color="#004DE3FF" />
-                    <GradientStop Offset="1.0" Color="#004DE3FF" />
-                </LinearGradientBrush>
-            </Border.BorderBrush>
+        </Border>
+
+        <!-- Drop affordance: revealed while Explorer files are dragged over the overlay -->
+        <Border
+            x:Name="DropAffordance"
+            Margin="10"
+            Background="{StaticResource AccentFillSubtleBrush}"
+            BorderBrush="{StaticResource AccentStrokeBrush}"
+            BorderThickness="2"
+            CornerRadius="18"
+            IsHitTestVisible="False"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.OpacityTransition>
+                <ScalarTransition Duration="0:0:0.15" />
+            </Border.OpacityTransition>
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="10">
+                <FontIcon
+                    HorizontalAlignment="Center"
+                    FontSize="32"
+                    Foreground="{StaticResource AccentTextBrush}"
+                    Glyph="&#xE8E5;" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="15"
+                    FontWeight="SemiBold"
+                    Foreground="{StaticResource TextPrimaryBrush}"
+                    Text="Drop files to attach" />
+            </StackPanel>
         </Border>
 
     </Grid>

@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 using Windows.UI.ViewManagement;
+using WindowsAI.Services;
 using WindowsAI_App.Helpers;
 
 namespace WindowsAI_App.Services;
@@ -28,13 +29,14 @@ public sealed class ThemeSyncService
     private readonly UISettings _ui = new();
 
     private DispatcherQueue? _dispatcher;
-    private readonly List<(FrameworkElement Root, GlassBackdropHandle? Backdrop)> _windows = new();
+    private readonly List<(FrameworkElement Root, GlassBackdropHandle? Backdrop, IntPtr BorderHwnd)> _windows = new();
     private readonly List<SolidReg> _solids = new();
     private readonly List<StopReg> _stops = new();
     private readonly List<AccentReg> _accents = new();
 
     private bool _started;
     private bool _isDark = true;
+    private Color _accent;
 
     /// <summary>The theme currently applied (true = dark). Lets a window pick the right state when it registers.</summary>
     public bool IsDark => _isDark;
@@ -54,13 +56,15 @@ public sealed class ThemeSyncService
 
     /// <summary>
     /// Brings <paramref name="root"/> (and its window backdrop, if any) under theme control and applies
-    /// the current theme to it immediately.
+    /// the current theme to it immediately. When <paramref name="borderHwnd"/> is supplied, the window's
+    /// native Win11 border is tinted to the OS accent and re-tinted on every accent change.
     /// </summary>
-    public void RegisterWindow(FrameworkElement root, GlassBackdropHandle? backdrop = null)
+    public void RegisterWindow(FrameworkElement root, GlassBackdropHandle? backdrop = null, IntPtr borderHwnd = default)
     {
         if (root is null) return;
-        _windows.Add((root, backdrop));
+        _windows.Add((root, backdrop, borderHwnd));
         ApplyToWindow(root, backdrop, _isDark);
+        ApplyBorder(borderHwnd, _accent);
     }
 
     // ── System read / live updates ───────────────────────────────────────────
@@ -79,6 +83,7 @@ public sealed class ThemeSyncService
         var accentDark = _ui.GetColorValue(UIColorType.AccentDark1);
 
         _isDark = isDark;
+        _accent = accent;
 
         foreach (var r in _solids)
             r.Brush.Color = isDark ? r.Dark : r.Light;
@@ -92,14 +97,24 @@ public sealed class ThemeSyncService
             a.Brush.Color = WithAlpha(baseColor, isDark ? a.AlphaDark : a.AlphaLight);
         }
 
-        foreach (var (root, backdrop) in _windows)
+        foreach (var (root, backdrop, borderHwnd) in _windows)
+        {
             ApplyToWindow(root, backdrop, isDark);
+            ApplyBorder(borderHwnd, accent);
+        }
     }
 
     private static void ApplyToWindow(FrameworkElement root, GlassBackdropHandle? backdrop, bool isDark)
     {
         root.RequestedTheme = isDark ? ElementTheme.Dark : ElementTheme.Light;
         backdrop?.SetTheme(isDark);
+    }
+
+    /// <summary>Tints a window's native Win11 border to the OS accent. No-op when no hwnd was registered.</summary>
+    private static void ApplyBorder(IntPtr borderHwnd, Color accent)
+    {
+        if (borderHwnd != IntPtr.Zero)
+            WindowChrome.SetBorderColor(borderHwnd, accent.R, accent.G, accent.B);
     }
 
     // ── Token registrations ────────────────────────────────────────────────────

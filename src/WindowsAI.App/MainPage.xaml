@@ -185,7 +185,7 @@
                                 CornerRadius="18,18,6,18">
                                 <TextBlock
                                     FontSize="15"
-                                    Foreground="White"
+                                    Foreground="{StaticResource TextPrimaryBrush}"
                                     IsTextSelectionEnabled="True"
                                     LineHeight="24"
                                     Text="{x:Bind Text, Mode=OneWay}"
@@ -509,6 +509,8 @@
                         Background="Transparent"
                         BorderThickness="0"
                         FontSize="15"
+                        Foreground="{StaticResource TextPrimaryBrush}"
+                        SelectionHighlightColor="{StaticResource AccentBrush}"
                         IsEnabled="{x:Bind ViewModel.IsNotBusy, Mode=OneWay}"
                         KeyDown="InputBox_KeyDown"
                         PlaceholderText="Ask WindowsAI…"

@@ -27,6 +27,7 @@ public partial class ChatViewModel : ObservableObject
     private readonly ActiveModelService _activeModel;
     private readonly IConversationStore _history;
     private readonly ILocalContextRetriever _localContext;
+    private readonly ImageGenerationService _imageGen;
     private readonly List<ChatMessage> _conversation = new();
 
     private StoredConversation _current = new();
@@ -94,13 +95,15 @@ public partial class ChatViewModel : ObservableObject
         IModelCatalog catalog,
         ActiveModelService activeModel,
         IConversationStore history,
-        ILocalContextRetriever localContext)
+        ILocalContextRetriever localContext,
+        ImageGenerationService imageGen)
     {
         _orchestrator = orchestrator;
         _catalog = catalog;
         _activeModel = activeModel;
         _history = history;
         _localContext = localContext;
+        _imageGen = imageGen;
         _conversation.Add(new ChatMessage(ChatRole.System, SystemPrompt));
 
         // Stay in sync when the active model is changed on any other surface.
@@ -234,6 +237,14 @@ public partial class ChatViewModel : ObservableObject
         var reply = new ChatMessageViewModel(_orchestrator.ActiveProvider.DisplayName, string.Empty, isUser: false);
         Messages.Add(reply);
 
+        // Image generation is a distinct path: detected by intent, served by OpenRouter regardless
+        // of the selected chat model, and rendered as an inline image rather than a streamed reply.
+        if (attachments.Count == 0 && LooksLikeImageRequest(text))
+        {
+            await GenerateImageAsync(text, reply);
+            return;
+        }
+
         IsBusy = true;
         ChatMessage? toolHint = null;
         ChatMessage? attachmentContext = null;
@@ -298,6 +309,51 @@ public partial class ChatViewModel : ObservableObject
     }
 
     private bool CanSend() => !IsBusy;
+
+    // Matches phrasings like "generate an image of…", "draw a picture of…", "make me a logo of…".
+    private static readonly System.Text.RegularExpressions.Regex s_imageRequest = new(
+        @"\b(generate|create|make|draw|paint|render|design|produce|sketch|illustrate|imagine)\b.{0,40}\b(image|picture|photo|drawing|illustration|logo|icon|art(work)?|painting|sketch|wallpaper|poster|render)\b",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static bool LooksLikeImageRequest(string text) => s_imageRequest.IsMatch(text);
+
+    /// <summary>Runs the OpenRouter image path and renders the result (or an error) into <paramref name="reply"/>.</summary>
+    private async Task GenerateImageAsync(string prompt, ChatMessageViewModel reply)
+    {
+        IsBusy = true;
+        try
+        {
+            var result = await _imageGen.GenerateAsync(prompt);
+            if (result.Success)
+            {
+                // Markdown image → the native renderer loads the saved file. Keep any caption text above it.
+                var caption = string.IsNullOrWhiteSpace(result.Text) ? string.Empty : result.Text!.Trim() + "\n\n";
+                reply.Text = $"{caption}![{EscapeAlt(prompt)}]({result.FilePath})";
+            }
+            else
+            {
+                reply.Text = $"⚠ {result.Error}";
+            }
+
+            _conversation.Add(new ChatMessage(ChatRole.Assistant, reply.Text));
+        }
+        catch (Exception ex)
+        {
+            reply.Text = $"⚠ {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+        await PersistAsync();
+    }
+
+    private static string EscapeAlt(string text)
+    {
+        var alt = text.Length > 80 ? text[..80] : text;
+        return alt.Replace("[", string.Empty).Replace("]", string.Empty).Replace("\n", " ");
+    }
 
     /// <summary>Per-attachment character cap for injected document text — keeps a big PDF from blowing the context window.</summary>
     private const int MaxAttachmentChars = 20_000;

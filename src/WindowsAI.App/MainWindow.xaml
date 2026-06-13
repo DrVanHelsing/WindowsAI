@@ -15,7 +15,7 @@
                 nested element syntax which the WinUI XAML compiler rejects in shared dicts.
             -->
             <Style x:Key="NavRadioButtonStyle" TargetType="RadioButton">
-                <Setter Property="Foreground" Value="#AAFFFFFF" />
+                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="Padding" Value="12,10" />
                 <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -88,12 +88,12 @@
 
                                 <Border
                                     x:Name="HoverFill"
-                                    Background="#0AFFFFFF"
+                                    Background="{StaticResource GlassHoverBrush}"
                                     CornerRadius="{TemplateBinding CornerRadius}"
                                     Opacity="0" />
                                 <Border
                                     x:Name="PressedFill"
-                                    Background="#0FFFFFFF"
+                                    Background="{StaticResource GlassPressedBrush}"
                                     CornerRadius="{TemplateBinding CornerRadius}"
                                     Opacity="0" />
                                 <Border
@@ -131,153 +131,162 @@
             </Style>
         </Grid.Resources>
 
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="260" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-        <!-- ═══════════════ SIDEBAR — translucent layer over the glass ════ -->
-        <Grid x:Name="Sidebar" Grid.Column="0" Background="{StaticResource SidebarFillBrush}">
-
-            <Grid.RowDefinitions>
-                <RowDefinition Height="48" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-
-            <!-- Left brand-glow accent line -->
-            <Rectangle
-                Grid.Row="0"
-                Grid.RowSpan="4"
-                Width="2"
-                HorizontalAlignment="Left"
-                Fill="{StaticResource GlowGradientBrush}"
-                Opacity="0.55" />
-
-            <!-- Brand bar — registered as title-bar drag region in code-behind -->
-            <Grid
-                x:Name="BrandBar"
-                Grid.Row="0"
-                Padding="18,0,16,0">
-                <StackPanel
-                    Orientation="Horizontal"
-                    Spacing="8"
-                    VerticalAlignment="Center">
-                    <TextBlock
-                        FontSize="16"
-                        Foreground="#7A6CFF"
-                        Text="✦"
-                        VerticalAlignment="Center" />
-                    <TextBlock
-                        FontSize="14"
-                        FontWeight="SemiBold"
-                        Foreground="White"
-                        Text="WindowsAI"
-                        VerticalAlignment="Center" />
-                </StackPanel>
-            </Grid>
-
-            <!-- Brand bar bottom border -->
-            <Rectangle
-                Grid.Row="0"
-                Height="1"
-                Margin="16,0"
-                VerticalAlignment="Bottom"
-                Fill="{StaticResource HairlineBrush}" />
-
-            <!-- New Chat button -->
-            <Button
-                x:Name="NewChatButton"
-                Grid.Row="1"
-                Margin="12,12,12,6"
-                HorizontalAlignment="Stretch"
-                HorizontalContentAlignment="Left"
-                Background="{StaticResource GlassFillBrush}"
-                BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
-                BorderThickness="1"
-                CornerRadius="{StaticResource RadiusMedium}"
-                Foreground="White"
-                Padding="12,10"
-                Click="NewChatButton_Click">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon FontSize="13" Glyph="&#xE710;" />
-                    <TextBlock FontSize="13" Text="New chat" />
-                </StackPanel>
-            </Button>
-
-            <!-- Navigation items -->
-            <StackPanel Grid.Row="2" Margin="12,4,12,4" Spacing="2">
-
-                <!-- IsChecked is set in code-behind: assigning it here fires Checked
-                     mid-parse, before ContentFrame is connected, and crashes the window. -->
-                <RadioButton
-                    x:Name="NavChat"
-                    GroupName="AppNav"
-                    Style="{StaticResource NavRadioButtonStyle}"
-                    Tag="chat"
-                    Checked="NavItem_Checked">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <FontIcon FontSize="14" Glyph="&#xE8BD;" />
-                        <TextBlock FontSize="13" Text="Chat" />
-                    </StackPanel>
-                </RadioButton>
-
-                <RadioButton
-                    GroupName="AppNav"
-                    Style="{StaticResource NavRadioButtonStyle}"
-                    Tag="history"
-                    Checked="NavItem_Checked">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <FontIcon FontSize="14" Glyph="&#xE81C;" />
-                        <TextBlock FontSize="13" Text="History" />
-                    </StackPanel>
-                </RadioButton>
-
-                <RadioButton
-                    GroupName="AppNav"
-                    Style="{StaticResource NavRadioButtonStyle}"
-                    Tag="models"
-                    Checked="NavItem_Checked">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <FontIcon FontSize="14" Glyph="&#xE99A;" />
-                        <TextBlock FontSize="13" Text="Models" />
-                    </StackPanel>
-                </RadioButton>
-
-                <RadioButton
-                    GroupName="AppNav"
-                    Style="{StaticResource NavRadioButtonStyle}"
-                    Tag="settings"
-                    Checked="NavItem_Checked">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <FontIcon FontSize="14" Glyph="&#xE713;" />
-                        <TextBlock FontSize="13" Text="Settings" />
-                    </StackPanel>
-                </RadioButton>
-
+        <!-- ═══════ TITLE BAR — full-width drag strip (SetTitleBar in code-behind).
+             Brand stays top-left; the whole strip (minus the caption buttons) drags
+             the window, so it's grabbable across its full width. ═══════ -->
+        <Grid
+            x:Name="AppTitleBar"
+            Grid.Row="0"
+            Padding="18,0,0,0">
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="8"
+                VerticalAlignment="Center">
+                <TextBlock
+                    FontSize="16"
+                    Foreground="{StaticResource AccentTextBrush}"
+                    Text="✦"
+                    VerticalAlignment="Center" />
+                <TextBlock
+                    FontSize="14"
+                    FontWeight="SemiBold"
+                    Foreground="{StaticResource TextPrimaryBrush}"
+                    Text="WindowsAI"
+                    VerticalAlignment="Center" />
             </StackPanel>
-
-            <!-- Version label -->
-            <TextBlock
-                Grid.Row="3"
-                Margin="18,0,18,16"
-                VerticalAlignment="Bottom"
-                FontSize="11"
-                Foreground="#33FFFFFF"
-                Text="WindowsAI · Preview" />
-
         </Grid>
 
-        <!-- Sidebar / content divider -->
+        <!-- Title-bar bottom hairline -->
         <Rectangle
-            Grid.Column="0"
-            Width="1"
-            HorizontalAlignment="Right"
-            Fill="#08FFFFFF" />
+            Grid.Row="0"
+            Height="1"
+            VerticalAlignment="Bottom"
+            Fill="{StaticResource HairlineBrush}" />
 
-        <!-- ═══════════════ CONTENT FRAME ══════════════════════════════════ -->
-        <Frame x:Name="ContentFrame" Grid.Column="1" />
+        <!-- ═══════ BODY — sidebar + content ═══════ -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- ═══════════════ SIDEBAR — translucent layer over the glass ════ -->
+            <Grid x:Name="Sidebar" Grid.Column="0" Background="{StaticResource SidebarFillBrush}">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Left brand-glow accent line -->
+                <Rectangle
+                    Grid.Row="0"
+                    Grid.RowSpan="3"
+                    Width="2"
+                    HorizontalAlignment="Left"
+                    Fill="{StaticResource GlowGradientBrush}"
+                    Opacity="0.55" />
+
+                <!-- New Chat button -->
+                <Button
+                    x:Name="NewChatButton"
+                    Grid.Row="0"
+                    Margin="12,12,12,6"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    Background="{StaticResource GlassFillBrush}"
+                    BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusMedium}"
+                    Foreground="{StaticResource TextPrimaryBrush}"
+                    Padding="12,10"
+                    Click="NewChatButton_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontSize="13" Glyph="&#xE710;" />
+                        <TextBlock FontSize="13" Text="New chat" />
+                    </StackPanel>
+                </Button>
+
+                <!-- Navigation items -->
+                <StackPanel Grid.Row="1" Margin="12,4,12,4" Spacing="2">
+
+                    <!-- IsChecked is set in code-behind: assigning it here fires Checked
+                         mid-parse, before ContentFrame is connected, and crashes the window. -->
+                    <RadioButton
+                        x:Name="NavChat"
+                        GroupName="AppNav"
+                        Style="{StaticResource NavRadioButtonStyle}"
+                        Tag="chat"
+                        Checked="NavItem_Checked">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon FontSize="14" Glyph="&#xE8BD;" />
+                            <TextBlock FontSize="13" Text="Chat" />
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton
+                        GroupName="AppNav"
+                        Style="{StaticResource NavRadioButtonStyle}"
+                        Tag="history"
+                        Checked="NavItem_Checked">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon FontSize="14" Glyph="&#xE81C;" />
+                            <TextBlock FontSize="13" Text="History" />
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton
+                        GroupName="AppNav"
+                        Style="{StaticResource NavRadioButtonStyle}"
+                        Tag="models"
+                        Checked="NavItem_Checked">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon FontSize="14" Glyph="&#xE99A;" />
+                            <TextBlock FontSize="13" Text="Models" />
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton
+                        GroupName="AppNav"
+                        Style="{StaticResource NavRadioButtonStyle}"
+                        Tag="settings"
+                        Checked="NavItem_Checked">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon FontSize="14" Glyph="&#xE713;" />
+                            <TextBlock FontSize="13" Text="Settings" />
+                        </StackPanel>
+                    </RadioButton>
+
+                </StackPanel>
+
+                <!-- Version label -->
+                <TextBlock
+                    Grid.Row="2"
+                    Margin="18,0,18,16"
+                    VerticalAlignment="Bottom"
+                    FontSize="11"
+                    Foreground="{StaticResource TextGhostBrush}"
+                    Text="WindowsAI · Preview" />
+
+            </Grid>
+
+            <!-- Sidebar / content divider -->
+            <Rectangle
+                Grid.Column="0"
+                Width="1"
+                HorizontalAlignment="Right"
+                Fill="{StaticResource HairlineBrush}" />
+
+            <!-- ═══════════════ CONTENT FRAME ══════════════════════════════════ -->
+            <Frame x:Name="ContentFrame" Grid.Column="1" />
+
+        </Grid>
 
     </Grid>
 </Window>

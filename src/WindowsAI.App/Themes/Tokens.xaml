@@ -33,7 +33,6 @@
     <x:String x:Key="MotionFast">0:0:0.15</x:String>
     <x:String x:Key="MotionMedium">0:0:0.25</x:String>
     <x:String x:Key="MotionSlow">0:0:0.4</x:String>
-    <x:String x:Key="MotionGlowCycle">0:0:8</x:String>
 
     <!-- ════════ Text hierarchy ════════ -->
     <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F2FFFFFF" />
@@ -57,9 +56,6 @@
         <GradientStop Offset="0.80" Color="#FF9D5C" />
         <GradientStop Offset="1.0" Color="#4DE3FF" />
     </LinearGradientBrush>
-
-    <!--  Soft accent used for the overlay's outer aura shadow  -->
-    <Color x:Key="GlowAuraColor">#7A5CFF</Color>
 
     <!-- ════════ Liquid glass surfaces ════════
          Three elevation levels of translucent fill + edge-lit strokes + sheen.

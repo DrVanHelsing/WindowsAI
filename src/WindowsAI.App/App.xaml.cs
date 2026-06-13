@@ -110,6 +110,10 @@ public partial class App : Application
         // background so it doesn't delay the overlay appearing; any failure is silent.
         _ = OllamaLauncher.EnsureRunningAsync(settingsStore);
 
+        // Build the shared WebView2 environment up front so the first math/table bubble
+        // (RichMessageView) renders without a cold-start stall.
+        Controls.RichMessageView.PrewarmEnvironment();
+
         // Create the overlay once and keep it alive (hidden) for the whole session so the
         // global hotkey and tray icon remain available. It is never Activated here — the app
         // lives in the tray until summoned.
@@ -169,8 +173,8 @@ public partial class App : Application
             _mainWindow = new MainWindow();
             // Drop the reference when the window is closed so it can be reopened later.
             _mainWindow.Closed += (_, _) => _mainWindow = null;
-            // Follow the OS theme/accent (and flip the acrylic tint) for the lifetime of the window.
-            _themeSync?.RegisterWindow(_mainWindow.ThemeRoot, _mainWindow.Backdrop);
+            // Follow the OS theme/accent (flip the acrylic tint, tint the border) for the window's life.
+            _themeSync?.RegisterWindow(_mainWindow.ThemeRoot, _mainWindow.Backdrop, _mainWindow.Hwnd);
         }
 
         _mainWindow.Activate();

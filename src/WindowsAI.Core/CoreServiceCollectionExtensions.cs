@@ -25,6 +25,9 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<ActiveModelService>();
         services.AddSingleton<ChatOrchestrator>();
 
+        // Text-to-image (OpenRouter image modality); depends on ISecretStore from the host.
+        services.AddSingleton<ImageGenerationService>();
+
         // Local embeddings for semantic re-ranking of "Search my PC" results. The host
         // composes this with its platform retriever (see RerankingContextRetriever).
         services.AddSingleton<IEmbeddingClient, OllamaEmbeddingClient>();
