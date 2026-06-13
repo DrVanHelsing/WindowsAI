@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 using Windows.UI.ViewManagement;
+using WindowsAI.Core.Configuration;
 using WindowsAI.Services;
 using WindowsAI_App.Helpers;
 
@@ -27,6 +28,9 @@ namespace WindowsAI_App.Services;
 public sealed class ThemeSyncService
 {
     private readonly UISettings _ui = new();
+    private readonly ISettingsStore _settings;
+
+    public ThemeSyncService(ISettingsStore settings) => _settings = settings;
 
     private DispatcherQueue? _dispatcher;
     private readonly List<(FrameworkElement Root, GlassBackdropHandle? Backdrop, IntPtr BorderHwnd)> _windows = new();
@@ -72,15 +76,45 @@ public sealed class ThemeSyncService
     private void OnColorValuesChanged(UISettings sender, object args)
         => _dispatcher?.TryEnqueue(ApplyFromSystem);
 
+    /// <summary>
+    /// Re-applies theme + accent after the user changes the appearance settings. Safe to call
+    /// before <see cref="Start"/> (no-op until then). UI thread.
+    /// </summary>
+    public void Refresh()
+    {
+        if (_started)
+            ApplyFromSystem();
+    }
+
     private void ApplyFromSystem()
     {
-        // Theme heuristic: a bright foreground means a dark background → dark mode.
-        var fg = _ui.GetColorValue(UIColorType.Foreground);
-        var isDark = ((5 * fg.G) + (2 * fg.R) + fg.B) > (8 * 128);
+        var appearance = _settings.Current.Appearance;
 
-        var accent = _ui.GetColorValue(UIColorType.Accent);
-        var accentLight = _ui.GetColorValue(UIColorType.AccentLight2);
-        var accentDark = _ui.GetColorValue(UIColorType.AccentDark1);
+        // Theme heuristic: a bright foreground means a dark background → dark mode. The user can
+        // override "follow Windows" by pinning Light or Dark in Settings.
+        var fg = _ui.GetColorValue(UIColorType.Foreground);
+        var systemDark = ((5 * fg.G) + (2 * fg.R) + fg.B) > (8 * 128);
+        var isDark = appearance.Theme switch
+        {
+            ThemeMode.Light => false,
+            ThemeMode.Dark => true,
+            _ => systemDark,
+        };
+
+        // Accent: a custom color (with light/dark variants derived from it) or the OS accent.
+        Color accent, accentLight, accentDark;
+        if (TryParseHexColor(appearance.AccentColor, out var custom))
+        {
+            accent = custom;
+            accentLight = Lighten(custom, 0.4);
+            accentDark = Darken(custom, 0.25);
+        }
+        else
+        {
+            accent = _ui.GetColorValue(UIColorType.Accent);
+            accentLight = _ui.GetColorValue(UIColorType.AccentLight2);
+            accentDark = _ui.GetColorValue(UIColorType.AccentDark1);
+        }
 
         _isDark = isDark;
         _accent = accent;
@@ -186,6 +220,37 @@ public sealed class ThemeSyncService
     // ── Color helpers ──────────────────────────────────────────────────────────
 
     private static Color WithAlpha(Color c, byte a) => Color.FromArgb(a, c.R, c.G, c.B);
+
+    /// <summary>Blends a color toward white by <paramref name="amount"/> (0–1) for the light variant.</summary>
+    private static Color Lighten(Color c, double amount) => Color.FromArgb(
+        c.A,
+        (byte)(c.R + ((255 - c.R) * amount)),
+        (byte)(c.G + ((255 - c.G) * amount)),
+        (byte)(c.B + ((255 - c.B) * amount)));
+
+    /// <summary>Blends a color toward black by <paramref name="amount"/> (0–1) for the dark variant.</summary>
+    private static Color Darken(Color c, double amount) => Color.FromArgb(
+        c.A,
+        (byte)(c.R * (1 - amount)),
+        (byte)(c.G * (1 - amount)),
+        (byte)(c.B * (1 - amount)));
+
+    /// <summary>Parses <c>#RRGGBB</c> (or <c>#AARRGGBB</c>) to an opaque accent color; false when null/blank/invalid.</summary>
+    private static bool TryParseHexColor(string? hex, out Color color)
+    {
+        color = default;
+        if (string.IsNullOrWhiteSpace(hex))
+            return false;
+        var s = hex.TrimStart('#');
+        if ((s.Length != 6 && s.Length != 8) ||
+            !uint.TryParse(s, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var value))
+            return false;
+
+        color = s.Length == 8
+            ? Color.FromArgb((byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value)
+            : Color.FromArgb(0xFF, (byte)(value >> 16), (byte)(value >> 8), (byte)value);
+        return true;
+    }
 
     /// <summary>Parses <c>#AARRGGBB</c> or <c>#RRGGBB</c> (opaque) to a <see cref="Color"/>.</summary>
     private static Color Parse(string hex)

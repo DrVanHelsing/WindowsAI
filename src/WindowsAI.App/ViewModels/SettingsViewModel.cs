@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using WindowsAI.Core.Configuration;
 using WindowsAI.Core.Security;
+using WindowsAI_App.Services;
 
 namespace WindowsAI_App.ViewModels;
 
@@ -13,9 +14,18 @@ public partial class SettingsViewModel : ObservableObject
 {
     private readonly ISettingsStore _settings;
     private readonly ISecretStore _secrets;
+    private readonly ThemeSyncService _theme;
+    private bool _initializing;
 
     [ObservableProperty]
     public partial string OllamaEndpoint { get; set; }
+
+    /// <summary>Light/dark selection bound to the theme RadioButtons (0 = Windows default, 1 = Light, 2 = Dark).</summary>
+    [ObservableProperty]
+    public partial int ThemeIndex { get; set; }
+
+    /// <summary>The active accent override as <c>#RRGGBB</c>, or null when following Windows.</summary>
+    public string? AccentColor { get; private set; }
 
     [ObservableProperty]
     public partial string OpenRouterStatus { get; set; } = string.Empty;
@@ -30,13 +40,39 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial bool GeminiConfigured { get; set; }
 
-    public SettingsViewModel(ISettingsStore settings, ISecretStore secrets)
+    public SettingsViewModel(ISettingsStore settings, ISecretStore secrets, ThemeSyncService theme)
     {
         _settings = settings;
         _secrets = secrets;
+        _theme = theme;
 
         OllamaEndpoint = _settings.Current.LocalModel.Endpoint;
+
+        _initializing = true;
+        ThemeIndex = (int)_settings.Current.Appearance.Theme;
+        _initializing = false;
+        AccentColor = _settings.Current.Appearance.AccentColor;
+
         RefreshStatuses();
+    }
+
+    /// <summary>Persists the light/dark choice and re-applies it live across every window.</summary>
+    partial void OnThemeIndexChanged(int value)
+    {
+        if (_initializing)
+            return;
+        _settings.Current.Appearance.Theme = (ThemeMode)value;
+        _ = _settings.SaveAsync();
+        _theme.Refresh();
+    }
+
+    /// <summary>Sets the accent override (null = follow Windows), persists it, and re-applies live.</summary>
+    public async Task SetAccentAsync(string? hex)
+    {
+        AccentColor = hex;
+        _settings.Current.Appearance.AccentColor = hex;
+        await _settings.SaveAsync();
+        _theme.Refresh();
     }
 
     public async Task SaveOllamaEndpointAsync()

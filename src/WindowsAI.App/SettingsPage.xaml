@@ -47,6 +47,57 @@
                     FontSize="11"
                     CharacterSpacing="60"
                     Foreground="{StaticResource TextTertiaryBrush}"
+                    Text="APPEARANCE" />
+
+                <Border Padding="18,16" Style="{StaticResource GlassCardStyle}">
+                    <StackPanel Spacing="18">
+                        <!--  Theme mode  -->
+                        <StackPanel Spacing="8">
+                            <TextBlock
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                Foreground="{StaticResource TextPrimaryBrush}"
+                                Text="Theme" />
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="{StaticResource TextTertiaryBrush}"
+                                Text="Match Windows, or pin a light or dark look." />
+                            <RadioButtons
+                                Margin="0,4,0,0"
+                                MaxColumns="3"
+                                SelectedIndex="{x:Bind ViewModel.ThemeIndex, Mode=TwoWay}">
+                                <RadioButton Content="Windows default" />
+                                <RadioButton Content="Light" />
+                                <RadioButton Content="Dark" />
+                            </RadioButtons>
+                        </StackPanel>
+
+                        <!--  Accent color — swatches built in code-behind  -->
+                        <StackPanel Spacing="8">
+                            <TextBlock
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                Foreground="{StaticResource TextPrimaryBrush}"
+                                Text="Accent color" />
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="{StaticResource TextTertiaryBrush}"
+                                Text="Used across the overlay, buttons, and highlights." />
+                            <StackPanel
+                                x:Name="AccentSwatchPanel"
+                                Margin="0,4,0,0"
+                                Orientation="Horizontal"
+                                Spacing="10" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!--  Section label  -->
+                <TextBlock
+                    Margin="2,8,0,2"
+                    FontSize="11"
+                    CharacterSpacing="60"
+                    Foreground="{StaticResource TextTertiaryBrush}"
                     Text="MODELS &amp; PROVIDERS" />
 
                 <!--  Local model (Ollama) — endpoint edited via a modal  -->

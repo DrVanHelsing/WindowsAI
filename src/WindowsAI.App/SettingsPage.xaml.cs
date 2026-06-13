@@ -1,13 +1,37 @@
+using System.Globalization;
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Shapes;
+using Windows.UI;
+using Windows.UI.ViewManagement;
 using WindowsAI_App.Controls;
 using WindowsAI_App.ViewModels;
 
 namespace WindowsAI_App;
 
-/// <summary>Settings: local endpoint and secure (DPAPI) cloud API-key management, all via modals.</summary>
+/// <summary>Settings: appearance, local endpoint, and secure (DPAPI) cloud API-key management.</summary>
 public sealed partial class SettingsPage : Page
 {
+    // Accent palette offered in Settings. null = follow the Windows accent color.
+    private static readonly (string Name, string? Hex)[] AccentPresets =
+    [
+        ("Windows default", null),
+        ("Indigo", "#6366F1"),
+        ("Blue", "#3B82F6"),
+        ("Cyan", "#06B6D4"),
+        ("Teal", "#14B8A6"),
+        ("Green", "#22C55E"),
+        ("Amber", "#F59E0B"),
+        ("Orange", "#F97316"),
+        ("Red", "#EF4444"),
+        ("Pink", "#EC4899"),
+        ("Violet", "#8B5CF6"),
+    ];
+
+    private readonly List<Button> _swatches = new();
+
     public SettingsViewModel ViewModel { get; }
 
     /// <summary>Assembly version shown on the About card.</summary>
@@ -18,6 +42,91 @@ public sealed partial class SettingsPage : Page
     {
         ViewModel = App.GetService<SettingsViewModel>();
         InitializeComponent();
+        BuildAccentSwatches();
+    }
+
+    // ── Accent swatches ──────────────────────────────────────────────────────
+
+    private void BuildAccentSwatches()
+    {
+        var osAccent = new UISettings().GetColorValue(UIColorType.Accent);
+
+        foreach (var (name, hex) in AccentPresets)
+        {
+            var color = hex is null ? osAccent : ParseHex(hex);
+
+            // Selection ring (accent-tinted) shown only on the chosen swatch.
+            var ring = new Ellipse
+            {
+                Width = 32,
+                Height = 32,
+                StrokeThickness = 2,
+                Stroke = (Brush)Application.Current.Resources["TextPrimaryBrush"],
+                Opacity = 0,
+            };
+            var dot = new Ellipse
+            {
+                Width = 24,
+                Height = 24,
+                Fill = new SolidColorBrush(color),
+            };
+            // A small "follow Windows" glyph marks the default swatch.
+            var content = new Grid();
+            content.Children.Add(dot);
+            if (hex is null)
+            {
+                content.Children.Add(new FontIcon
+                {
+                    FontSize = 11,
+                    Glyph = "", // sync — "follows Windows"
+                    Foreground = (Brush)Application.Current.Resources["AccentTextBrush"],
+                });
+            }
+            content.Children.Add(ring);
+
+            var button = new Button
+            {
+                Width = 38,
+                Height = 38,
+                Padding = new Thickness(0),
+                CornerRadius = new CornerRadius(19),
+                Background = new SolidColorBrush(Colors.Transparent),
+                BorderThickness = new Thickness(0),
+                Content = content,
+                Tag = hex,
+            };
+            ToolTipService.SetToolTip(button, name);
+            button.Click += AccentSwatch_Click;
+            _swatches.Add(button);
+            AccentSwatchPanel.Children.Add(button);
+        }
+
+        UpdateSwatchSelection();
+    }
+
+    private async void AccentSwatch_Click(object sender, RoutedEventArgs e)
+    {
+        var hex = ((FrameworkElement)sender).Tag as string;
+        await ViewModel.SetAccentAsync(hex);
+        UpdateSwatchSelection();
+    }
+
+    /// <summary>Highlights the swatch matching the active accent (the ring ellipse, last child).</summary>
+    private void UpdateSwatchSelection()
+    {
+        foreach (var button in _swatches)
+        {
+            var selected = string.Equals(button.Tag as string, ViewModel.AccentColor, StringComparison.OrdinalIgnoreCase);
+            if (button.Content is Grid grid && grid.Children[^1] is Ellipse ring)
+                ring.Opacity = selected ? 1 : 0;
+        }
+    }
+
+    private static Color ParseHex(string hex)
+    {
+        var s = hex.TrimStart('#');
+        var v = uint.Parse(s, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+        return Color.FromArgb(0xFF, (byte)(v >> 16), (byte)(v >> 8), (byte)v);
     }
 
     private async void ChangeEndpoint_Click(object sender, RoutedEventArgs e)

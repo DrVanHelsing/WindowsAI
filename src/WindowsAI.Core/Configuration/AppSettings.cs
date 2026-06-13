@@ -14,6 +14,33 @@ public sealed class AppSettings
     public OpenRouterSettings OpenRouter { get; set; } = new();
 
     public GeminiSettings Gemini { get; set; } = new();
+
+    /// <summary>Theme + accent customization (defaults to following Windows).</summary>
+    public AppearanceSettings Appearance { get; set; } = new();
+}
+
+/// <summary>Which light/dark theme the app uses.</summary>
+public enum ThemeMode
+{
+    /// <summary>Follow the Windows light/dark setting (default).</summary>
+    System,
+    Light,
+    Dark,
+}
+
+/// <summary>
+/// Look-and-feel customization. By default everything follows Windows; the user can pin a
+/// light/dark theme and/or override the accent with a custom color from Settings.
+/// </summary>
+public sealed class AppearanceSettings
+{
+    /// <summary>Light/dark mode. <see cref="ThemeMode.System"/> tracks the OS setting live.</summary>
+    public ThemeMode Theme { get; set; } = ThemeMode.System;
+
+    /// <summary>
+    /// Custom accent as <c>#RRGGBB</c>, or empty/null to follow the Windows accent color.
+    /// </summary>
+    public string? AccentColor { get; set; }
 }
 
 /// <summary>Identifies a concrete model: which provider serves it and the model id to request.</summary>
