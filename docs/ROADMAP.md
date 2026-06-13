@@ -112,8 +112,34 @@ loop (scripted stub client → tool invoked with the right args → final reply 
 - ✅ Exposed only when the **Search my PC** toggle is on (privacy + keeps the default local path
   tool-free). Covered by a provider-independent smoke check (scripted stub client + real tool).
 
+## Phase 6 — Type-anywhere writing tools ✅ (built; cross-app paste run pending)
+
+- ✅ **Core transforms** (`WindowsAI.Core/Writing`): declarative `WritingAction` catalog
+  (proofread / rewrite / friendly / professional / concise / summarize / key points), a pure
+  `WritingPrompt` builder with strict "return only the text" instructions for edge models +
+  `CleanResult` (strips stray quotes / code fences), and `WritingToolsService` streaming a
+  one-shot transform through the active model.
+- ✅ **Selection bridge** (`WindowsAI.Services/Writing/TextSelectionService`): synthesizes the
+  Ctrl+C / Ctrl+V chords (SendInput) so reading and replacing the selection work across Win32,
+  WinUI, browser, and Electron apps — the clipboard route, not the patchy UIA TextPattern.
+- ✅ **Popup + hotkey**: `Ctrl+Shift+Space` over a selection opens a borderless, theme-following
+  writing-tools menu near the cursor (`WritingToolsWindow`, `WritingToolsController`); the chosen
+  action streams a result with Back / Copy / Replace. `HotkeyManager` now multiplexes multiple
+  global chords over one window subclass.
+- ✅ **Verified by screen capture**: menu + streamed Proofread result render on-brand and
+  `gemma4:e2b` corrected the sample text.
+- 🚧 **Cross-app paste injection pending manual check** — the final Ctrl+V into a third-party app
+  needs real (trusted) keyboard input, which the automated QA harness can't synthesize.
+
+## Unit tests ✅
+
+`tests/WindowsAI.Core.Tests` (xUnit) — the first dedicated unit-test project. **11 tests** cover the
+writing-tools action catalog, prompt shape, and result cleaning. Run with
+`dotnet test tests/WindowsAI.Core.Tests`.
+
 ## ⏭ Next
 
+- ⏭ Manually verify writing-tools paste injection across Notepad / Word / Chrome / VS Code.
 - ⏭ More tools (web search, current date/time); per-tool surfacing of agent steps in the transcript.
 
 ## 💡 Later
