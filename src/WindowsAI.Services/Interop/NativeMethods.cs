@@ -75,6 +75,12 @@ public static class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
 
+    // MDT_EFFECTIVE_DPI = 0: the scale factor the user picked in Settings (what UI should honor).
+    public const int MDT_EFFECTIVE_DPI = 0;
+
+    [DllImport("shcore.dll")]
+    public static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
     [StructLayout(LayoutKind.Sequential)]
     public struct POINT
     {

@@ -26,9 +26,6 @@ namespace WindowsAI_App.Windows;
 /// </summary>
 public sealed partial class OverlayWindow : Window
 {
-    [DllImport("user32.dll")]
-    private static extern uint GetDpiForWindow(IntPtr hwnd);
-
     private readonly AppWindow _appWindow;
     private bool _initializedModels;
 
@@ -142,11 +139,18 @@ public sealed partial class OverlayWindow : Window
 
     private void PositionForLeftEdge()
     {
-        var monitor = NativeMethods.MonitorFromWindow(Hwnd, NativeMethods.MONITOR_DEFAULTTONEAREST);
+        // Open on the monitor under the cursor (matches the roadmap), not whichever monitor the
+        // hidden window last sat on. Reading the *monitor's* DPI also dodges GetDpiForWindow's
+        // pre-Show lie: while the window is hidden it reports 96, so on a scaled display the panel
+        // came out 420 physical px (= 336 logical) and clipped the recents rows.
+        NativeMethods.GetCursorPos(out var cursor);
+        var monitor = NativeMethods.MonitorFromPoint(cursor, NativeMethods.MONITOR_DEFAULTTONEAREST);
         var info = new NativeMethods.MONITORINFO { cbSize = Marshal.SizeOf<NativeMethods.MONITORINFO>() };
         NativeMethods.GetMonitorInfo(monitor, ref info);
 
-        var scale = GetDpiForWindow(Hwnd) / 96.0;
+        var scale = NativeMethods.GetDpiForMonitor(monitor, NativeMethods.MDT_EFFECTIVE_DPI, out var dpiX, out _) == 0
+            ? dpiX / 96.0
+            : 1.0;
         int width = (int)(420 * scale);
 
         // Use the work area (excludes taskbar) so we don't overlap it.
