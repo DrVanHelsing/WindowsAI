@@ -44,6 +44,23 @@ public sealed partial class SettingsPage : Page
         ViewModel = App.GetService<SettingsViewModel>();
         InitializeComponent();
         BuildAccentSwatches();
+        SectionRail.SelectedIndex = 0;
+    }
+
+    // ── Category rail ──────────────────────────────────────────────────────────
+
+    /// <summary>Shows the section matching the selected rail item; the others collapse.</summary>
+    private void SectionRail_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Fires once during InitializeComponent before the sections exist — guard it.
+        if (AppearanceSection is null)
+            return;
+
+        var index = SectionRail.SelectedIndex;
+        AppearanceSection.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
+        ProvidersSection.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
+        ToolsSection.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
+        AboutSection.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // ── Accent swatches ──────────────────────────────────────────────────────
