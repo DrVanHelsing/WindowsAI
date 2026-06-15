@@ -136,6 +136,7 @@ appsettings.*.local.json
 
 ## AI assistant local config
 .claude/
+.clauditor/
 CLAUDE.local.md
 
 ## Windows OS cruft
