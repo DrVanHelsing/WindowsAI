@@ -46,7 +46,10 @@ public sealed class JsonConversationStore : IConversationStore
             }
         }
 
-        return result.OrderByDescending(c => c.UpdatedAt).ToList();
+        return result
+            .OrderByDescending(c => c.IsPinned)
+            .ThenByDescending(c => c.UpdatedAt)
+            .ToList();
     }
 
     public async Task<StoredConversation?> GetAsync(string id, CancellationToken ct = default)

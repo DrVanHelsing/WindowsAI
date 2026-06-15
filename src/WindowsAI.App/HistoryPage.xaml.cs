@@ -50,6 +50,14 @@ public sealed partial class HistoryPage : Page
             await ViewModel.RenameAsync(summary.Id, newTitle);
     }
 
+    private async void Pin_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: ConversationSummary summary })
+            return;
+
+        await ViewModel.PinAsync(summary.Id, !summary.IsPinned);
+    }
+
     private async void Delete_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement { Tag: ConversationSummary summary })

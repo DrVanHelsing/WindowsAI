@@ -23,10 +23,26 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TextBlock
-            Grid.Row="0"
-            Style="{StaticResource PageTitleStyle}"
-            Text="History" />
+        <Grid Grid.Row="0" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock
+                Grid.Column="0"
+                VerticalAlignment="Center"
+                Style="{StaticResource PageTitleStyle}"
+                Text="History" />
+
+            <!--  Live search over title + last message  -->
+            <TextBox
+                Grid.Column="1"
+                Width="260"
+                VerticalAlignment="Center"
+                PlaceholderText="Search conversations…"
+                Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </Grid>
 
         <!-- Saved conversations, grouped by recency -->
         <ListView
@@ -112,6 +128,13 @@
                                 <StackPanel.OpacityTransition>
                                     <ScalarTransition Duration="0:0:0.15" />
                                 </StackPanel.OpacityTransition>
+                                <Button
+                                    Click="Pin_Click"
+                                    Style="{StaticResource IconButtonStyle}"
+                                    Tag="{x:Bind}"
+                                    ToolTipService.ToolTip="{x:Bind PinTooltip}">
+                                    <FontIcon FontSize="14" Glyph="{x:Bind PinGlyph}" />
+                                </Button>
                                 <Button
                                     Click="Rename_Click"
                                     Style="{StaticResource IconButtonStyle}"

@@ -13,6 +13,9 @@ public sealed class StoredConversation
 
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.Now;
 
+    /// <summary>Pinned conversations float to a "Pinned" group at the top of history.</summary>
+    public bool IsPinned { get; set; }
+
     public List<StoredMessage> Messages { get; set; } = new();
 
     /// <summary>
