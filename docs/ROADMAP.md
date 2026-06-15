@@ -65,6 +65,7 @@ independent. Both persist into the same history. The active model is a single so
 - 🚧 **In-app local chat not yet verified** (needs a GUI run — same bucket as the verification below).
 
   Findings:
+
   1. **Ollama server autostart.** The server was *not* running and had to be cold-started; the local
      provider assumes a live server at `http://localhost:11434`. Confirm Ollama's tray app
      auto-starts at login, or have the app detect a down server and surface a clear message.
@@ -167,8 +168,7 @@ OpenAI-compatible endpoint** with a short-lived OAuth access token.
   `IDataStore` backed by `ISecretStore` (scope `cloud-platform`). Access tokens are minted/refreshed
   silently thereafter.
 - ✅ **Provider** (`WindowsAI.Core/Providers/VertexChatProvider`, id `vertex`): builds the project- +
-  region-scoped endpoint `https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project}/
-  locations/{region}/endpoints/openapi` (the `global` region drops the host prefix) and passes the
+  region-scoped endpoint `https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project}/ locations/{region}/endpoints/openapi` (the `global` region drops the host prefix) and passes the
   OAuth token as the bearer. Reuses the shared OpenAI client; `SupportsVision = true`.
 - ✅ **Settings** (`GoogleCloudSettings`): the user creates an OAuth "Desktop app" client in their own
   Google Cloud project and enters the **client id, client secret** (secret → `ISecretStore`),
@@ -190,8 +190,7 @@ The former ⏭ Next / 💡 Later feature work, built and compile-verified end to
   Send button swaps to a Stop button while busy (keeps the partial reply as "…(stopped)"); a Retry
   action on assistant bubbles regenerates the latest turn.
 - ✅ **Agent tools + per-step surfacing**: `get_current_datetime` (always offered) and `search_web`
-  (Google Programmable Search — `WebSearchService` + `WebSearchSettings` + `SecretKeys
-  .GoogleSearchApiKey`, configured from a new "Web search" Settings card). Each tool call surfaces a
+  (Google Programmable Search — `WebSearchService` + `WebSearchSettings` + `SecretKeys .GoogleSearchApiKey`, configured from a new "Web search" Settings card). Each tool call surfaces a
   compact step line above the reply (glyph + summary, mirroring the source-chip pattern) via an
   `onActivity` callback on `AgentToolFactory`; web results render as clickable link chips. The
   existing `search_my_pc` / `open_path` local tools surface the same way.

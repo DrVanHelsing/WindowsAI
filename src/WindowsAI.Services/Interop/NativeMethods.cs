@@ -238,6 +238,19 @@ public static class NativeMethods
     public const ushort VK_C = 0x43;
     public const ushort VK_V = 0x56;
 
+    // Modifier keys we neutralize before synthesizing a chord — the user may still be physically
+    // holding the hotkey's modifiers (e.g. Ctrl+Shift) when the copy chord fires.
+    public const ushort VK_SHIFT = 0x10;
+    public const ushort VK_MENU = 0x12; // Alt
+    public const ushort VK_LSHIFT = 0xA0;
+    public const ushort VK_RSHIFT = 0xA1;
+    public const ushort VK_LCONTROL = 0xA2;
+    public const ushort VK_RCONTROL = 0xA3;
+    public const ushort VK_LMENU = 0xA4;
+    public const ushort VK_RMENU = 0xA5;
+    public const ushort VK_LWIN = 0x5B;
+    public const ushort VK_RWIN = 0x5C;
+
     [StructLayout(LayoutKind.Sequential)]
     public struct INPUT
     {
