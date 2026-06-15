@@ -10,14 +10,14 @@
 
   <Identity
     Name="6B3EA526-5D24-42CF-9C93-C7E7534B0420"
-    Publisher="CN=AppPublisher"
+    Publisher="CN=DrVanHelsing"
     Version="1.0.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="6B3EA526-5D24-42CF-9C93-C7E7534B0420" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>WindowsAI.App</DisplayName>
-    <PublisherDisplayName>AppPublisher</PublisherDisplayName>
+    <DisplayName>WindowsAI</DisplayName>
+    <PublisherDisplayName>DrVanHelsing</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -35,8 +35,8 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="WindowsAI.App"
-        Description="WindowsAI.App"
+        DisplayName="WindowsAI"
+        Description="A Windows-native, overlay-first AI assistant: chat with local or cloud models, rewrite text in any app, and ask about your screen."
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">
