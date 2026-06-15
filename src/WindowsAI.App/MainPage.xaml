@@ -54,6 +54,8 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
+            <!--  The round button can't wear the default rectangular focus rect — we draw a ring instead.  -->
+            <Setter Property="UseSystemFocusVisuals" Value="False" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -97,6 +99,19 @@
                                         </Storyboard>
                                     </VisualState>
                                 </VisualStateGroup>
+                                <VisualStateGroup x:Name="FocusStates">
+                                    <VisualState x:Name="Unfocused" />
+                                    <VisualState x:Name="PointerFocused" />
+                                    <VisualState x:Name="Focused">
+                                        <Storyboard>
+                                            <DoubleAnimation
+                                                Storyboard.TargetName="FocusRing"
+                                                Storyboard.TargetProperty="Opacity"
+                                                To="1"
+                                                Duration="0:0:0.12" />
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
                             </VisualStateManager.VisualStateGroups>
 
                             <Grid.RenderTransform>
@@ -111,6 +126,17 @@
                                 VerticalAlignment="Center"
                                 Fill="{StaticResource AccentBrush}"
                                 Opacity="0.28" />
+
+                            <!--  Circular keyboard-focus ring (replaces the default square focus rect)  -->
+                            <Ellipse
+                                x:Name="FocusRing"
+                                Width="48"
+                                Height="48"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Opacity="0"
+                                Stroke="{StaticResource TextPrimaryBrush}"
+                                StrokeThickness="2" />
 
                             <!--  Gradient fill ellipse — Electric Iris glow  -->
                             <Ellipse>
@@ -615,7 +641,6 @@
                         Foreground="{StaticResource TextPrimaryBrush}"
                         SelectionHighlightColor="{StaticResource AccentBrush}"
                         IsEnabled="{x:Bind ViewModel.IsNotBusy, Mode=OneWay}"
-                        KeyDown="InputBox_KeyDown"
                         PlaceholderText="Ask WindowsAI…"
                         Text="{x:Bind ViewModel.Input, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                         TextWrapping="Wrap">

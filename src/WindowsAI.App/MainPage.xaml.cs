@@ -19,6 +19,11 @@ public sealed partial class MainPage : Page
         ViewModel = App.GetService<ChatViewModel>();
         InitializeComponent();
 
+        // The composer is a multiline TextBox: its text-input service swallows Enter and marks the
+        // KeyDown handled before a normal XAML subscription runs, so Enter-to-send never fires. Listen
+        // with handledEventsToo so we still see it (SendAsync trims, so the transient newline is moot).
+        InputBox.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler(InputBox_KeyDown), handledEventsToo: true);
+
         ViewModel.Messages.CollectionChanged += OnMessagesChanged;
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         Loaded += OnLoaded;
