@@ -220,21 +220,48 @@ public sealed partial class WritingToolsWindow : Window
             return;
 
         // Put the result on the clipboard, hand focus back to the originating app, paste over the
-        // selection, then restore the user's previous clipboard contents.
+        // selection, then restore the user's previous clipboard contents. The clipboard restore runs
+        // in a finally so a failed focus/paste never strands the user's data on the clipboard.
         ClipboardHelper.SetText(_result);
         _appWindow.Hide();
 
-        if (_targetWindow != IntPtr.Zero)
+        try
+        {
+            if (!await TryRestoreTargetFocusAsync())
+                return; // couldn't return focus — don't paste into the wrong window.
+
+            if (!_selectionService.SendPaste())
+                return; // OS rejected the paste chord — leave the original selection intact.
+
+            await Task.Delay(150); // let the target app service the paste before we swap the clipboard back.
+        }
+        finally
+        {
+            if (_originalClipboard is not null)
+                ClipboardHelper.SetText(_originalClipboard);
+            else
+                ClipboardHelper.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Restores focus to the originating app and confirms it actually took before we paste — pasting
+    /// into the wrong (or our own) window would corrupt unrelated content. Retries the focus once.
+    /// </summary>
+    private async Task<bool> TryRestoreTargetFocusAsync()
+    {
+        if (_targetWindow == IntPtr.Zero)
+            return false;
+
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
             NativeMethods.SetForegroundWindow(_targetWindow);
+            await Task.Delay(60);
+            if (NativeMethods.GetForegroundWindow() == _targetWindow)
+                return true;
+        }
 
-        await Task.Delay(60);
-        _selectionService.SendPaste();
-        await Task.Delay(150);
-
-        if (_originalClipboard is not null)
-            ClipboardHelper.SetText(_originalClipboard);
-        else
-            ClipboardHelper.Clear();
+        return false;
     }
 
     private void RootHost_KeyDown(object sender, KeyRoutedEventArgs e)

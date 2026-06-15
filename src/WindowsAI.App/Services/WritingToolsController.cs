@@ -44,30 +44,34 @@ public sealed class WritingToolsController
         if (_busy)
             return;
         _busy = true;
+
+        // The app whose selection we're transforming — focus returns here before pasting.
+        var target = NativeMethods.GetForegroundWindow();
+
+        // Borrow the clipboard to read the selection, remembering what to put back. Ownership of the
+        // restore passes to the window once we hand it off; until then we restore on every exit path
+        // so a failed copy never strands our borrowed contents on the user's clipboard.
+        string? original = await ClipboardHelper.TryGetTextAsync();
+        var handedOff = false;
         try
         {
-            // The app whose selection we're transforming — focus returns here before pasting.
-            var target = NativeMethods.GetForegroundWindow();
+            if (!_selectionService.SendCopy())
+                return; // OS rejected the copy chord — nothing was read; clipboard is untouched.
 
-            // Borrow the clipboard to read the selection, remembering what to put back.
-            var original = await ClipboardHelper.TryGetTextAsync();
-            _selectionService.SendCopy();
             await Task.Delay(120); // let the focused app service the Ctrl+C
             var selection = await ClipboardHelper.TryGetTextAsync();
 
             if (string.IsNullOrWhiteSpace(selection))
-            {
-                // Nothing selected (or the app didn't surface it) — leave the clipboard as it was.
-                if (original is not null)
-                    ClipboardHelper.SetText(original);
-                return;
-            }
+                return; // Nothing selected (or the app didn't surface it).
 
             _window ??= CreateWindow();
             _window.ShowFor(selection, target, original);
+            handedOff = true; // the window now owns restoring `original` after its paste.
         }
         finally
         {
+            if (!handedOff && original is not null)
+                ClipboardHelper.SetText(original);
             _busy = false;
         }
     }

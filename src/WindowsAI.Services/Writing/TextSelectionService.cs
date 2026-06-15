@@ -12,13 +12,18 @@ namespace WindowsAI.Services.Writing;
 /// </summary>
 public sealed class TextSelectionService
 {
-    /// <summary>Synthesizes Ctrl+C to copy the focused control's selection to the clipboard.</summary>
-    public void SendCopy() => SendCtrlChord(NativeMethods.VK_C);
+    /// <summary>Synthesizes Ctrl+C to copy the focused control's selection. Returns false if the OS rejected the input.</summary>
+    public bool SendCopy() => SendCtrlChord(NativeMethods.VK_C);
 
-    /// <summary>Synthesizes Ctrl+V to paste the clipboard over the focused control's selection.</summary>
-    public void SendPaste() => SendCtrlChord(NativeMethods.VK_V);
+    /// <summary>Synthesizes Ctrl+V to paste the clipboard over the focused control's selection. Returns false if the OS rejected the input.</summary>
+    public bool SendPaste() => SendCtrlChord(NativeMethods.VK_V);
 
-    private static void SendCtrlChord(ushort key)
+    /// <summary>
+    /// Injects a Ctrl+&lt;key&gt; chord and reports whether the OS accepted every synthesized event.
+    /// <c>SendInput</c> returns the number of events inserted; a short count means input was blocked
+    /// (e.g. by a higher-integrity foreground window) so the caller can avoid a bad clipboard swap.
+    /// </summary>
+    private static bool SendCtrlChord(ushort key)
     {
         var inputs = new[]
         {
@@ -27,7 +32,8 @@ public sealed class TextSelectionService
             KeyUp(key),
             KeyUp(NativeMethods.VK_CONTROL),
         };
-        NativeMethods.SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<NativeMethods.INPUT>());
+        var inserted = NativeMethods.SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<NativeMethods.INPUT>());
+        return inserted == (uint)inputs.Length;
     }
 
     private static NativeMethods.INPUT KeyDown(ushort vk) => Key(vk, 0);

@@ -181,24 +181,60 @@ OpenAI-compatible endpoint** with a short-lived OAuth access token.
   live; what's untested is the loopback OAuth consent inside the app, which needs the user's own
   OAuth "Desktop app" client id/secret.
 
+## Roadmap completion — agent tools & chat refinements ✅ (built; end-to-end run pending)
+
+The former ⏭ Next / 💡 Later feature work, built and compile-verified end to end on
+`feat/roadmap-completion`:
+
+- ✅ **Streaming cancellation + retry** (`ChatViewModel`): a per-send `CancellationTokenSource`; the
+  Send button swaps to a Stop button while busy (keeps the partial reply as "…(stopped)"); a Retry
+  action on assistant bubbles regenerates the latest turn.
+- ✅ **Agent tools + per-step surfacing**: `get_current_datetime` (always offered) and `search_web`
+  (Google Programmable Search — `WebSearchService` + `WebSearchSettings` + `SecretKeys
+  .GoogleSearchApiKey`, configured from a new "Web search" Settings card). Each tool call surfaces a
+  compact step line above the reply (glyph + summary, mirroring the source-chip pattern) via an
+  `onActivity` callback on `AgentToolFactory`; web results render as clickable link chips. The
+  existing `search_my_pc` / `open_path` local tools surface the same way.
+- ✅ **Per-conversation overrides** (`StoredConversation.Overrides`): each conversation can pin its
+  own model and/or system prompt, restored on load and persisted with the conversation. Edited via a
+  "Conversation settings" dialog (multiline prompt + model picker) opened from the composer.
+- ✅ **History niceties**: live search over title + snippet, and pin/unpin (pinned conversations
+  float to a leading "Pinned" group; `JsonConversationStore` orders pinned-first).
+- ✅ **Vision generalized** (`VisionService`): no longer hardcoded to OpenRouter — prefers the active
+  provider when multimodal, else the first configured vision provider in priority order
+  **Gemini → Vertex → OpenRouter**, with a `VisionModelFor` helper per backend.
+- ✅ **Writing-tools injection hardening**: `SendInput` return-count checks (`TextSelectionService`
+  copy/paste now report acceptance), foreground-window verification with a single focus retry before
+  pasting, and clipboard restore in a `finally` on every path. See the QA checklist below.
+
+## QA checklist
+
+The three manual sign-offs that need a human at the keyboard live in
+[`docs/QA-checklist.md`](QA-checklist.md): writing-tools paste across apps, the vision live
+round-trip, and the Google sign-in round-trip.
+
 ## Unit tests ✅
 
-`tests/WindowsAI.Core.Tests` (xUnit) — the first dedicated unit-test project. **11 tests** cover the
-writing-tools action catalog, prompt shape, and result cleaning. Run with
-`dotnet test tests/WindowsAI.Core.Tests`.
+`tests/WindowsAI.Core.Tests` (xUnit) — the first dedicated unit-test project. **16 tests** cover the
+writing-tools action catalog, prompt shape, result cleaning, and the web-search result parser. Run
+with `dotnet test tests/WindowsAI.Core.Tests`.
 
-## ⏭ Next
+## ⏭ Next — manual verifications
 
-- ⏭ Manually verify writing-tools paste injection across Notepad / Word / Chrome / VS Code.
-- ⏭ Live visual-intelligence round-trip: add an OpenRouter key, capture a region, confirm a real
-  vision-model answer streams (and tune the default free model if it's been deprecated upstream).
-- ⏭ Google sign-in live round-trip: user adds their OAuth "Desktop app" client id + secret and a
-  Vertex-enabled project, signs in, and confirms `google/gemini-3.5-flash` answers via Vertex.
-  (The API-key path to the same models is already verified — this only exercises the OAuth consent.)
-- ⏭ More tools (web search, current date/time); per-tool surfacing of agent steps in the transcript.
+All remaining items need a human at the keyboard; steps are in
+[`docs/QA-checklist.md`](QA-checklist.md). The code paths are hardened and compile clean.
+
+- ⏭ **Writing-tools paste injection** across Notepad / WordPad·Word / Chrome (Gmail compose) / VS Code:
+  select text → `Ctrl+Shift+Space` → run each action → confirm replacement, focus return, and clipboard
+  restored.
+- ⏭ **Visual-intelligence round-trip**: `Alt+Shift+S` → drag a region → ask → confirm a real answer
+  streams (defaults to the user's Gemini key now; OCR-heavy + image regions).
+- ⏭ **Google sign-in round-trip**: add an OAuth "Desktop app" client id + secret and a Vertex-enabled
+  project, sign in, confirm `google/gemini-3.5-flash` answers via Vertex. (The API-key path is already
+  verified — this only exercises the OAuth consent.)
+- ⏭ **Web search round-trip**: add a Programmable Search engine id + API key in Settings, then ask a
+  cloud model something current and confirm the `search_web` step + link chips appear.
 
 ## 💡 Later
 
-- 💡 History niceties: rename, search, pin.
-- 💡 Per-conversation model/system-prompt overrides.
-- 💡 Streaming cancellation (stop button) and retry.
+- 💡 Streaming-token throughput tuning and richer tool-step animation.
