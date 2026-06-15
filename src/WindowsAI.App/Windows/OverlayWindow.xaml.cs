@@ -66,8 +66,9 @@ public sealed partial class OverlayWindow : Window
             presenter.IsMinimizable = false;
         }
 
-        // Win11 still draws a 1px light border around borderless windows — kill it.
-        WindowChrome.RemoveWindowBorder(Hwnd);
+        // Replace Win11's default light frame with native rounded corners + a subtle iris hairline
+        // (and the system drop shadow) so the panel reads as a proper native window.
+        WindowChrome.RoundWithBorder(Hwnd, 0x6E, 0x7B, 0xFF);
 
         _appWindow.IsShownInSwitchers = false;
 

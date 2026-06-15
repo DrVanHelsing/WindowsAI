@@ -62,7 +62,7 @@ public sealed partial class WritingToolsWindow : Window
             presenter.IsMinimizable = false;
         }
 
-        WindowChrome.RemoveWindowBorder(Hwnd);
+        WindowChrome.RoundWithBorder(Hwnd, 0x6E, 0x7B, 0xFF);
         _appWindow.IsShownInSwitchers = false;
         SystemBackdrop = new Helpers.TransparentBackdrop();
         Title = "WindowsAI Writing Tools";

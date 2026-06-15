@@ -98,6 +98,8 @@ public sealed partial class RegionCaptureWindow : Window
         RootHost.Opacity = 0;
         _appWindow.Show();
         WindowChrome.BringToForeground(Hwnd);
+        // Focus the root so the Esc accelerator fires even in the drag-select state (no child focused).
+        RootHost.Focus(FocusState.Programmatic);
         ShowStoryboard.Begin();
     }
 
@@ -123,6 +125,12 @@ public sealed partial class RegionCaptureWindow : Window
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Dismiss();
+
+    // Clicking the dim scrim outside the ask card dismisses; the card swallows its own clicks so
+    // interacting with the textbox/buttons doesn't bubble up and close the window.
+    private void AskOverlay_PointerPressed(object sender, PointerRoutedEventArgs e) => Dismiss();
+
+    private void AskCard_PointerPressed(object sender, PointerRoutedEventArgs e) => e.Handled = true;
 
     // ── Selection ───────────────────────────────────────────────────────────
 

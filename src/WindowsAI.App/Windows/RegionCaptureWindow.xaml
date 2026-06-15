@@ -12,7 +12,10 @@
         model's answer. Driven entirely from code-behind (no x:Bind converters) — see the project's
         silent-XamlCompiler-error note.
     -->
-    <Grid x:Name="RootHost" Background="Transparent">
+    <Grid
+        x:Name="RootHost"
+        Background="Transparent"
+        IsTabStop="True">
         <Grid.Resources>
             <Storyboard x:Name="ShowStoryboard">
                 <DoubleAnimation
@@ -94,9 +97,11 @@
         </Border>
 
         <!-- ── Ask card (revealed after a region is captured) ── -->
+        <!--  Clicking the dim scrim (outside the card) dismisses; the card swallows its own clicks.  -->
         <Grid
             x:Name="AskOverlay"
             Background="#B3000000"
+            PointerPressed="AskOverlay_PointerPressed"
             Visibility="Collapsed">
             <Border
                 Width="460"
@@ -106,7 +111,8 @@
                 Background="{StaticResource DialogSurfaceBrush}"
                 BorderBrush="{StaticResource AccentStrokeBrush}"
                 BorderThickness="1"
-                CornerRadius="14">
+                CornerRadius="14"
+                PointerPressed="AskCard_PointerPressed">
                 <Grid Margin="18,16,18,16" RowSpacing="12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />

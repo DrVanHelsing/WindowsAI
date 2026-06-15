@@ -33,6 +33,7 @@ public static class WindowChrome
     // leaves a faint light arc against our square transparent panel. Force square corners.
     private const uint DWMWA_WINDOW_CORNER_PREFERENCE = 33;
     private const uint DWMWCP_DONOTROUND = 1;
+    private const uint DWMWCP_ROUND = 2;
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, uint attribute, ref uint value, int size);
@@ -45,6 +46,22 @@ public static class WindowChrome
     public static void SetBorderColor(IntPtr hwnd, byte r, byte g, byte b)
     {
         // DWMWA_BORDER_COLOR takes a COLORREF: 0x00BBGGRR.
+        var colorref = (uint)(r | (g << 8) | (b << 16));
+        _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref colorref, sizeof(uint));
+    }
+
+    /// <summary>
+    /// Gives a borderless, transparent-backdrop window the native Win11 treatment: rounded
+    /// corners, the system drop shadow, and a 1px DWM border tinted to (<paramref name="r"/>,
+    /// <paramref name="g"/>, <paramref name="b"/>) so the edge reads as a deliberate, app-matching
+    /// hairline instead of the default light frame. Use for floating cards / panels whose content
+    /// fills the window; pair with a matching content corner radius so the fill hugs the rounding.
+    /// </summary>
+    public static void RoundWithBorder(IntPtr hwnd, byte r, byte g, byte b)
+    {
+        var round = DWMWCP_ROUND;
+        _ = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref round, sizeof(uint));
+
         var colorref = (uint)(r | (g << 8) | (b << 16));
         _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref colorref, sizeof(uint));
     }
