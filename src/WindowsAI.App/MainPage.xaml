@@ -323,6 +323,15 @@
                                         <TextBlock FontSize="11" Text="Copy" />
                                     </StackPanel>
                                 </Button>
+                                <Button
+                                    Click="RetryMessage_Click"
+                                    Style="{StaticResource IconButtonStyle}"
+                                    ToolTipService.ToolTip="Regenerate the latest reply">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon FontSize="12" Glyph="&#xE72C;" />
+                                        <TextBlock FontSize="11" Text="Retry" />
+                                    </StackPanel>
+                                </Button>
                                 <TextBlock
                                     VerticalAlignment="Center"
                                     FontSize="11"
@@ -635,26 +644,29 @@
                             Foreground="{StaticResource TextGhostBrush}"
                             Text="Enter to send · Shift+Enter for newline" />
 
-                        <!--  Gradient send / busy indicator  -->
-                        <Button
-                            Grid.Column="2"
-                            Command="{x:Bind ViewModel.SendCommand}"
-                            Style="{StaticResource GradientCircleButtonStyle}"
-                            ToolTipService.ToolTip="Send (Enter)">
-                            <Grid>
+                        <!--  Gradient send button / Stop button (swap on busy)  -->
+                        <Grid Grid.Column="2">
+                            <Button
+                                Command="{x:Bind ViewModel.SendCommand}"
+                                Style="{StaticResource GradientCircleButtonStyle}"
+                                ToolTipService.ToolTip="Send (Enter)"
+                                Visibility="{x:Bind ViewModel.IsNotBusy, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}">
                                 <FontIcon
                                     FontSize="15"
                                     Foreground="White"
-                                    Glyph="&#xE724;"
-                                    Visibility="{x:Bind ViewModel.IsNotBusy, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
-                                <controls:SparkleIcon
-                                    Width="18"
-                                    Height="18"
-                                    Fill="White"
-                                    IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
-                                    Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
-                            </Grid>
-                        </Button>
+                                    Glyph="&#xE724;" />
+                            </Button>
+                            <Button
+                                Command="{x:Bind ViewModel.CancelCommand}"
+                                Style="{StaticResource GradientCircleButtonStyle}"
+                                ToolTipService.ToolTip="Stop"
+                                Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}">
+                                <FontIcon
+                                    FontSize="13"
+                                    Foreground="White"
+                                    Glyph="&#xE71A;" />
+                            </Button>
+                        </Grid>
                     </Grid>
                 </Grid>
             </Border>

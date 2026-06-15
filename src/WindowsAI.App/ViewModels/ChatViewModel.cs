@@ -33,6 +33,13 @@ public partial class ChatViewModel : ObservableObject
     private StoredConversation _current = new();
     private bool _applyingSelection;
 
+    /// <summary>Cancels the in-flight streaming reply when the user hits Stop.</summary>
+    private CancellationTokenSource? _cts;
+
+    // The most recent user turn, kept so Retry can regenerate the reply for it.
+    private string? _lastUserText;
+    private List<PendingAttachment> _lastAttachments = new();
+
     public ObservableCollection<ChatMessageViewModel> Messages { get; } = new();
 
     public ObservableCollection<ModelOption> AvailableModels { get; } = new();
@@ -221,6 +228,9 @@ public partial class ChatViewModel : ObservableObject
         if (text.Length == 0)
             text = "See the attached file(s).";
 
+        _lastUserText = text;
+        _lastAttachments = attachments;
+
         Input = string.Empty;
         PendingAttachments.Clear();
         AttachmentNotice = string.Empty;
@@ -246,6 +256,7 @@ public partial class ChatViewModel : ObservableObject
         }
 
         IsBusy = true;
+        _cts = new CancellationTokenSource();
         ChatMessage? toolHint = null;
         ChatMessage? attachmentContext = null;
         try
@@ -280,13 +291,20 @@ public partial class ChatViewModel : ObservableObject
             _conversation.Add(BuildUserMessage(text, attachments));
 
             var sb = new StringBuilder();
-            await foreach (var delta in _orchestrator.StreamReplyAsync(_conversation, tools))
+            await foreach (var delta in _orchestrator.StreamReplyAsync(_conversation, tools, _cts.Token))
             {
                 sb.Append(delta);
                 reply.Text = sb.ToString();
             }
 
             reply.Text = sb.Length == 0 ? "(no response)" : sb.ToString();
+            _conversation.Add(new ChatMessage(ChatRole.Assistant, reply.Text));
+        }
+        catch (OperationCanceledException)
+        {
+            // User hit Stop — keep whatever streamed so far so it's not lost.
+            var partial = reply.Text;
+            reply.Text = string.IsNullOrEmpty(partial) ? "(stopped)" : partial + " …(stopped)";
             _conversation.Add(new ChatMessage(ChatRole.Assistant, reply.Text));
         }
         catch (Exception ex)
@@ -303,12 +321,54 @@ public partial class ChatViewModel : ObservableObject
                 _conversation.Remove(attachmentContext);
             IsSearchingFiles = false;
             IsBusy = false;
+            _cts?.Dispose();
+            _cts = null;
         }
 
         await PersistAsync();
     }
 
     private bool CanSend() => !IsBusy;
+
+    /// <summary>Requests cancellation of the in-flight reply — bound to the Stop button while busy.</summary>
+    [RelayCommand]
+    private void Cancel() => _cts?.Cancel();
+
+    /// <summary>Regenerates the reply to the most recent user turn (drops the last exchange and resends).</summary>
+    [RelayCommand]
+    private async Task RetryAsync()
+    {
+        if (IsBusy || _lastUserText is null)
+            return;
+
+        // Drop the trailing assistant + user bubbles and their model messages, then resend.
+        if (Messages.Count > 0 && !Messages[^1].IsUser)
+            Messages.RemoveAt(Messages.Count - 1);
+        if (Messages.Count > 0 && Messages[^1].IsUser)
+            Messages.RemoveAt(Messages.Count - 1);
+        RemoveLastTurn(ChatRole.Assistant);
+        RemoveLastTurn(ChatRole.User);
+
+        Input = _lastUserText;
+        PendingAttachments.Clear();
+        foreach (var a in _lastAttachments)
+            PendingAttachments.Add(a);
+
+        await SendAsync();
+    }
+
+    /// <summary>Removes the most recent working-conversation message with the given role.</summary>
+    private void RemoveLastTurn(ChatRole role)
+    {
+        for (int i = _conversation.Count - 1; i >= 0; i--)
+        {
+            if (_conversation[i].Role == role)
+            {
+                _conversation.RemoveAt(i);
+                return;
+            }
+        }
+    }
 
     // Matches phrasings like "generate an image of…", "draw a picture of…", "make me a logo of…".
     private static readonly System.Text.RegularExpressions.Regex s_imageRequest = new(

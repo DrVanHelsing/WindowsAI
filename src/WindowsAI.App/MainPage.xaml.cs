@@ -122,6 +122,16 @@ public sealed partial class MainPage : Page
         global::Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
     }
 
+    /// <summary>Regenerates the most recent reply. (Retry always targets the latest turn.)</summary>
+    private void RetryMessage_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.Messages.Count == 0 || ViewModel.Messages[^1].IsUser)
+            return;
+
+        if (ViewModel.RetryCommand.CanExecute(null))
+            ViewModel.RetryCommand.Execute(null);
+    }
+
     // Hover-reveal for the per-message actions row inside the DataTemplate.
     private static void SetActionsRowOpacity(object templateRoot, double opacity)
     {
