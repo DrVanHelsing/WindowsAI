@@ -152,7 +152,7 @@ public sealed partial class SettingsPage : Page
             "Vision model",
             "OpenRouter model id used for screen-capture questions (Alt+Shift+S). Must accept images.",
             initialText: ViewModel.VisionModelId,
-            placeholder: "meta-llama/llama-3.2-11b-vision-instruct:free");
+            placeholder: "google/gemma-4-31b-it:free");
 
         if (id is not null)
         {

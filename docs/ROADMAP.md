@@ -145,8 +145,10 @@ loop (scripted stub client → tool invoked with the right args → final reply 
 - ✅ **Ask card + vision model** (`WindowsAI.Core/Providers/VisionService`): after a region is
   selected, an inline card shows the crop thumbnail, a question box, and a streamed answer. The
   request always runs on a **configurable OpenRouter vision model** (`OpenRouterSettings.VisionModelId`,
-  default `meta-llama/llama-3.2-11b-vision-instruct:free`) regardless of the active chat model —
-  visual intelligence needs a multimodal backend even when the everyday model is local text-only.
+  default `google/gemma-4-31b-it:free` — a strong free multimodal all-rounder; swap to
+  `nvidia/nemotron-nano-12b-v2-vl:free` for faster OCR/document-heavy use) regardless of the active
+  chat model — visual intelligence needs a multimodal backend even when the everyday model is local
+  text-only.
 - ✅ **Hotkey + Settings**: `Alt+Shift+S` (`HotkeyDefinition.VisualIntelligence`, multiplexed through
   the same `HotkeyManager` subclass) opens the capture; the vision model id is editable on the
   Settings page under OpenRouter.
