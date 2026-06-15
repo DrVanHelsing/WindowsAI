@@ -177,6 +177,7 @@
                         Click="Go_Click"
                         CornerRadius="17"
                         Foreground="{StaticResource AccentTextBrush}"
+                        AutomationProperties.Name="Search"
                         ToolTipService.ToolTip="Search — opens the best match, or asks the AI">
                         <FontIcon FontSize="13" Glyph="&#xE721;" />
                     </Button>
@@ -194,6 +195,7 @@
                     Command="{x:Bind ViewModel.NewConversationCommand}"
                     CornerRadius="26"
                     Foreground="{StaticResource TextSecondaryBrush}"
+                    AutomationProperties.Name="New chat"
                     ToolTipService.ToolTip="New chat">
                     <FontIcon FontSize="17" Glyph="&#xE710;" />
                 </Button>
@@ -231,6 +233,7 @@
                                     BorderThickness="0"
                                     Click="RemoveAttachment_Click"
                                     Tag="{x:Bind}"
+                                    AutomationProperties.Name="Remove attachment"
                                     ToolTipService.ToolTip="Remove attachment">
                                     <FontIcon
                                         FontSize="9"
@@ -399,6 +402,7 @@
                                         Click="RemoveRecent_Click"
                                         Opacity="0"
                                         Tag="{Binding Id}"
+                                        AutomationProperties.Name="Remove from recents"
                                         ToolTipService.ToolTip="Remove from recents">
                                         <Button.OpacityTransition>
                                             <ScalarTransition Duration="0:0:0.12" />
@@ -473,6 +477,7 @@
                                         Click="RemoveRecentItem_Click"
                                         Opacity="0"
                                         Tag="{x:Bind}"
+                                        AutomationProperties.Name="Remove from recents"
                                         ToolTipService.ToolTip="Remove from recents">
                                         <Button.OpacityTransition>
                                             <ScalarTransition Duration="0:0:0.12" />
@@ -528,6 +533,7 @@
                                         Click="RemoveRecentQuery_Click"
                                         Opacity="0"
                                         Tag="{Binding}"
+                                        AutomationProperties.Name="Remove from recents"
                                         ToolTipService.ToolTip="Remove from recents">
                                         <Button.OpacityTransition>
                                             <ScalarTransition Duration="0:0:0.12" />

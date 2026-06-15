@@ -200,6 +200,7 @@
                                     Grid.Column="2"
                                     VerticalAlignment="Center"
                                     Click="ChangeEndpoint_Click"
+                                    AutomationProperties.Name="Change Ollama endpoint"
                                     Content="Change…" />
                             </Grid>
                         </Border>
@@ -267,6 +268,7 @@
                                             Grid.Column="1"
                                             VerticalAlignment="Bottom"
                                             Click="ChangeVisionModel_Click"
+                                            AutomationProperties.Name="Change vision model"
                                             Content="Change…" />
                                     </Grid>
                                 </StackPanel>
@@ -278,10 +280,12 @@
                                     Spacing="8">
                                     <Button
                                         Click="ManageOpenRouterKey_Click"
+                                        AutomationProperties.Name="Manage OpenRouter API key"
                                         Content="Manage…"
                                         Style="{StaticResource AccentButtonStyle}" />
                                     <Button
                                         Click="RemoveOpenRouterKey_Click"
+                                        AutomationProperties.Name="Remove OpenRouter API key"
                                         Content="Remove"
                                         Visibility="{x:Bind ViewModel.OpenRouterConfigured, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
                                 </StackPanel>
@@ -337,10 +341,12 @@
                                     Spacing="8">
                                     <Button
                                         Click="ManageGeminiKey_Click"
+                                        AutomationProperties.Name="Manage Gemini API key"
                                         Content="Manage…"
                                         Style="{StaticResource AccentButtonStyle}" />
                                     <Button
                                         Click="RemoveGeminiKey_Click"
+                                        AutomationProperties.Name="Remove Gemini API key"
                                         Content="Remove"
                                         Visibility="{x:Bind ViewModel.GeminiConfigured, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
                                 </StackPanel>
@@ -411,6 +417,7 @@
                                             Grid.Column="1"
                                             VerticalAlignment="Bottom"
                                             Click="ChangeGoogleClientId_Click"
+                                            AutomationProperties.Name="Change OAuth client id"
                                             Content="Change…" />
                                     </Grid>
 
@@ -430,6 +437,7 @@
                                             Grid.Column="1"
                                             VerticalAlignment="Bottom"
                                             Click="ManageGoogleClientSecret_Click"
+                                            AutomationProperties.Name="Set Google client secret"
                                             Content="Set…" />
                                     </Grid>
 
@@ -455,6 +463,7 @@
                                             Grid.Column="1"
                                             VerticalAlignment="Bottom"
                                             Click="ChangeGoogleProject_Click"
+                                            AutomationProperties.Name="Change Google Cloud project id"
                                             Content="Change…" />
                                     </Grid>
 
@@ -480,6 +489,7 @@
                                             Grid.Column="1"
                                             VerticalAlignment="Bottom"
                                             Click="ChangeGoogleLocation_Click"
+                                            AutomationProperties.Name="Change Vertex AI region"
                                             Content="Change…" />
                                     </Grid>
                                 </StackPanel>
@@ -491,6 +501,7 @@
                                     Spacing="8">
                                     <Button
                                         Click="SignInWithGoogle_Click"
+                                        AutomationProperties.Name="Sign in with Google"
                                         Content="Sign in…"
                                         Style="{StaticResource AccentButtonStyle}" />
                                     <Button
@@ -570,6 +581,7 @@
                                             Grid.Column="1"
                                             VerticalAlignment="Bottom"
                                             Click="ChangeWebSearchEngineId_Click"
+                                            AutomationProperties.Name="Change search engine id"
                                             Content="Change…" />
                                     </Grid>
                                 </StackPanel>
@@ -581,10 +593,12 @@
                                     Spacing="8">
                                     <Button
                                         Click="ManageWebSearchKey_Click"
+                                        AutomationProperties.Name="Manage web search API key"
                                         Content="Manage…"
                                         Style="{StaticResource AccentButtonStyle}" />
                                     <Button
                                         Click="RemoveWebSearchKey_Click"
+                                        AutomationProperties.Name="Remove web search API key"
                                         Content="Remove"
                                         Visibility="{x:Bind ViewModel.WebSearchConfigured, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
                                 </StackPanel>

@@ -605,6 +605,7 @@
                                             BorderThickness="0"
                                             Click="RemoveAttachment_Click"
                                             Tag="{x:Bind}"
+                                            AutomationProperties.Name="Remove attachment"
                                             ToolTipService.ToolTip="Remove attachment">
                                             <FontIcon
                                                 FontSize="9"
@@ -681,6 +682,7 @@
                                 CornerRadius="22"
                                 Foreground="{StaticResource TextSecondaryBrush}"
                                 IsEnabled="{x:Bind ViewModel.IsNotBusy, Mode=OneWay}"
+                                AutomationProperties.Name="Attach files"
                                 ToolTipService.ToolTip="Attach files — documents and images">
                                 <FontIcon FontSize="16" Glyph="&#xE723;" />
                             </Button>
@@ -714,6 +716,7 @@
                                 Click="ConversationSettings_Click"
                                 CornerRadius="22"
                                 Foreground="{StaticResource TextSecondaryBrush}"
+                                AutomationProperties.Name="Conversation settings"
                                 ToolTipService.ToolTip="Conversation settings — model &amp; system prompt for this chat">
                                 <FontIcon FontSize="16" Glyph="&#xE771;" />
                             </Button>
@@ -786,6 +789,7 @@
                             <Button
                                 Command="{x:Bind ViewModel.SendCommand}"
                                 Style="{StaticResource GradientCircleButtonStyle}"
+                                AutomationProperties.Name="Send message"
                                 ToolTipService.ToolTip="Send (Enter)"
                                 Visibility="{x:Bind ViewModel.IsNotBusy, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}">
                                 <FontIcon
@@ -796,6 +800,7 @@
                             <Button
                                 Command="{x:Bind ViewModel.CancelCommand}"
                                 Style="{StaticResource GradientCircleButtonStyle}"
+                                AutomationProperties.Name="Stop generating"
                                 ToolTipService.ToolTip="Stop"
                                 Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}">
                                 <FontIcon

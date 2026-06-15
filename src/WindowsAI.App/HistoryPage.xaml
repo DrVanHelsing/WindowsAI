@@ -133,6 +133,7 @@
                                     Click="Pin_Click"
                                     Style="{StaticResource IconButtonStyle}"
                                     Tag="{x:Bind}"
+                                    AutomationProperties.Name="{x:Bind PinTooltip}"
                                     ToolTipService.ToolTip="{x:Bind PinTooltip}">
                                     <FontIcon FontSize="14" Glyph="{x:Bind PinGlyph}" />
                                 </Button>
@@ -140,6 +141,7 @@
                                     Click="Rename_Click"
                                     Style="{StaticResource IconButtonStyle}"
                                     Tag="{x:Bind}"
+                                    AutomationProperties.Name="Rename conversation"
                                     ToolTipService.ToolTip="Rename">
                                     <FontIcon FontSize="14" Glyph="&#xE8AC;" />
                                 </Button>
@@ -147,6 +149,7 @@
                                     Click="Delete_Click"
                                     Style="{StaticResource IconButtonStyle}"
                                     Tag="{x:Bind}"
+                                    AutomationProperties.Name="Delete conversation"
                                     ToolTipService.ToolTip="Delete">
                                     <FontIcon FontSize="14" Glyph="&#xE74D;" />
                                 </Button>

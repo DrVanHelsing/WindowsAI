@@ -143,6 +143,7 @@
                             BorderThickness="0"
                             Click="Close_Click"
                             Foreground="{StaticResource TextTertiaryBrush}"
+                            AutomationProperties.Name="Close"
                             ToolTipService.ToolTip="Close (Esc)">
                             <FontIcon FontSize="13" Glyph="&#xE711;" />
                         </Button>
