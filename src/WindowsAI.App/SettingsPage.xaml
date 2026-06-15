@@ -267,6 +267,151 @@
                     </Grid>
                 </Border>
 
+                <!--  Gemini via Google sign-in (Vertex AI, OAuth)  -->
+                <Border Padding="18,14" Style="{StaticResource GlassCardStyle}">
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource SettingsIconTileStyle}">
+                            <FontIcon
+                                FontSize="16"
+                                Foreground="{StaticResource AccentTextBrush}"
+                                Glyph="&#xE77B;" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Spacing="3">
+                            <TextBlock
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                Foreground="{StaticResource TextPrimaryBrush}"
+                                Text="Gemini via Google sign-in" />
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="{StaticResource TextTertiaryBrush}"
+                                Text="Use Gemini through Vertex AI with a Google sign-in instead of an API key. Create an OAuth &quot;Desktop app&quot; client in your Google Cloud project, then add its id, secret, and project below."
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                Margin="0,2,0,0"
+                                FontSize="12"
+                                Foreground="{StaticResource AccentTextBrush}"
+                                Text="{x:Bind ViewModel.GoogleStatus, Mode=OneWay}" />
+
+                            <!--  OAuth client id  -->
+                            <Grid Margin="0,10,0,0" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Spacing="2">
+                                    <TextBlock
+                                        FontSize="12"
+                                        Foreground="{StaticResource TextTertiaryBrush}"
+                                        Text="OAuth client id" />
+                                    <TextBlock
+                                        FontFamily="{StaticResource MonoFontFamily}"
+                                        FontSize="12"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Text="{x:Bind ViewModel.GoogleClientId, Mode=OneWay}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="1"
+                                    VerticalAlignment="Bottom"
+                                    Click="ChangeGoogleClientId_Click"
+                                    Content="Change…" />
+                            </Grid>
+
+                            <!--  Client secret  -->
+                            <Grid Margin="0,8,0,0" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Spacing="2">
+                                    <TextBlock
+                                        FontSize="12"
+                                        Foreground="{StaticResource TextTertiaryBrush}"
+                                        Text="Client secret — stored encrypted (DPAPI) on this PC only" />
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="1"
+                                    VerticalAlignment="Bottom"
+                                    Click="ManageGoogleClientSecret_Click"
+                                    Content="Set…" />
+                            </Grid>
+
+                            <!--  Project id  -->
+                            <Grid Margin="0,8,0,0" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Spacing="2">
+                                    <TextBlock
+                                        FontSize="12"
+                                        Foreground="{StaticResource TextTertiaryBrush}"
+                                        Text="Google Cloud project id (Vertex AI enabled)" />
+                                    <TextBlock
+                                        FontFamily="{StaticResource MonoFontFamily}"
+                                        FontSize="12"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Text="{x:Bind ViewModel.GoogleProjectId, Mode=OneWay}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="1"
+                                    VerticalAlignment="Bottom"
+                                    Click="ChangeGoogleProject_Click"
+                                    Content="Change…" />
+                            </Grid>
+
+                            <!--  Region  -->
+                            <Grid Margin="0,8,0,0" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Spacing="2">
+                                    <TextBlock
+                                        FontSize="12"
+                                        Foreground="{StaticResource TextTertiaryBrush}"
+                                        Text="Vertex AI region" />
+                                    <TextBlock
+                                        FontFamily="{StaticResource MonoFontFamily}"
+                                        FontSize="12"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Text="{x:Bind ViewModel.GoogleLocation, Mode=OneWay}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="1"
+                                    VerticalAlignment="Bottom"
+                                    Click="ChangeGoogleLocation_Click"
+                                    Content="Change…" />
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                            <Button
+                                Click="SignInWithGoogle_Click"
+                                Content="Sign in…"
+                                Style="{StaticResource AccentButtonStyle}" />
+                            <Button
+                                Click="SignOutOfGoogle_Click"
+                                Content="Sign out"
+                                Visibility="{x:Bind ViewModel.GoogleConnected, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
                 <!-- About -->
                 <Border
                     Margin="0,6,0,0"

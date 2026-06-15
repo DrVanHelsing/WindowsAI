@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using WindowsAI.Core.Auth;
 using WindowsAI.Core.Configuration;
 using WindowsAI.Core.Security;
 using WindowsAI_App.Services;
@@ -15,6 +16,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly ISettingsStore _settings;
     private readonly ISecretStore _secrets;
     private readonly ThemeSyncService _theme;
+    private readonly GoogleOAuthService _googleAuth;
     private bool _initializing;
 
     [ObservableProperty]
@@ -44,14 +46,38 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial bool GeminiConfigured { get; set; }
 
-    public SettingsViewModel(ISettingsStore settings, ISecretStore secrets, ThemeSyncService theme)
+    /// <summary>OAuth client id for the user's Google "Desktop app" client.</summary>
+    [ObservableProperty]
+    public partial string GoogleClientId { get; set; }
+
+    /// <summary>Google Cloud project id with the Vertex AI API enabled.</summary>
+    [ObservableProperty]
+    public partial string GoogleProjectId { get; set; }
+
+    /// <summary>Vertex AI region (e.g. us-central1, global).</summary>
+    [ObservableProperty]
+    public partial string GoogleLocation { get; set; }
+
+    [ObservableProperty]
+    public partial string GoogleStatus { get; set; } = string.Empty;
+
+    /// <summary>True once the user has signed in with Google — drives the Sign in/out buttons.</summary>
+    [ObservableProperty]
+    public partial bool GoogleConnected { get; set; }
+
+    public SettingsViewModel(
+        ISettingsStore settings, ISecretStore secrets, ThemeSyncService theme, GoogleOAuthService googleAuth)
     {
         _settings = settings;
         _secrets = secrets;
         _theme = theme;
+        _googleAuth = googleAuth;
 
         OllamaEndpoint = _settings.Current.LocalModel.Endpoint;
         VisionModelId = _settings.Current.OpenRouter.VisionModelId;
+        GoogleClientId = _settings.Current.GoogleCloud.ClientId;
+        GoogleProjectId = _settings.Current.GoogleCloud.ProjectId;
+        GoogleLocation = _settings.Current.GoogleCloud.Location;
 
         _initializing = true;
         ThemeIndex = (int)_settings.Current.Appearance.Theme;
@@ -118,6 +144,51 @@ public partial class SettingsViewModel : ObservableObject
         RefreshStatuses();
     }
 
+    // ── Google sign-in (Vertex AI) ───────────────────────────────────────────
+
+    public async Task SaveGoogleClientIdAsync(string clientId)
+    {
+        GoogleClientId = clientId.Trim();
+        _settings.Current.GoogleCloud.ClientId = GoogleClientId;
+        await _settings.SaveAsync();
+        RefreshStatuses();
+    }
+
+    public void SaveGoogleClientSecret(string secret)
+    {
+        if (!string.IsNullOrWhiteSpace(secret))
+            _secrets.Set(SecretKeys.GoogleClientSecret, secret.Trim());
+        RefreshStatuses();
+    }
+
+    public async Task SaveGoogleProjectAsync(string projectId)
+    {
+        GoogleProjectId = projectId.Trim();
+        _settings.Current.GoogleCloud.ProjectId = GoogleProjectId;
+        await _settings.SaveAsync();
+        RefreshStatuses();
+    }
+
+    public async Task SaveGoogleLocationAsync(string location)
+    {
+        GoogleLocation = location.Trim();
+        _settings.Current.GoogleCloud.Location = GoogleLocation;
+        await _settings.SaveAsync();
+    }
+
+    /// <summary>Runs the browser consent flow. Throws if the OAuth client isn't configured or consent fails.</summary>
+    public async Task SignInWithGoogleAsync()
+    {
+        await _googleAuth.SignInAsync();
+        RefreshStatuses();
+    }
+
+    public async Task SignOutOfGoogleAsync()
+    {
+        await _googleAuth.SignOutAsync();
+        RefreshStatuses();
+    }
+
     private void RefreshStatuses()
     {
         var openRouter = _secrets.Get(SecretKeys.OpenRouterApiKey);
@@ -127,6 +198,20 @@ public partial class SettingsViewModel : ObservableObject
         GeminiConfigured = !string.IsNullOrWhiteSpace(gemini);
         OpenRouterStatus = Describe(openRouter);
         GeminiStatus = Describe(gemini);
+
+        GoogleConnected = _googleAuth.IsSignedIn;
+        GoogleStatus = DescribeGoogle();
+    }
+
+    /// <summary>Human-readable Google sign-in state for the Settings card.</summary>
+    private string DescribeGoogle()
+    {
+        if (_googleAuth.IsSignedIn)
+            return "Signed in ✓";
+
+        var hasClient = !string.IsNullOrWhiteSpace(_settings.Current.GoogleCloud.ClientId)
+            && !string.IsNullOrWhiteSpace(_secrets.Get(SecretKeys.GoogleClientSecret));
+        return hasClient ? "Ready to sign in" : "Add OAuth client to begin";
     }
 
     private static string Describe(string? key)

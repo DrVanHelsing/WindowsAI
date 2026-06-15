@@ -155,6 +155,31 @@ loop (scripted stub client → tool invoked with the right args → final reply 
 - 🚧 **Live vision round-trip pending** — needs an OpenRouter key + a real model call; the streaming
   path reuses the proven `OpenRouterChatProvider` image-attachment client.
 
+## Gemini via Google sign-in (Vertex AI, OAuth) ✅
+
+An alternative to a pasted Gemini API key: sign in with Google and reach Gemini through **Vertex AI's
+OpenAI-compatible endpoint** with a short-lived OAuth access token.
+
+- ✅ **OAuth loopback flow** (`WindowsAI.Core/Auth/GoogleOAuthService`): the desktop "installed app"
+  flow (`AuthorizationCodeInstalledApp` + `LocalServerCodeReceiver` from `Google.Apis.Auth`) opens the
+  system browser for consent. The refresh token is persisted **DPAPI-encrypted** via a custom
+  `IDataStore` backed by `ISecretStore` (scope `cloud-platform`). Access tokens are minted/refreshed
+  silently thereafter.
+- ✅ **Provider** (`WindowsAI.Core/Providers/VertexChatProvider`, id `vertex`): builds the project- +
+  region-scoped endpoint `https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project}/
+  locations/{region}/endpoints/openapi` (the `global` region drops the host prefix) and passes the
+  OAuth token as the bearer. Reuses the shared OpenAI client; `SupportsVision = true`.
+- ✅ **Settings** (`GoogleCloudSettings`): the user creates an OAuth "Desktop app" client in their own
+  Google Cloud project and enters the **client id, client secret** (secret → `ISecretStore`),
+  **project id**, and **region** in Settings → "Gemini via Google sign-in", then clicks Sign in.
+- ✅ **Models** (verified live via Model Garden + a round-trip on the Vertex OpenAI-compat endpoint,
+  2026-06-15): defaults are **`google/gemini-3.5-flash`** (latest GA flash) with
+  **`google/gemini-3.1-pro-preview`** in the picker. **Region defaults to `global`** — the 3.x
+  generation is only served there; `us-central1` 404s on it (2.5 still works regionally).
+- 🚧 **In-app sign-in round-trip pending** — the ADC→Vertex chain + both 3.x model ids were confirmed
+  live; what's untested is the loopback OAuth consent inside the app, which needs the user's own
+  OAuth "Desktop app" client id/secret.
+
 ## Unit tests ✅
 
 `tests/WindowsAI.Core.Tests` (xUnit) — the first dedicated unit-test project. **11 tests** cover the
@@ -166,8 +191,8 @@ writing-tools action catalog, prompt shape, and result cleaning. Run with
 - ⏭ Manually verify writing-tools paste injection across Notepad / Word / Chrome / VS Code.
 - ⏭ Live visual-intelligence round-trip: add an OpenRouter key, capture a region, confirm a real
   vision-model answer streams (and tune the default free model if it's been deprecated upstream).
-- ⏭ Google OAuth (Desktop client) as an alternative to a Gemini API key — user is creating the
-  OAuth client ID; scaffold the loopback flow next.
+- ⏭ Google sign-in live round-trip: user adds their OAuth "Desktop app" client id + secret and a
+  Vertex-enabled project, signs in, and confirms `google/gemini-2.5-flash` answers via Vertex.
 - ⏭ More tools (web search, current date/time); per-tool surfacing of agent steps in the transcript.
 
 ## 💡 Later

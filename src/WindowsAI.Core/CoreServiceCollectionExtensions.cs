@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using WindowsAI.Core.Auth;
 using WindowsAI.Core.Chat;
 using WindowsAI.Core.Configuration;
 using WindowsAI.Core.Context;
@@ -21,6 +22,11 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<IChatProvider, OllamaChatProvider>();
         services.AddSingleton<IChatProvider, OpenRouterChatProvider>();
         services.AddSingleton<IChatProvider, GeminiChatProvider>();
+
+        // Gemini via Vertex AI authenticated with a Google sign-in (OAuth), as an alternative
+        // to a pasted Gemini API key. Depends on ISecretStore from the host.
+        services.AddSingleton<GoogleOAuthService>();
+        services.AddSingleton<IChatProvider, VertexChatProvider>();
 
         services.AddSingleton<IModelCatalog, ModelCatalog>();
         services.AddSingleton<ActiveModelService>();

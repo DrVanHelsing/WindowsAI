@@ -15,6 +15,9 @@ public sealed class AppSettings
 
     public GeminiSettings Gemini { get; set; } = new();
 
+    /// <summary>Google Cloud / Vertex AI access via Google sign-in (OAuth), as an alternative to a Gemini API key.</summary>
+    public GoogleCloudSettings GoogleCloud { get; set; } = new();
+
     /// <summary>Theme + accent customization (defaults to following Windows).</summary>
     public AppearanceSettings Appearance { get; set; } = new();
 }
@@ -97,5 +100,34 @@ public sealed class GeminiSettings
 {
     public string BaseUrl { get; set; } = "https://generativelanguage.googleapis.com/v1beta/openai";
 
-    public string DefaultModelId { get; set; } = "gemini-2.5-flash";
+    public string DefaultModelId { get; set; } = "gemini-3.5-flash";
+}
+
+/// <summary>
+/// Configuration for reaching Gemini through Vertex AI's OpenAI-compatible endpoint using a
+/// Google sign-in (OAuth) instead of an API key. The OAuth client id lives here (it isn't a
+/// secret for an installed/desktop app); the client secret and the refresh token are held in
+/// <see cref="WindowsAI.Core.Security.ISecretStore"/>. The user creates the OAuth "Desktop app"
+/// client in their own Google Cloud project and pastes the id + project here.
+/// </summary>
+public sealed class GoogleCloudSettings
+{
+    /// <summary>OAuth 2.0 client id (type "Desktop app") from the user's Google Cloud project.</summary>
+    public string ClientId { get; set; } = string.Empty;
+
+    /// <summary>The Google Cloud project id that has the Vertex AI API enabled.</summary>
+    public string ProjectId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Vertex AI region serving the model. Defaults to <c>global</c> because the current Gemini
+    /// generation (3.x) is only served there — regional hosts like <c>us-central1</c> 404 on them.
+    /// </summary>
+    public string Location { get; set; } = "global";
+
+    /// <summary>
+    /// Default model id for the Vertex OpenAI-compatible endpoint. Vertex expects the
+    /// publisher-qualified form, e.g. <c>google/gemini-3.5-flash</c> (the latest GA flash; verified
+    /// live via Model Garden 2026-06-15).
+    /// </summary>
+    public string DefaultModelId { get; set; } = "google/gemini-3.5-flash";
 }

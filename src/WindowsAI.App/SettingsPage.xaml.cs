@@ -190,4 +190,83 @@ public sealed partial class SettingsPage : Page
 
     private void RemoveGeminiKey_Click(object sender, RoutedEventArgs e)
         => ViewModel.ClearGeminiKey();
+
+    // ── Google sign-in (Vertex AI) ───────────────────────────────────────────
+
+    private async void ChangeGoogleClientId_Click(object sender, RoutedEventArgs e)
+    {
+        var id = await DialogService.PromptTextAsync(
+            XamlRoot,
+            "OAuth client id",
+            "The client id of your Google Cloud OAuth \"Desktop app\" client.",
+            initialText: ViewModel.GoogleClientId,
+            placeholder: "1234567890-abc.apps.googleusercontent.com");
+
+        if (id is not null)
+            await ViewModel.SaveGoogleClientIdAsync(id);
+    }
+
+    private async void ManageGoogleClientSecret_Click(object sender, RoutedEventArgs e)
+    {
+        var secret = await DialogService.PromptPasswordAsync(
+            XamlRoot,
+            "OAuth client secret",
+            "The client secret from the same OAuth client. Stored encrypted (DPAPI) on this PC only.",
+            placeholder: "GOCSPX-…");
+
+        if (secret is not null)
+            ViewModel.SaveGoogleClientSecret(secret);
+    }
+
+    private async void ChangeGoogleProject_Click(object sender, RoutedEventArgs e)
+    {
+        var project = await DialogService.PromptTextAsync(
+            XamlRoot,
+            "Google Cloud project id",
+            "The project that has the Vertex AI API enabled.",
+            initialText: ViewModel.GoogleProjectId,
+            placeholder: "my-gcp-project");
+
+        if (project is not null)
+            await ViewModel.SaveGoogleProjectAsync(project);
+    }
+
+    private async void ChangeGoogleLocation_Click(object sender, RoutedEventArgs e)
+    {
+        var location = await DialogService.PromptTextAsync(
+            XamlRoot,
+            "Vertex AI region",
+            "The region serving the model, e.g. us-central1 or global.",
+            initialText: ViewModel.GoogleLocation,
+            placeholder: "us-central1");
+
+        if (location is not null)
+            await ViewModel.SaveGoogleLocationAsync(location);
+    }
+
+    private async void SignInWithGoogle_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await ViewModel.SignInWithGoogleAsync();
+        }
+        catch (Exception ex)
+        {
+            await DialogService.ConfirmAsync(
+                XamlRoot,
+                "Google sign-in failed",
+                ex.Message,
+                confirmText: "OK");
+        }
+    }
+
+    private async void SignOutOfGoogle_Click(object sender, RoutedEventArgs e)
+    {
+        if (await DialogService.ConfirmAsync(
+                XamlRoot, "Sign out of Google?", "The app will forget your Google sign-in on this PC.",
+                confirmText: "Sign out", isDestructive: true))
+        {
+            await ViewModel.SignOutOfGoogleAsync();
+        }
+    }
 }

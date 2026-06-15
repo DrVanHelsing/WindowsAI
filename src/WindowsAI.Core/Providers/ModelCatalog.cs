@@ -65,7 +65,9 @@ public sealed class ModelCatalog : IModelCatalog
             new ModelOption("openrouter", s.OpenRouter.DefaultModelId, $"{s.OpenRouter.DefaultModelId} (OpenRouter)", isLocal: false),
             new ModelOption("openrouter", "deepseek/deepseek-r1:free", "deepseek-r1:free (OpenRouter)", isLocal: false),
             new ModelOption("gemini", s.Gemini.DefaultModelId, $"{s.Gemini.DefaultModelId} (Gemini)", isLocal: false),
-            new ModelOption("gemini", "gemini-2.5-pro", "gemini-2.5-pro (Gemini)", isLocal: false),
+            new ModelOption("gemini", "gemini-3.1-pro-preview", "gemini-3.1-pro-preview (Gemini)", isLocal: false),
+            new ModelOption("vertex", s.GoogleCloud.DefaultModelId, $"{s.GoogleCloud.DefaultModelId} (Google sign-in)", isLocal: false),
+            new ModelOption("vertex", "google/gemini-3.1-pro-preview", "google/gemini-3.1-pro-preview (Google sign-in)", isLocal: false),
         ];
     }
 
