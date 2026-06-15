@@ -129,6 +129,11 @@ the whole.
 
 ## Getting started
 
+> For a full walkthrough — detailed prerequisites, step-by-step setup for every provider, and
+> troubleshooting — see the [Setup Guide](docs/SETUP.md). The quick-start below covers the essentials.
+
+[![Full Setup Guide](https://img.shields.io/badge/%E2%96%B6%20%20Full%20Setup%20Guide-6E7BFF?style=for-the-badge&labelColor=0B0E14)](docs/SETUP.md)
+
 ### Prerequisites
 
 | Requirement | Notes |
@@ -206,6 +211,7 @@ models keep the entire flow offline.
 
 | Document | Contents |
 | :--- | :--- |
+| [Setup guide](docs/SETUP.md) | Full prerequisites, per-provider setup walkthroughs, and troubleshooting |
 | [Architecture](docs/ARCHITECTURE.md) | Layers, DI, the chat pipeline, the provider model, runtime data layout |
 | [Roadmap and status](docs/ROADMAP.md) | Phase-by-phase status of every feature |
 | [QA checklist](docs/QA-checklist.md) | Manual sign-offs that need a human at the keyboard |
