@@ -3,24 +3,33 @@
   (Tokens.xaml) via CSS variables so the bubble matches the native renderer in both themes.
   Background stays transparent so the liquid glass shows through.
 */
+/* Inter Variable — mirrors the native UI face so streamed markdown matches the app. */
+@font-face {
+    font-family: 'Inter Variable';
+    src: url('fonts/InterVariable.woff2') format('woff2');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root, body.theme-dark {
-    --text: #F2FFFFFF;
-    --text2: #9AFFFFFF;
-    --accent: #A99BFF;
+    --text: #F4FFFFFF;
+    --text2: #A6FFFFFF;
+    --accent: #A8AEFF;
     --code-bg: rgba(0, 0, 0, 0.40);
     --code-header: rgba(255, 255, 255, 0.10);
     --hair: rgba(255, 255, 255, 0.12);
-    --inline-bg: rgba(122, 108, 255, 0.18);
+    --inline-bg: rgba(110, 123, 255, 0.18);
 }
 
 body.theme-light {
     --text: #E6000000;
     --text2: #99000000;
-    --accent: #6354F0;
+    --accent: #5560F0;
     --code-bg: rgba(0, 0, 0, 0.05);
     --code-header: rgba(0, 0, 0, 0.05);
     --hair: rgba(0, 0, 0, 0.12);
-    --inline-bg: rgba(99, 84, 240, 0.12);
+    --inline-bg: rgba(85, 96, 240, 0.12);
 }
 
 html, body {
@@ -28,7 +37,7 @@ html, body {
     padding: 0;
     background: transparent;
     color: var(--text);
-    font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+    font-family: 'Inter Variable', 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
     font-size: 15px;
     line-height: 25px;
     overflow: hidden;

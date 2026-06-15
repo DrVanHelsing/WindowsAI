@@ -25,6 +25,11 @@
     <Content Include="Assets\StoreLogo.png" />
     <!-- Loaded at runtime from BaseDirectory (tray via LoadImage, window via AppWindow.SetIcon),
          so it must be copied to the output dir — unlike the MSIX-only logo PNGs. -->
+    <!-- Inter Variable — the app's UI typeface. Packaged so the XAML ms-appx:///…#Inter Variable
+         reference resolves, and copied out so unpackaged/dev runs find it too. -->
+    <Content Include="Assets\Fonts\InterVariable.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Assets\AppIcon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
