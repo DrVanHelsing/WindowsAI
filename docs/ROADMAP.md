@@ -29,6 +29,7 @@ independent. Both persist into the same history. The active model is a single so
 
 - ✅ Solution scaffold: `App` (WinUI 3 / .NET 10), `Core`, `Services` — builds clean.
 - ✅ Multi-provider chat via `Microsoft.Extensions.AI`: Ollama (local), OpenRouter, Gemini.
+  Gemini (AI Studio API key) **live-verified end to end 2026-06-15** — `gemini-3.5-flash` streams replies.
 - ✅ Model switcher + Settings page with **DPAPI-encrypted API keys**.
 - ✅ OpenRouter cloud path **verified working in-app** (`google/gemma-4-31b-it:free`).
 
@@ -192,7 +193,8 @@ writing-tools action catalog, prompt shape, and result cleaning. Run with
 - ⏭ Live visual-intelligence round-trip: add an OpenRouter key, capture a region, confirm a real
   vision-model answer streams (and tune the default free model if it's been deprecated upstream).
 - ⏭ Google sign-in live round-trip: user adds their OAuth "Desktop app" client id + secret and a
-  Vertex-enabled project, signs in, and confirms `google/gemini-2.5-flash` answers via Vertex.
+  Vertex-enabled project, signs in, and confirms `google/gemini-3.5-flash` answers via Vertex.
+  (The API-key path to the same models is already verified — this only exercises the OAuth consent.)
 - ⏭ More tools (web search, current date/time); per-tool surfacing of agent steps in the transcript.
 
 ## 💡 Later
