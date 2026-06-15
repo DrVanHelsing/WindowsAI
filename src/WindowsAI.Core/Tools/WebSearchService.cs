@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using WindowsAI.Core.Configuration;
@@ -9,13 +10,14 @@ namespace WindowsAI.Core.Tools;
 public sealed record WebResult(string Title, string Url, string Snippet);
 
 /// <summary>
-/// Backs the <c>search_web</c> agent tool via Google's Programmable Search (Custom Search JSON API).
-/// The Search Engine id (<c>cx</c>) lives in settings; the API key is read from the secret store.
+/// Backs the <c>search_web</c> agent tool via Tavily's Search API (https://api.tavily.com/search).
+/// The API key is read from the secret store; no engine id or other config is required. Tavily's
+/// free tier suits an occasional agent tool, and its results come pre-trimmed for LLM use.
 /// Reuses one static <see cref="HttpClient"/> (mirrors <c>ModelCatalog</c>).
 /// </summary>
 public sealed class WebSearchService
 {
-    private static readonly HttpClient s_http = new() { Timeout = TimeSpan.FromSeconds(10) };
+    private static readonly HttpClient s_http = new() { Timeout = TimeSpan.FromSeconds(15) };
 
     private readonly ISettingsStore _settings;
     private readonly ISecretStore _secrets;
@@ -26,17 +28,10 @@ public sealed class WebSearchService
         _secrets = secrets;
     }
 
-    /// <summary>True when the engine id and API key are both present and the feature is enabled.</summary>
+    /// <summary>True when the feature is enabled and a Tavily API key is present.</summary>
     public bool IsConfigured
-    {
-        get
-        {
-            var ws = _settings.Current.WebSearch;
-            return ws.Enabled
-                && !string.IsNullOrWhiteSpace(ws.SearchEngineId)
-                && !string.IsNullOrWhiteSpace(_secrets.Get(SecretKeys.GoogleSearchApiKey));
-        }
-    }
+        => _settings.Current.WebSearch.Enabled
+           && !string.IsNullOrWhiteSpace(_secrets.Get(SecretKeys.TavilyApiKey));
 
     /// <summary>
     /// Runs a search and returns up to <paramref name="count"/> results. Throws
@@ -47,55 +42,65 @@ public sealed class WebSearchService
         if (string.IsNullOrWhiteSpace(query))
             return Array.Empty<WebResult>();
 
-        var ws = _settings.Current.WebSearch;
-        var key = _secrets.Get(SecretKeys.GoogleSearchApiKey);
-        if (string.IsNullOrWhiteSpace(ws.SearchEngineId) || string.IsNullOrWhiteSpace(key))
-            throw new InvalidOperationException("Web search isn't configured. Add a Search Engine id and API key in Settings.");
+        var key = _secrets.Get(SecretKeys.TavilyApiKey);
+        if (string.IsNullOrWhiteSpace(key))
+            throw new InvalidOperationException("Web search isn't configured. Add a Tavily API key in Settings.");
 
-        var num = Math.Clamp(count, 1, 10);
-        var url = "https://www.googleapis.com/customsearch/v1" +
-                  $"?key={Uri.EscapeDataString(key)}" +
-                  $"&cx={Uri.EscapeDataString(ws.SearchEngineId)}" +
-                  $"&q={Uri.EscapeDataString(query)}" +
-                  $"&num={num}";
+        var max = Math.Clamp(count, 1, 10);
+        var payload = JsonSerializer.Serialize(new TavilyRequest { Query = query, MaxResults = max });
 
-        using var response = await s_http.GetAsync(url, ct);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.tavily.com/search")
+        {
+            Content = new StringContent(payload, Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
+
+        using var response = await s_http.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync(ct);
         return Parse(json);
     }
 
-    /// <summary>Parses the Custom Search JSON payload into a flat result list. Public for unit tests.</summary>
+    /// <summary>Parses the Tavily Search JSON payload into a flat result list. Public for unit tests.</summary>
     public static IReadOnlyList<WebResult> Parse(string json)
     {
-        var payload = JsonSerializer.Deserialize<CustomSearchResponse>(json);
-        if (payload?.Items is null)
+        var payload = JsonSerializer.Deserialize<TavilyResponse>(json);
+        if (payload?.Results is null)
             return Array.Empty<WebResult>();
 
-        return payload.Items
-            .Where(i => !string.IsNullOrWhiteSpace(i.Link))
-            .Select(i => new WebResult(
-                Title: i.Title?.Trim() ?? i.Link!,
-                Url: i.Link!,
-                Snippet: (i.Snippet ?? string.Empty).Replace("\n", " ").Trim()))
+        return payload.Results
+            .Where(r => !string.IsNullOrWhiteSpace(r.Url))
+            .Select(r => new WebResult(
+                Title: r.Title?.Trim() is { Length: > 0 } t ? t : r.Url!,
+                Url: r.Url!,
+                Snippet: (r.Content ?? string.Empty).Replace("\n", " ").Trim()))
             .ToList();
     }
 
-    private sealed class CustomSearchResponse
+    private sealed class TavilyRequest
     {
-        [JsonPropertyName("items")]
-        public List<Item>? Items { get; set; }
+        [JsonPropertyName("query")]
+        public string Query { get; set; } = string.Empty;
+
+        [JsonPropertyName("max_results")]
+        public int MaxResults { get; set; }
     }
 
-    private sealed class Item
+    private sealed class TavilyResponse
+    {
+        [JsonPropertyName("results")]
+        public List<Result>? Results { get; set; }
+    }
+
+    private sealed class Result
     {
         [JsonPropertyName("title")]
         public string? Title { get; set; }
 
-        [JsonPropertyName("link")]
-        public string? Link { get; set; }
+        [JsonPropertyName("url")]
+        public string? Url { get; set; }
 
-        [JsonPropertyName("snippet")]
-        public string? Snippet { get; set; }
+        [JsonPropertyName("content")]
+        public string? Content { get; set; }
     }
 }

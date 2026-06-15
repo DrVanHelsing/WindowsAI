@@ -43,7 +43,7 @@ public static class CoreServiceCollectionExtensions
         // configurable OpenRouter vision model (always cloud, regardless of the active model).
         services.AddSingleton<VisionService>();
 
-        // Web search (Google Programmable Search) backing the agent's search_web tool.
+        // Web search (Tavily) backing the agent's search_web tool.
         services.AddSingleton<Tools.WebSearchService>();
 
         // Local embeddings for semantic re-ranking of "Search my PC" results. The host

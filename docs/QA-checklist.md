@@ -69,13 +69,12 @@ Verifies the in-app OAuth consent (the API-key path to the same models is alread
 
 ---
 
-## 4. Web search round-trip (Google Programmable Search)
+## 4. Web search round-trip (Tavily)
 
 Verifies the `search_web` agent tool and its step surfacing.
 
-1. Create a **Programmable Search Engine** (programmablesearchengine.google.com) and note its
-   **engine id (cx)**; create a **Custom Search JSON API key** in the Google Cloud console.
-2. Settings → **Web search**: set the engine id (Change…) and the API key (Manage…).
+1. Create a free **Tavily API key** at [tavily.com](https://tavily.com) (starts with `tvly-`).
+2. Settings → **Web search** → **Manage…**: paste the API key.
    - [ ] Status shows **"Configured ✓"**.
 3. With a **cloud** model active, ask something current (e.g. "search the web for the latest .NET
    release").

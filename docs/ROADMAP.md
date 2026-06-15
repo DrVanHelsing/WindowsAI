@@ -190,7 +190,7 @@ The former ⏭ Next / 💡 Later feature work, built and compile-verified end to
   Send button swaps to a Stop button while busy (keeps the partial reply as "…(stopped)"); a Retry
   action on assistant bubbles regenerates the latest turn.
 - ✅ **Agent tools + per-step surfacing**: `get_current_datetime` (always offered) and `search_web`
-  (Google Programmable Search — `WebSearchService` + `WebSearchSettings` + `SecretKeys .GoogleSearchApiKey`, configured from a new "Web search" Settings card). Each tool call surfaces a
+  (Tavily Search — `WebSearchService` + `WebSearchSettings` + `SecretKeys.TavilyApiKey`, configured from a new "Web search" Settings card). Each tool call surfaces a
   compact step line above the reply (glyph + summary, mirroring the source-chip pattern) via an
   `onActivity` callback on `AgentToolFactory`; web results render as clickable link chips. The
   existing `search_my_pc` / `open_path` local tools surface the same way.
@@ -231,7 +231,7 @@ All remaining items need a human at the keyboard; steps are in
 - ⏭ **Google sign-in round-trip**: add an OAuth "Desktop app" client id + secret and a Vertex-enabled
   project, sign in, confirm `google/gemini-3.5-flash` answers via  . (The API-key path is already
   verified — this only exercises the OAuth consent.)
-- ⏭ **Web search round-trip**: add a Programmable Search engine id + API key in Settings, then ask a
+- ⏭ **Web search round-trip**: add a Tavily API key in Settings, then ask a
   cloud model something current and confirm the `search_web` step + link chips appear.
 
 ## 💡 Later

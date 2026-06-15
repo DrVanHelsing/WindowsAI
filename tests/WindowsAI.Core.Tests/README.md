@@ -31,7 +31,7 @@ instead.
 | Writing action catalog | The declarative `WritingAction.All` set is well-formed. |
 | Prompt shape | `WritingPrompt` produces the expected instructions for each action. |
 | Result cleaning | `CleanResult` strips stray quotes and code fences without mangling content. |
-| Web search parsing | The Google Programmable Search result parser maps responses to result objects. |
+| Web search parsing | The Tavily Search result parser maps responses to result objects. |
 
 The `Writing/` and `Tools/` folders mirror the structure of the code under test.
 

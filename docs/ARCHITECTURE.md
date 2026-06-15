@@ -154,7 +154,7 @@ shell and overlay update independently.
 | `search_my_pc` | Runs the Windows Search RAG | Drives the "Searching your PC" indicator and source chips |
 | `open_path` | Opens a file or folder | Constrained to paths a prior `search_my_pc` actually surfaced this conversation |
 | `get_current_datetime` | Returns the local date and time | Always offered |
-| `search_web` | Google Programmable Search | Requires a configured engine id and API key; results render as link chips |
+| `search_web` | Tavily Search | Requires a configured API key; results render as link chips |
 
 ---
 

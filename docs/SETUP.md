@@ -190,17 +190,12 @@ OCR-focused model for document-heavy regions.
 
 ### 4.6 Web search
 
-Lets the assistant search the web via Google Programmable Search (the agent `search_web` tool).
+Lets the assistant search the web via [Tavily](https://tavily.com) (the agent `search_web` tool).
 
-1. Create a search engine at
-   [programmablesearchengine.google.com](https://programmablesearchengine.google.com) and copy its
-   **Search engine ID (cx)**.
-2. Create an **API key** in your Google Cloud project with the Custom Search API enabled
-   ([console.cloud.google.com](https://console.cloud.google.com)).
-3. In **Settings → Tools → Web search**:
-   - **Search engine id (cx)** → **Change…** → paste the cx value.
-   - **Manage…** → paste the API key (encrypted via DPAPI).
-4. Ask a cloud model something current; the `search_web` step and result link chips appear above the
+1. Sign up at [tavily.com](https://tavily.com) and create an **API key** (the free tier is enough
+   for occasional agent use; keys start with `tvly-`).
+2. In **Settings → Tools → Web search** → **Manage…** → paste the API key (encrypted via DPAPI).
+3. Ask a cloud model something current; the `search_web` step and result link chips appear above the
    reply when the tool is used.
 
 ---

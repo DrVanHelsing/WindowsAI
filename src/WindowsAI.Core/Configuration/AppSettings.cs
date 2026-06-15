@@ -21,22 +21,18 @@ public sealed class AppSettings
     /// <summary>Theme + accent customization (defaults to following Windows).</summary>
     public AppearanceSettings Appearance { get; set; } = new();
 
-    /// <summary>Web-search tool (Google Programmable Search) the agent can call during chat.</summary>
+    /// <summary>Web-search tool (Tavily) the agent can call during chat.</summary>
     public WebSearchSettings WebSearch { get; set; } = new();
 }
 
 /// <summary>
-/// Configuration for the <c>search_web</c> agent tool, backed by Google's Programmable Search
-/// (Custom Search JSON API). The API key is a secret (<see cref="WindowsAI.Core.Security.SecretKeys.GoogleSearchApiKey"/>);
-/// only the non-secret Search Engine id (<c>cx</c>) lives here. The user creates both in their
-/// own Google Cloud project / Programmable Search control panel.
+/// Configuration for the <c>search_web</c> agent tool, backed by Tavily's Search API. The API key
+/// is a secret (<see cref="WindowsAI.Core.Security.SecretKeys.TavilyApiKey"/>); nothing else is
+/// required. The user creates a key (free tier available) at tavily.com.
 /// </summary>
 public sealed class WebSearchSettings
 {
-    /// <summary>The Programmable Search Engine id (<c>cx</c>) identifying which engine to query.</summary>
-    public string SearchEngineId { get; set; } = string.Empty;
-
-    /// <summary>When true (and a key + engine id are present), the agent is offered the <c>search_web</c> tool.</summary>
+    /// <summary>When true (and a key is present), the agent is offered the <c>search_web</c> tool.</summary>
     public bool Enabled { get; set; } = true;
 }
 

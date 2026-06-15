@@ -169,7 +169,7 @@ Open **Settings** (from the tray menu or the app shell) to:
 - point the local provider at your Ollama endpoint,
 - paste an OpenRouter or Gemini API key (stored encrypted with DPAPI),
 - sign in with Google for Gemini via Vertex AI,
-- add a Google Programmable Search engine for web search.
+- add a Tavily API key for web search.
 
 No keys are required for local-only use.
 

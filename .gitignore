@@ -134,6 +134,10 @@ secrets.json
 appsettings.*.local.json
 *.secret.*
 
+## Google OAuth client downloads — never commit (client_secret_*.json from Cloud console)
+client_secret*.json
+*.apps.googleusercontent.com.json
+
 ## AI assistant local config
 .claude/
 .clauditor/

@@ -48,7 +48,7 @@ public static class AgentToolFactory
     }
 
     /// <summary>
-    /// The <c>search_web</c> tool, backed by Google Programmable Search. Surfaces each query (and its
+    /// The <c>search_web</c> tool, backed by Tavily Search. Surfaces each query (and its
     /// result links) via <paramref name="onActivity"/> so the user sees what was searched.
     /// </summary>
     public static IReadOnlyList<AITool> CreateWebTools(

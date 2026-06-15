@@ -6,13 +6,13 @@ namespace WindowsAI.Core.Tests.Tools;
 public class WebSearchServiceTests
 {
     [Fact]
-    public void Parse_maps_title_link_and_snippet_for_each_item()
+    public void Parse_maps_title_url_and_content_for_each_result()
     {
         const string json = """
         {
-          "items": [
-            { "title": "First result", "link": "https://example.com/a", "snippet": "Alpha snippet" },
-            { "title": "Second result", "link": "https://example.com/b", "snippet": "Beta snippet" }
+          "results": [
+            { "title": "First result", "url": "https://example.com/a", "content": "Alpha snippet" },
+            { "title": "Second result", "url": "https://example.com/b", "content": "Beta snippet" }
           ]
         }
         """;
@@ -27,20 +27,20 @@ public class WebSearchServiceTests
     }
 
     [Fact]
-    public void Parse_returns_empty_when_there_are_no_items()
+    public void Parse_returns_empty_when_there_are_no_results()
     {
         Assert.Empty(WebSearchService.Parse("{}"));
-        Assert.Empty(WebSearchService.Parse("""{ "items": [] }"""));
+        Assert.Empty(WebSearchService.Parse("""{ "results": [] }"""));
     }
 
     [Fact]
-    public void Parse_skips_items_without_a_link()
+    public void Parse_skips_results_without_a_url()
     {
         const string json = """
         {
-          "items": [
-            { "title": "No link here", "snippet": "orphan" },
-            { "title": "Has link", "link": "https://example.com/ok", "snippet": "kept" }
+          "results": [
+            { "title": "No url here", "content": "orphan" },
+            { "title": "Has url", "url": "https://example.com/ok", "content": "kept" }
           ]
         }
         """;
@@ -52,12 +52,12 @@ public class WebSearchServiceTests
     }
 
     [Fact]
-    public void Parse_collapses_newlines_in_snippets()
+    public void Parse_collapses_newlines_in_content()
     {
         const string json = """
         {
-          "items": [
-            { "title": "T", "link": "https://example.com", "snippet": "line one\nline two" }
+          "results": [
+            { "title": "T", "url": "https://example.com", "content": "line one\nline two" }
           ]
         }
         """;
@@ -72,8 +72,8 @@ public class WebSearchServiceTests
     {
         const string json = """
         {
-          "items": [
-            { "link": "https://example.com/titleless", "snippet": "s" }
+          "results": [
+            { "url": "https://example.com/titleless", "content": "s" }
           ]
         }
         """;

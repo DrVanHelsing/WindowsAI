@@ -13,6 +13,6 @@ public static class SecretKeys
     /// <summary>Sentinel marking that a Google sign-in has completed (a refresh token is stored).</summary>
     public const string GoogleConnected = "google.connected";
 
-    /// <summary>API key for Google Programmable Search (Custom Search JSON API), used by the <c>search_web</c> tool.</summary>
-    public const string GoogleSearchApiKey = "googlesearch.apikey";
+    /// <summary>API key for Tavily Search, used by the <c>search_web</c> tool.</summary>
+    public const string TavilyApiKey = "tavily.apikey";
 }
