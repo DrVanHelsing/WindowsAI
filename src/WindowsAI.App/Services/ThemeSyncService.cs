@@ -80,10 +80,16 @@ public sealed class ThemeSyncService
     /// Re-applies theme + accent after the user changes the appearance settings. Safe to call
     /// before <see cref="Start"/> (no-op until then). UI thread.
     /// </summary>
+    /// <remarks>
+    /// The re-apply is posted to the dispatcher rather than run inline: the Settings theme picker is a
+    /// <c>RadioButtons</c> whose two-way binding invokes this from inside its own selection/input pass.
+    /// Flipping <see cref="FrameworkElement.RequestedTheme"/> on the host tree synchronously re-enters
+    /// that control mid-update and WinUI faults (E_INVALIDARG). Deferring lets the control settle first.
+    /// </remarks>
     public void Refresh()
     {
         if (_started)
-            ApplyFromSystem();
+            _dispatcher?.TryEnqueue(ApplyFromSystem);
     }
 
     private void ApplyFromSystem()
@@ -131,10 +137,21 @@ public sealed class ThemeSyncService
             a.Brush.Color = WithAlpha(baseColor, isDark ? a.AlphaDark : a.AlphaLight);
         }
 
-        foreach (var (root, backdrop, borderHwnd) in _windows)
+        // Walk back-to-front so a closed window (whose XAML tree now throws when touched) can be
+        // pruned in place instead of crashing the whole re-apply. Windows aren't unregistered on
+        // close, so this is the safety net that keeps a later OS theme/accent change from faulting.
+        for (var i = _windows.Count - 1; i >= 0; i--)
         {
-            ApplyToWindow(root, backdrop, isDark);
-            ApplyBorder(borderHwnd, accent);
+            var (root, backdrop, borderHwnd) = _windows[i];
+            try
+            {
+                ApplyToWindow(root, backdrop, isDark);
+                ApplyBorder(borderHwnd, accent);
+            }
+            catch
+            {
+                _windows.RemoveAt(i);
+            }
         }
     }
 

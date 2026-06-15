@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using WindowsAI.Core;
@@ -35,10 +38,46 @@ public partial class App : Application
     /// <summary>Application-wide service provider.</summary>
     public static IServiceProvider Services { get; private set; } = default!;
 
+    /// <summary>Crash log path: %TEMP%\WindowsAI-crash.log. Captures otherwise-silent fatal exceptions.</summary>
+    private static readonly string CrashLogPath = Path.Combine(Path.GetTempPath(), "WindowsAI-crash.log");
+
     public App()
     {
         InitializeComponent();
+        WireCrashLogging();
         Services = ConfigureServices();
+    }
+
+    /// <summary>
+    /// Routes the three fatal-exception channels (XAML UI thread, AppDomain, unobserved tasks) to a
+    /// log file so crashes that WER only records as a native stowed exception (no managed stack) are
+    /// diagnosable. We deliberately do NOT swallow the XAML exception (<c>e.Handled</c> stays false):
+    /// an unhandled exception means unknown state, and masking it risks corrupting the user's data —
+    /// far better to fail fast, capture the stack, and fix the cause (as we did for the backdrop
+    /// theme crash). Before a public release this file log should be superseded by a real crash
+    /// reporter (e.g. Sentry / App Center) that uploads with user consent.
+    /// </summary>
+    private void WireCrashLogging()
+    {
+        UnhandledException += (_, e) => Log("Xaml", e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => Log("AppDomain", e.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            Log("Task", e.Exception);
+            e.SetObserved();
+        };
+    }
+
+    private static void Log(string source, Exception? ex)
+    {
+        try
+        {
+            File.AppendAllText(CrashLogPath, $"\n===== {DateTime.Now:O} [{source}] =====\n{ex}\n");
+        }
+        catch
+        {
+            // Logging must never itself throw on the way down.
+        }
     }
 
     private static IServiceProvider ConfigureServices()

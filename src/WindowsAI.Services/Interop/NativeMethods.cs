@@ -258,10 +258,36 @@ public static class NativeMethods
         public InputUnion u;
     }
 
+    // The union must be sized for its LARGEST member (MOUSEINPUT), even though we only ever send
+    // keyboard events. If it only held KEYBDINPUT, Marshal.SizeOf<INPUT>() would be 32 on x64 (20 on
+    // x86) instead of the real 40 (28) — and SendInput fails outright when the cbSize we pass isn't
+    // exactly its expected sizeof(INPUT). That short-count failure is what made the writing-tools
+    // copy/paste chords silently no-op ("Couldn't send a copy command…").
     [StructLayout(LayoutKind.Explicit)]
     public struct InputUnion
     {
+        [FieldOffset(0)] public MOUSEINPUT mi;
         [FieldOffset(0)] public KEYBDINPUT ki;
+        [FieldOffset(0)] public HARDWAREINPUT hi;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct HARDWAREINPUT
+    {
+        public uint uMsg;
+        public ushort wParamL;
+        public ushort wParamH;
     }
 
     [StructLayout(LayoutKind.Sequential)]

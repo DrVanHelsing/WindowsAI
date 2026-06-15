@@ -53,19 +53,35 @@ public sealed partial class WritingToolsWindow : Window
         Hwnd = WindowNative.GetWindowHandle(this);
         _appWindow = AppWindow;
 
+        // A real titlebar window so the user can drag, minimize, and close it like any other window —
+        // it's a persistent floating tool, not a transient borderless popup. Shown in switchers so a
+        // native minimize is restorable from the taskbar.
         if (_appWindow.Presenter is OverlappedPresenter presenter)
         {
-            presenter.SetBorderAndTitleBar(false, false);
+            presenter.SetBorderAndTitleBar(true, true);
             presenter.IsAlwaysOnTop = true;
             presenter.IsResizable = false;
             presenter.IsMaximizable = false;
-            presenter.IsMinimizable = false;
+            presenter.IsMinimizable = true;
         }
 
-        WindowChrome.RoundWithBorder(Hwnd, 0x6E, 0x7B, 0xFF);
-        _appWindow.IsShownInSwitchers = false;
-        SystemBackdrop = new Helpers.TransparentBackdrop();
-        Title = "WindowsAI Writing Tools";
+        _appWindow.IsShownInSwitchers = true;
+        SystemBackdrop = new MicaBackdrop();
+        Title = "Writing tools";
+
+        // Brand the native title bar: our sparkle + name live in the drag region (no body header),
+        // and the app icon shows in the taskbar / alt-tab.
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(AppTitleBar);
+        _appWindow.SetIcon("Assets/AppIcon.ico");
+
+        // The close (X) button hides the window instead of destroying it, since the controller caches
+        // and reuses this instance across the session.
+        _appWindow.Closing += (_, e) =>
+        {
+            e.Cancel = true;
+            Hide();
+        };
 
         BuildActionButtons();
         RootHost.KeyDown += RootHost_KeyDown;
@@ -85,12 +101,15 @@ public sealed partial class WritingToolsWindow : Window
         _result = string.Empty;
 
         SelectionPreview.Text = selection.Trim();
+        AskBox.Text = string.Empty;
         ShowActionsState();
 
         PositionNearCursor();
         RootHost.Opacity = 0;
         _appWindow.Show();
         WindowChrome.BringToForeground(Hwnd);
+        // Give the root focus so the Esc accelerator fires even before the user clicks anything.
+        RootHost.Focus(FocusState.Programmatic);
         ShowStoryboard.Begin();
     }
 
@@ -112,6 +131,8 @@ public sealed partial class WritingToolsWindow : Window
         RootHost.Opacity = 0;
         _appWindow.Show();
         WindowChrome.BringToForeground(Hwnd);
+        // Give the root focus so the Esc accelerator fires even before the user clicks anything.
+        RootHost.Focus(FocusState.Programmatic);
         ShowStoryboard.Begin();
     }
 
@@ -126,7 +147,7 @@ public sealed partial class WritingToolsWindow : Window
     private void ShowActionsState()
     {
         PreviewBorder.Visibility = Visibility.Visible;
-        ActionsScroller.Visibility = Visibility.Visible;
+        ActionsState.Visibility = Visibility.Visible;
         ResultPanel.Visibility = Visibility.Collapsed;
         NoticePanel.Visibility = Visibility.Collapsed;
     }
@@ -134,7 +155,7 @@ public sealed partial class WritingToolsWindow : Window
     private void ShowResultState()
     {
         PreviewBorder.Visibility = Visibility.Visible;
-        ActionsScroller.Visibility = Visibility.Collapsed;
+        ActionsState.Visibility = Visibility.Collapsed;
         ResultPanel.Visibility = Visibility.Visible;
         NoticePanel.Visibility = Visibility.Collapsed;
     }
@@ -142,7 +163,7 @@ public sealed partial class WritingToolsWindow : Window
     private void ShowNoticeState()
     {
         PreviewBorder.Visibility = Visibility.Collapsed;
-        ActionsScroller.Visibility = Visibility.Collapsed;
+        ActionsState.Visibility = Visibility.Collapsed;
         ResultPanel.Visibility = Visibility.Collapsed;
         NoticePanel.Visibility = Visibility.Visible;
     }
@@ -178,10 +199,36 @@ public sealed partial class WritingToolsWindow : Window
     private async void ActionButton_Click(object sender, RoutedEventArgs e)
     {
         if (((FrameworkElement)sender).Tag is WritingAction action)
-            await RunActionAsync(action);
+            await RunStreamAsync(ct => _writing.StreamAsync(action, _selection, ct));
     }
 
-    private async Task RunActionAsync(WritingAction action)
+    // ── Ask (free-form request about the selection) ───────────────────────────
+
+    private async void Ask_Click(object sender, RoutedEventArgs e) => await RunAskAsync();
+
+    private async void AskBox_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key == VirtualKey.Enter)
+        {
+            e.Handled = true;
+            await RunAskAsync();
+        }
+    }
+
+    private async Task RunAskAsync()
+    {
+        var request = AskBox.Text.Trim();
+        if (request.Length == 0)
+            return;
+        await RunStreamAsync(ct => _writing.StreamAskAsync(request, _selection, ct));
+    }
+
+    /// <summary>
+    /// Shared result-streaming pump for both the preset transforms and the Ask flow: switches to the
+    /// result state, streams deltas into the result text, then cleans + freezes the final answer.
+    /// Cancels any in-flight run first so a newer request always wins.
+    /// </summary>
+    private async Task RunStreamAsync(Func<CancellationToken, IAsyncEnumerable<string>> stream)
     {
         ShowResultState();
         SetResultBusy(true);
@@ -194,7 +241,7 @@ public sealed partial class WritingToolsWindow : Window
         var sb = new StringBuilder();
         try
         {
-            await foreach (var delta in _writing.StreamAsync(action, _selection, cts.Token))
+            await foreach (var delta in stream(cts.Token))
             {
                 if (cts.IsCancellationRequested)
                     return;

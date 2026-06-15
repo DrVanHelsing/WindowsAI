@@ -24,6 +24,17 @@ public sealed class WritingToolsService
     }
 
     /// <summary>
+    /// Streams the model's response to a free-form user <paramref name="request"/> about the
+    /// <paramref name="selection"/> (the "Ask" flow), token-by-token (raw deltas, not yet cleaned).
+    /// </summary>
+    public IAsyncEnumerable<string> StreamAskAsync(
+        string request, string selection, CancellationToken ct = default)
+    {
+        var prompt = WritingPrompt.BuildAsk(request, selection);
+        return _orchestrator.StreamReplyAsync(prompt, tools: null, ct);
+    }
+
+    /// <summary>
     /// Runs the transform to completion and returns the cleaned result ready to inject. Throws
     /// if the selection is blank (nothing to transform).
     /// </summary>

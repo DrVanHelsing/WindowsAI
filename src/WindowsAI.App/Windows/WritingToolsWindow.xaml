@@ -6,16 +6,21 @@
     xmlns:controls="using:WindowsAI_App.Controls">
 
     <!--
-        Type-anywhere writing-tools popup. Borderless, transparent backdrop (set in code-behind);
-        this root Grid is the readability scrim + rounded card. Content is driven from code-behind
+        Type-anywhere writing-tools popup. Real titlebar window with Mica backdrop (set in code-behind);
+        this root Grid is the readability scrim over the Mica. Content is driven from code-behind
         (action buttons built from WritingAction.All, result streamed in) so there are no x:Bind
         converters in this Window XAML — see the project's silent-XamlCompiler-error note.
+
+        IsTabStop so the root can take focus on open and the Esc accelerator fires before any click.
     -->
-    <!--  Square fill: the native DWM rounding (RoundWithBorder) clips + borders the corners, so the
-          card must fill edge-to-edge or a transparent crescent shows at each rounded corner.  -->
     <Grid
         x:Name="RootHost"
-        Background="{StaticResource OverlayScrimBrush}">
+        Background="{StaticResource OverlayScrimBrush}"
+        IsTabStop="True">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
         <Grid.RenderTransform>
             <TranslateTransform x:Name="RootSlide" Y="-8" />
         </Grid.RenderTransform>
@@ -53,39 +58,48 @@
             </Style>
         </Grid.Resources>
 
-        <!-- Specular sheen over the card -->
+        <!-- Specular sheen over the whole card (non-interactive, so it never blocks the drag region) -->
         <Rectangle
+            Grid.RowSpan="2"
             Fill="{StaticResource GlassSheenBrush}"
             IsHitTestVisible="False" />
 
-        <Grid Margin="16,14,16,16" RowSpacing="10">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-
-            <!-- ── Header ── -->
+        <!--  ── Title bar (drag region; brand mark + name live here, not duplicated in the body) ──  -->
+        <Grid
+            x:Name="AppTitleBar"
+            Grid.Row="0"
+            Height="40"
+            Padding="14,0,0,0">
             <StackPanel
-                Grid.Row="0"
                 Orientation="Horizontal"
-                Spacing="8">
+                Spacing="8"
+                VerticalAlignment="Center">
                 <controls:SparkleIcon
                     Width="18"
                     Height="18"
                     VerticalAlignment="Center" />
                 <TextBlock
                     VerticalAlignment="Center"
-                    FontSize="14"
+                    FontSize="13"
                     FontWeight="SemiBold"
                     Foreground="{StaticResource TextPrimaryBrush}"
                     Text="Writing tools" />
             </StackPanel>
+        </Grid>
+
+        <Grid
+            Grid.Row="1"
+            Margin="16,2,16,16"
+            RowSpacing="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
             <!-- ── Selected-text preview ── -->
             <Border
                 x:Name="PreviewBorder"
-                Grid.Row="1"
+                Grid.Row="0"
                 Padding="10,8"
                 Background="{StaticResource GlassFillSubtleBrush}"
                 BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
@@ -100,24 +114,71 @@
                     TextWrapping="Wrap" />
             </Border>
 
-            <!-- ── Actions state ── -->
-            <ScrollViewer
-                x:Name="ActionsScroller"
-                Grid.Row="2"
-                VerticalScrollBarVisibility="Auto">
-                <StackPanel x:Name="ActionsPanel" Spacing="6">
-                    <StackPanel.ChildrenTransitions>
-                        <TransitionCollection>
-                            <EntranceThemeTransition FromVerticalOffset="10" IsStaggeringEnabled="True" />
-                        </TransitionCollection>
-                    </StackPanel.ChildrenTransitions>
-                </StackPanel>
-            </ScrollViewer>
+            <!-- ── Actions state: free-form Ask box on top of the preset transforms ── -->
+            <Grid x:Name="ActionsState" Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Ask: type a custom request about the selection -->
+                <Grid
+                    Grid.Row="0"
+                    Margin="0,0,0,10"
+                    ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox
+                        x:Name="AskBox"
+                        Grid.Column="0"
+                        VerticalAlignment="Stretch"
+                        AcceptsReturn="False"
+                        KeyDown="AskBox_KeyDown"
+                        PlaceholderText="Ask anything about the selection…" />
+                    <Button
+                        x:Name="AskButton"
+                        Grid.Column="1"
+                        Padding="14,8"
+                        BorderThickness="0"
+                        Click="Ask_Click"
+                        CornerRadius="{StaticResource RadiusMedium}"
+                        Foreground="White"
+                        ToolTipService.ToolTip="Ask about the selection">
+                        <Button.Resources>
+                            <StaticResource x:Key="ButtonBackground" ResourceKey="AccentBrush" />
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#828DFF" />
+                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#5A66E0" />
+                            <SolidColorBrush x:Key="ButtonForeground" Color="White" />
+                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="White" />
+                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#F0FFFFFF" />
+                        </Button.Resources>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="13" Foreground="White" Glyph="&#xE8BD;" />
+                            <TextBlock FontSize="14" Text="Ask" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <ScrollViewer
+                    x:Name="ActionsScroller"
+                    Grid.Row="1"
+                    VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="ActionsPanel" Spacing="6">
+                        <StackPanel.ChildrenTransitions>
+                            <TransitionCollection>
+                                <EntranceThemeTransition FromVerticalOffset="10" IsStaggeringEnabled="True" />
+                            </TransitionCollection>
+                        </StackPanel.ChildrenTransitions>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
 
             <!-- ── Notice state (no selection / capture failed / error) ── -->
             <StackPanel
                 x:Name="NoticePanel"
-                Grid.Row="2"
+                Grid.Row="1"
                 VerticalAlignment="Center"
                 Spacing="12"
                 Visibility="Collapsed">
@@ -136,7 +197,7 @@
             </StackPanel>
 
             <!-- ── Result state ── -->
-            <Grid x:Name="ResultPanel" Grid.Row="2" Visibility="Collapsed">
+            <Grid x:Name="ResultPanel" Grid.Row="1" Visibility="Collapsed">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
@@ -200,6 +261,7 @@
                         Click="Back_Click"
                         CornerRadius="{StaticResource RadiusMedium}"
                         Foreground="{StaticResource TextSecondaryBrush}"
+                        AutomationProperties.Name="Back to actions"
                         ToolTipService.ToolTip="Back to actions">
                         <FontIcon FontSize="13" Glyph="&#xE72B;" />
                     </Button>
@@ -214,6 +276,7 @@
                         Click="Copy_Click"
                         CornerRadius="{StaticResource RadiusMedium}"
                         Foreground="{StaticResource TextSecondaryBrush}"
+                        AutomationProperties.Name="Copy result"
                         ToolTipService.ToolTip="Copy result">
                         <FontIcon FontSize="13" Glyph="&#xE8C8;" />
                     </Button>
@@ -246,6 +309,6 @@
             </Grid>
         </Grid>
 
-        <!--  The card's edge is now the native DWM iris border (RoundWithBorder) — no self-drawn frame.  -->
+        <!--  The card's edge is the native window frame (titlebar window) — no self-drawn border.  -->
     </Grid>
 </Window>

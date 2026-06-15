@@ -39,6 +39,20 @@ public sealed partial class TransparentBackdrop : SystemBackdrop
         _brush = null;
     }
 
+    /// <summary>
+    /// Deliberately a no-op (no <c>base</c> call). The framework invokes this whenever the default
+    /// backdrop configuration changes — notably on every light/dark switch — and the base
+    /// implementation re-reads <c>GetDefaultSystemBackdropConfiguration(target, xamlRoot)</c>, which
+    /// throws <see cref="System.ArgumentException"/> ("target") when the window is hidden. The
+    /// overlay and popups spend most of their life hidden, so that path crashed the app on theme
+    /// changes. Our brush is a fixed, fully-transparent color applied once in
+    /// <see cref="OnTargetConnected"/> — it never depends on the theme — so there is nothing to do here.
+    /// </summary>
+    protected override void OnDefaultSystemBackdropConfigurationChanged(
+        ICompositionSupportsSystemBackdrop target, XamlRoot xamlRoot)
+    {
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     private struct DispatcherQueueOptions
     {

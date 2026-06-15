@@ -229,7 +229,7 @@ All remaining items need a human at the keyboard; steps are in
 - ⏭ **Visual-intelligence round-trip**: `Alt+Shift+S` → drag a region → ask → confirm a real answer
   streams (defaults to the user's Gemini key now; OCR-heavy + image regions).
 - ⏭ **Google sign-in round-trip**: add an OAuth "Desktop app" client id + secret and a Vertex-enabled
-  project, sign in, confirm `google/gemini-3.5-flash` answers via Vertex. (The API-key path is already
+  project, sign in, confirm `google/gemini-3.5-flash` answers via  . (The API-key path is already
   verified — this only exercises the OAuth consent.)
 - ⏭ **Web search round-trip**: add a Programmable Search engine id + API key in Settings, then ask a
   cloud model something current and confirm the `search_web` step + link chips appear.

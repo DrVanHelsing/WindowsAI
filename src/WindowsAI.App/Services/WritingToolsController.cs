@@ -43,10 +43,16 @@ public sealed class WritingToolsController
         // Re-entrancy guard: the copy round-trip is async; ignore repeat presses mid-capture.
         if (_busy)
             return;
-        _busy = true;
 
         // The app whose selection we're transforming — focus returns here before pasting.
         var target = NativeMethods.GetForegroundWindow();
+
+        // If our own popup is the foreground window, there's no foreign selection to read — copying
+        // would capture from ourselves and surface an empty "select some text" notice. Bail quietly.
+        if (_window is not null && target == _window.Hwnd)
+            return;
+
+        _busy = true;
 
         // Borrow the clipboard to read the selection, remembering what to put back. Ownership of the
         // restore passes to the window once we hand it off; until then we restore on every exit path
