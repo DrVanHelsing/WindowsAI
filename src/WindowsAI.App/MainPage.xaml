@@ -8,6 +8,7 @@
     xmlns:ctx="using:WindowsAI.Core.Context"
     xmlns:tools="using:WindowsAI.Core.Tools"
     Background="Transparent"
+    FontFamily="{StaticResource AppFontFamily}"
     NavigationCacheMode="Required">
 
     <Page.Resources>
@@ -102,14 +103,22 @@
                                 <ScaleTransform ScaleX="1" ScaleY="1" />
                             </Grid.RenderTransform>
 
-                            <!--  Gradient fill ellipse  -->
+                            <!--  Soft accent glow halo behind the button (the "primary action" cue)  -->
+                            <Ellipse
+                                Width="50"
+                                Height="50"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Fill="{StaticResource AccentBrush}"
+                                Opacity="0.28" />
+
+                            <!--  Gradient fill ellipse — Electric Iris glow  -->
                             <Ellipse>
                                 <Ellipse.Fill>
                                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                         <GradientStop Offset="0.0" Color="#4F8CFF" />
-                                        <GradientStop Offset="0.30" Color="#9B6BFF" />
-                                        <GradientStop Offset="0.55" Color="#FF6BD6" />
-                                        <GradientStop Offset="0.80" Color="#FF9D5C" />
+                                        <GradientStop Offset="0.33" Color="#6E7BFF" />
+                                        <GradientStop Offset="0.66" Color="#B06BFF" />
                                         <GradientStop Offset="1.0" Color="#4DE3FF" />
                                     </LinearGradientBrush>
                                 </Ellipse.Fill>
@@ -432,18 +441,19 @@
 
             <TextBlock
                 HorizontalAlignment="Center"
-                FontSize="34"
+                FontSize="48"
                 Foreground="{StaticResource GlowGradientBrush}"
                 Text="✦" />
             <TextBlock
+                Margin="0,4,0,0"
                 HorizontalAlignment="Center"
-                FontSize="28"
+                FontSize="30"
                 FontWeight="SemiBold"
-                CharacterSpacing="-20"
+                CharacterSpacing="-25"
                 Foreground="{StaticResource TextPrimaryBrush}"
                 Text="How can I help?" />
             <TextBlock
-                Margin="0,0,0,16"
+                Margin="0,0,0,20"
                 HorizontalAlignment="Center"
                 FontSize="13"
                 Foreground="{StaticResource TextTertiaryBrush}"
@@ -465,7 +475,10 @@
                     Click="Suggestion_Click"
                     Style="{StaticResource SuggestionButtonStyle}"
                     Tag="Write a Python script that renames every file in a folder">
-                    <TextBlock Text="🐍  Write a Python script" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="16" Foreground="{StaticResource AccentTextBrush}" Glyph="&#xE943;" />
+                        <TextBlock VerticalAlignment="Center" Text="Write a Python script" TextWrapping="Wrap" />
+                    </StackPanel>
                 </Button>
                 <Button
                     Grid.Row="0"
@@ -473,7 +486,10 @@
                     Click="Suggestion_Click"
                     Style="{StaticResource SuggestionButtonStyle}"
                     Tag="Draft a short, professional email asking to reschedule a meeting">
-                    <TextBlock Text="✉️  Draft a professional email" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="16" Foreground="{StaticResource AccentTextBrush}" Glyph="&#xE715;" />
+                        <TextBlock VerticalAlignment="Center" Text="Draft a professional email" TextWrapping="Wrap" />
+                    </StackPanel>
                 </Button>
                 <Button
                     Grid.Row="1"
@@ -481,7 +497,10 @@
                     Click="Suggestion_Click"
                     Style="{StaticResource SuggestionButtonStyle}"
                     Tag="Explain how DNS works in simple terms">
-                    <TextBlock Text="💡  Explain a concept simply" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="16" Foreground="{StaticResource AccentTextBrush}" Glyph="&#xE897;" />
+                        <TextBlock VerticalAlignment="Center" Text="Explain a concept simply" TextWrapping="Wrap" />
+                    </StackPanel>
                 </Button>
                 <Button
                     Grid.Row="1"
@@ -489,7 +508,10 @@
                     Click="Suggestion_Click"
                     Style="{StaticResource SuggestionButtonStyle}"
                     Tag="Help me plan my day — I have 3 meetings and a deadline tomorrow">
-                    <TextBlock Text="📋  Plan my day" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="16" Foreground="{StaticResource AccentTextBrush}" Glyph="&#xE787;" />
+                        <TextBlock VerticalAlignment="Center" Text="Plan my day" TextWrapping="Wrap" />
+                    </StackPanel>
                 </Button>
             </Grid>
         </StackPanel>
