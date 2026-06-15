@@ -19,9 +19,13 @@ namespace WindowsAI_App.ViewModels;
 /// </summary>
 public partial class ChatViewModel : ObservableObject
 {
-    private const string SystemPrompt =
+    private const string DefaultSystemPrompt =
         "You are WindowsAI, a concise and helpful on-device assistant for Windows. " +
         "Prefer short, direct answers.";
+
+    /// <summary>The system prompt in effect: a per-conversation override if set, else the default.</summary>
+    private string EffectiveSystemPrompt() =>
+        string.IsNullOrWhiteSpace(_current.Overrides?.SystemPrompt) ? DefaultSystemPrompt : _current.Overrides!.SystemPrompt!;
 
     private readonly ChatOrchestrator _orchestrator;
     private readonly IModelCatalog _catalog;
@@ -115,7 +119,7 @@ public partial class ChatViewModel : ObservableObject
         _localContext = localContext;
         _imageGen = imageGen;
         _webSearch = webSearch;
-        _conversation.Add(new ChatMessage(ChatRole.System, SystemPrompt));
+        _conversation.Add(new ChatMessage(ChatRole.System, EffectiveSystemPrompt()));
 
         // Stay in sync when the active model is changed on any other surface.
         _activeModel.Changed += OnActiveModelChanged;
@@ -511,8 +515,8 @@ public partial class ChatViewModel : ObservableObject
     {
         Messages.Clear();
         _conversation.Clear();
-        _conversation.Add(new ChatMessage(ChatRole.System, SystemPrompt));
         _current = new StoredConversation();
+        _conversation.Add(new ChatMessage(ChatRole.System, EffectiveSystemPrompt()));
     }
 
     /// <summary>Replaces the current session with a saved one loaded from history.</summary>
@@ -526,13 +530,52 @@ public partial class ChatViewModel : ObservableObject
 
         Messages.Clear();
         _conversation.Clear();
-        _conversation.Add(new ChatMessage(ChatRole.System, SystemPrompt));
+        _conversation.Add(new ChatMessage(ChatRole.System, EffectiveSystemPrompt()));
 
         foreach (var m in convo.Messages)
         {
             Messages.Add(new ChatMessageViewModel(m.Author, m.Text, m.IsUser));
             _conversation.Add(new ChatMessage(m.IsUser ? ChatRole.User : ChatRole.Assistant, m.Text));
         }
+
+        // Restore this conversation's pinned model, if it saved one.
+        if (_current.Overrides is { ProviderId: { Length: > 0 } providerId, ModelId: { Length: > 0 } modelId })
+            await _activeModel.SetAsync(providerId, modelId);
+    }
+
+    /// <summary>This conversation's custom system prompt, or empty when it uses the app default.</summary>
+    public string CustomSystemPrompt => _current.Overrides?.SystemPrompt ?? string.Empty;
+
+    /// <summary>
+    /// Applies per-conversation overrides chosen in the conversation-settings dialog. An empty/default
+    /// prompt clears the prompt override; a chosen model is applied immediately and remembered.
+    /// </summary>
+    public async Task ApplyConversationOverridesAsync(string systemPrompt, ModelOption? model)
+    {
+        var overrides = _current.Overrides ?? new ConversationOverrides();
+
+        var prompt = systemPrompt.Trim();
+        overrides.SystemPrompt =
+            (prompt.Length == 0 || prompt == DefaultSystemPrompt) ? null : prompt;
+
+        if (model is not null)
+        {
+            overrides.ProviderId = model.ProviderId;
+            overrides.ModelId = model.ModelId;
+            await _activeModel.SetAsync(model.ProviderId, model.ModelId);
+        }
+
+        _current.Overrides = overrides.HasAny ? overrides : null;
+
+        // Re-apply the system message in the working conversation (always index 0).
+        if (_conversation.Count > 0 && _conversation[0].Role == ChatRole.System)
+            _conversation[0] = new ChatMessage(ChatRole.System, EffectiveSystemPrompt());
+
+        OnPropertyChanged(nameof(CustomSystemPrompt));
+
+        // Persist immediately only if this conversation already exists on disk (has messages).
+        if (Messages.Count > 0)
+            await PersistAsync();
     }
 
     /// <summary>Snapshots the visible conversation to the store after each completed exchange.</summary>

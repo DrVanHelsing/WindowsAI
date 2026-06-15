@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WindowsAI.Core.Providers;
 
 namespace WindowsAI_App.Controls;
 
@@ -59,6 +60,57 @@ public static class DialogService
 
         var secret = box.Password.Trim();
         return secret.Length == 0 ? null : secret;
+    }
+
+    /// <summary>The settings chosen in the conversation-settings dialog.</summary>
+    public sealed record ConversationSettingsResult(string SystemPrompt, ModelOption? Model);
+
+    /// <summary>
+    /// Per-conversation settings: a multiline system-prompt box plus a model picker. Returns the
+    /// chosen values, or null if cancelled. An empty system prompt means "use the app default".
+    /// </summary>
+    public static async Task<ConversationSettingsResult?> PromptConversationSettingsAsync(
+        XamlRoot root, string systemPrompt, IReadOnlyList<ModelOption> models, ModelOption? selected)
+    {
+        var promptBox = new TextBox
+        {
+            Text = systemPrompt,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            Height = 130,
+            PlaceholderText = "Leave blank to use the default assistant prompt.",
+        };
+        ScrollViewer.SetVerticalScrollBarVisibility(promptBox, ScrollBarVisibility.Auto);
+
+        var modelCombo = new ComboBox
+        {
+            ItemsSource = models,
+            DisplayMemberPath = nameof(ModelOption.DisplayName),
+            SelectedItem = selected,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+
+        var panel = new StackPanel { Spacing = 8 };
+        panel.Children.Add(new TextBlock { Text = "System prompt", Opacity = 0.7 });
+        panel.Children.Add(promptBox);
+        panel.Children.Add(new TextBlock { Text = "Model", Opacity = 0.7, Margin = new Thickness(0, 6, 0, 0) });
+        panel.Children.Add(modelCombo);
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = root,
+            Title = "Conversation settings",
+            Content = panel,
+            PrimaryButtonText = "Save",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+
+        promptBox.Loaded += (_, _) => promptBox.Focus(FocusState.Programmatic);
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+            return null;
+
+        return new ConversationSettingsResult(promptBox.Text.Trim(), modelCombo.SelectedItem as ModelOption);
     }
 
     /// <summary>Shows a labelled single-input dialog and focuses the input on open.</summary>

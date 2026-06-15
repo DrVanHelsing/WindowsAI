@@ -638,7 +638,7 @@
                                 <FontIcon FontSize="16" Glyph="&#xE723;" />
                             </Button>
 
-                            <!--  Active model pill — mirrors the overlay footer badge  -->
+            <!--  Active model pill — mirrors the overlay footer badge  -->
                             <Border Style="{StaticResource ComposerPillStyle}" ToolTipService.ToolTip="{x:Bind ViewModel.ModelLabel, Mode=OneWay}">
                                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                     <FontIcon
@@ -652,6 +652,24 @@
                                         Text="{x:Bind ViewModel.ModelShortLabel, Mode=OneWay}" />
                                 </StackPanel>
                             </Border>
+
+                            <!--  Per-conversation settings: custom model + system prompt for this chat  -->
+                            <Button
+                                Width="44"
+                                Height="44"
+                                MinWidth="0"
+                                MinHeight="0"
+                                Padding="0"
+                                VerticalAlignment="Center"
+                                Background="{StaticResource GlassFillBrush}"
+                                BorderBrush="{StaticResource GlassStrokeBrush}"
+                                BorderThickness="1"
+                                Click="ConversationSettings_Click"
+                                CornerRadius="22"
+                                Foreground="{StaticResource TextSecondaryBrush}"
+                                ToolTipService.ToolTip="Conversation settings — model &amp; system prompt for this chat">
+                                <FontIcon FontSize="16" Glyph="&#xE771;" />
+                            </Button>
 
                             <!--  Local-RAG toggle: include matching files from this PC.
                                   Shares the model pill's geometry; glass when off, accent when on.  -->

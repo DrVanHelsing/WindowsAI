@@ -112,6 +112,19 @@ public sealed partial class MainPage : Page
         }
     }
 
+    /// <summary>Opens the per-conversation settings dialog (custom model + system prompt).</summary>
+    private async void ConversationSettings_Click(object sender, RoutedEventArgs e)
+    {
+        var result = await Controls.DialogService.PromptConversationSettingsAsync(
+            XamlRoot,
+            ViewModel.CustomSystemPrompt,
+            ViewModel.AvailableModels,
+            ViewModel.SelectedModel);
+
+        if (result is not null)
+            await ViewModel.ApplyConversationOverridesAsync(result.SystemPrompt, result.Model);
+    }
+
     /// <summary>Opens a surfaced web-search result in the default browser. Failure is silent.</summary>
     private void Activity_LinkClick(object sender, ItemClickEventArgs e)
     {
