@@ -112,6 +112,25 @@ public sealed partial class MainPage : Page
         }
     }
 
+    /// <summary>Opens a surfaced web-search result in the default browser. Failure is silent.</summary>
+    private void Activity_LinkClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is not WindowsAI.Core.Tools.WebResult result || string.IsNullOrWhiteSpace(result.Url))
+            return;
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(result.Url)
+            {
+                UseShellExecute = true,
+            });
+        }
+        catch
+        {
+            // Best effort — a malformed/blocked URL shouldn't disrupt the chat.
+        }
+    }
+
     private void CopyMessage_Click(object sender, RoutedEventArgs e)
     {
         if (((FrameworkElement)sender).Tag is not ChatMessageViewModel message)

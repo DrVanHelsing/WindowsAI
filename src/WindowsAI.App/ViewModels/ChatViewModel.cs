@@ -8,6 +8,7 @@ using WindowsAI.Core.Chat;
 using WindowsAI.Core.Context;
 using WindowsAI.Core.History;
 using WindowsAI.Core.Providers;
+using WindowsAI.Core.Tools;
 using WindowsAI_App.Agents;
 
 namespace WindowsAI_App.ViewModels;
@@ -28,6 +29,7 @@ public partial class ChatViewModel : ObservableObject
     private readonly IConversationStore _history;
     private readonly ILocalContextRetriever _localContext;
     private readonly ImageGenerationService _imageGen;
+    private readonly WebSearchService _webSearch;
     private readonly List<ChatMessage> _conversation = new();
 
     private StoredConversation _current = new();
@@ -103,7 +105,8 @@ public partial class ChatViewModel : ObservableObject
         ActiveModelService activeModel,
         IConversationStore history,
         ILocalContextRetriever localContext,
-        ImageGenerationService imageGen)
+        ImageGenerationService imageGen,
+        WebSearchService webSearch)
     {
         _orchestrator = orchestrator;
         _catalog = catalog;
@@ -111,6 +114,7 @@ public partial class ChatViewModel : ObservableObject
         _history = history;
         _localContext = localContext;
         _imageGen = imageGen;
+        _webSearch = webSearch;
         _conversation.Add(new ChatMessage(ChatRole.System, SystemPrompt));
 
         // Stay in sync when the active model is changed on any other surface.
@@ -265,26 +269,42 @@ public partial class ChatViewModel : ObservableObject
             if (attachmentContext is not null)
                 _conversation.Add(attachmentContext);
 
-            // Local-first RAG, agentic: when "Search my PC" is on the model is given tools to
-            // search the index and open found files, and decides when to use them. The tool
-            // delegates drive IsSearchingFiles + the reply's source chips. Tools are built per
-            // send so the right view-model instance (shell vs overlay) is updated.
-            IReadOnlyList<AITool>? tools = null;
+            // Agentic tools, built per send so the right view-model instance (shell vs overlay) is
+            // updated: keyless utilities (date/time) always; search_web when configured; local-RAG
+            // (search_my_pc/open_path) when "Search my PC" is on. Each tool surfaces a step line via
+            // onActivity, and the local ones additionally drive IsSearchingFiles + source chips.
+            var dispatcher = DispatcherQueue.GetForCurrentThread();
+            void OnActivity(ToolActivity a) => reply.AddActivity(new ToolActivityViewModel(a));
+
+            var toolSet = new List<AITool>(AgentToolFactory.CreateUtilityTools(dispatcher, OnActivity));
+
+            var hints = new List<string>();
+            if (_webSearch.IsConfigured)
+            {
+                toolSet.AddRange(AgentToolFactory.CreateWebTools(_webSearch, dispatcher, OnActivity));
+                hints.Add("When the user asks about current events or facts that may have changed, call search_web and cite sources.");
+            }
+
             if (UseLocalContext)
             {
-                var dispatcher = DispatcherQueue.GetForCurrentThread();
-                tools = AgentToolFactory.CreateLocalTools(
+                toolSet.AddRange(AgentToolFactory.CreateLocalTools(
                     _localContext,
                     dispatcher,
                     searching => IsSearchingFiles = searching,
-                    docs => AppendSources(reply, docs));
+                    docs => AppendSources(reply, docs),
+                    OnActivity));
+                hints.Add("When the user asks about their own files or local content, call search_my_pc first. " +
+                          "Open a file with open_path only when the user asks you to open something, and cite file names you used.");
+            }
 
+            IReadOnlyList<AITool>? tools = toolSet;
+
+            if (hints.Count > 0)
+            {
                 // Transient guidance so even small models reach for the tools. Removed after
                 // the exchange so it never bloats later turns or the saved transcript.
                 toolHint = new ChatMessage(ChatRole.System,
-                    "You can call tools to access this PC. When the user asks about their own files " +
-                    "or local content, call search_my_pc first. Open a file with open_path only when " +
-                    "the user asks you to open something, and cite file names you used.");
+                    "You can call tools to help answer. " + string.Join(" ", hints));
                 _conversation.Add(toolHint);
             }
 

@@ -58,6 +58,17 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial string GoogleLocation { get; set; }
 
+    /// <summary>Google Programmable Search engine id (cx) for the search_web tool.</summary>
+    [ObservableProperty]
+    public partial string WebSearchEngineId { get; set; }
+
+    [ObservableProperty]
+    public partial string WebSearchStatus { get; set; } = string.Empty;
+
+    /// <summary>True once both a search engine id and an API key are present.</summary>
+    [ObservableProperty]
+    public partial bool WebSearchConfigured { get; set; }
+
     [ObservableProperty]
     public partial string GoogleStatus { get; set; } = string.Empty;
 
@@ -78,6 +89,7 @@ public partial class SettingsViewModel : ObservableObject
         GoogleClientId = _settings.Current.GoogleCloud.ClientId;
         GoogleProjectId = _settings.Current.GoogleCloud.ProjectId;
         GoogleLocation = _settings.Current.GoogleCloud.Location;
+        WebSearchEngineId = _settings.Current.WebSearch.SearchEngineId;
 
         _initializing = true;
         ThemeIndex = (int)_settings.Current.Appearance.Theme;
@@ -144,6 +156,29 @@ public partial class SettingsViewModel : ObservableObject
         RefreshStatuses();
     }
 
+    // ── Web search (Google Programmable Search) ──────────────────────────────
+
+    public async Task SaveWebSearchEngineIdAsync(string engineId)
+    {
+        WebSearchEngineId = engineId.Trim();
+        _settings.Current.WebSearch.SearchEngineId = WebSearchEngineId;
+        await _settings.SaveAsync();
+        RefreshStatuses();
+    }
+
+    public void SaveWebSearchKey(string key)
+    {
+        if (!string.IsNullOrWhiteSpace(key))
+            _secrets.Set(SecretKeys.GoogleSearchApiKey, key.Trim());
+        RefreshStatuses();
+    }
+
+    public void ClearWebSearchKey()
+    {
+        _secrets.Delete(SecretKeys.GoogleSearchApiKey);
+        RefreshStatuses();
+    }
+
     // ── Google sign-in (Vertex AI) ───────────────────────────────────────────
 
     public async Task SaveGoogleClientIdAsync(string clientId)
@@ -201,6 +236,13 @@ public partial class SettingsViewModel : ObservableObject
 
         GoogleConnected = _googleAuth.IsSignedIn;
         GoogleStatus = DescribeGoogle();
+
+        var searchKey = _secrets.Get(SecretKeys.GoogleSearchApiKey);
+        var hasEngine = !string.IsNullOrWhiteSpace(_settings.Current.WebSearch.SearchEngineId);
+        WebSearchConfigured = hasEngine && !string.IsNullOrWhiteSpace(searchKey);
+        WebSearchStatus = WebSearchConfigured
+            ? "Configured ✓"
+            : hasEngine ? "Add an API key" : "Not set";
     }
 
     /// <summary>Human-readable Google sign-in state for the Settings card.</summary>

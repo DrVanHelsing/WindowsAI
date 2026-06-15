@@ -6,6 +6,7 @@
     xmlns:vm="using:WindowsAI_App.ViewModels"
     xmlns:controls="using:WindowsAI_App.Controls"
     xmlns:ctx="using:WindowsAI.Core.Context"
+    xmlns:tools="using:WindowsAI.Core.Tools"
     Background="Transparent"
     NavigationCacheMode="Required">
 
@@ -244,6 +245,77 @@
                             HorizontalAlignment="Left"
                             Spacing="4"
                             Visibility="{x:Bind IsUser, Converter={StaticResource InvBoolToVisConverter}}">
+
+                            <!--  Surfaced agent steps (tool calls) — glyph + summary, web results as link chips  -->
+                            <ItemsControl
+                                Margin="16,2,0,2"
+                                ItemsSource="{x:Bind Activities}"
+                                Visibility="{x:Bind HasActivities, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ToolActivityViewModel">
+                                        <StackPanel Margin="0,0,0,4" Spacing="4">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon
+                                                    VerticalAlignment="Center"
+                                                    FontSize="13"
+                                                    Foreground="{StaticResource AccentTextBrush}"
+                                                    Glyph="{x:Bind Glyph}" />
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    FontSize="12"
+                                                    Foreground="{StaticResource TextTertiaryBrush}"
+                                                    Text="{x:Bind Summary}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+
+                                            <!--  Web result links — click a chip to open in the browser  -->
+                                            <GridView
+                                                IsItemClickEnabled="True"
+                                                ItemClick="Activity_LinkClick"
+                                                ItemsSource="{x:Bind Links}"
+                                                ScrollViewer.HorizontalScrollMode="Disabled"
+                                                ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                                ScrollViewer.VerticalScrollMode="Disabled"
+                                                SelectionMode="None"
+                                                Visibility="{x:Bind HasLinks, Converter={StaticResource BoolToVisConverter}}">
+                                                <GridView.Resources>
+                                                    <SolidColorBrush x:Key="GridViewItemBackgroundPointerOver" Color="Transparent" />
+                                                    <SolidColorBrush x:Key="GridViewItemBackgroundPressed" Color="Transparent" />
+                                                    <SolidColorBrush x:Key="GridViewItemBackgroundSelected" Color="Transparent" />
+                                                </GridView.Resources>
+                                                <GridView.ItemContainerStyle>
+                                                    <Style TargetType="GridViewItem">
+                                                        <Setter Property="Margin" Value="0,0,8,8" />
+                                                        <Setter Property="Padding" Value="0" />
+                                                        <Setter Property="MinWidth" Value="0" />
+                                                        <Setter Property="MinHeight" Value="0" />
+                                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                    </Style>
+                                                </GridView.ItemContainerStyle>
+                                                <GridView.ItemTemplate>
+                                                    <DataTemplate x:DataType="tools:WebResult">
+                                                        <Border Style="{StaticResource SourceChipStyle}" ToolTipService.ToolTip="{x:Bind Url}">
+                                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                <FontIcon
+                                                                    FontSize="13"
+                                                                    Foreground="{StaticResource AccentTextBrush}"
+                                                                    Glyph="&#xE71B;" />
+                                                                <TextBlock
+                                                                    MaxWidth="240"
+                                                                    VerticalAlignment="Center"
+                                                                    FontSize="12"
+                                                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                                                    Text="{x:Bind Title}"
+                                                                    TextTrimming="CharacterEllipsis" />
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </GridView.ItemTemplate>
+                                            </GridView>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
 
                             <Grid>
                                 <Rectangle

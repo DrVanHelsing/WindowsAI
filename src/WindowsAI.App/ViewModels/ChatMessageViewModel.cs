@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WindowsAI.Core.Context;
 
@@ -31,4 +32,16 @@ public partial class ChatMessageViewModel : ObservableObject
 
     partial void OnSourcesChanged(IReadOnlyList<LocalDocument>? value)
         => OnPropertyChanged(nameof(HasSources));
+
+    /// <summary>Agent steps surfaced for this reply (tool calls), shown as compact lines above the text.</summary>
+    public ObservableCollection<ToolActivityViewModel> Activities { get; } = new();
+
+    public bool HasActivities => Activities.Count > 0;
+
+    /// <summary>Appends a surfaced step and notifies the visibility flag.</summary>
+    public void AddActivity(ToolActivityViewModel activity)
+    {
+        Activities.Add(activity);
+        OnPropertyChanged(nameof(HasActivities));
+    }
 }

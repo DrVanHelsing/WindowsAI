@@ -191,6 +191,36 @@ public sealed partial class SettingsPage : Page
     private void RemoveGeminiKey_Click(object sender, RoutedEventArgs e)
         => ViewModel.ClearGeminiKey();
 
+    // ── Web search (Google Programmable Search) ──────────────────────────────
+
+    private async void ChangeWebSearchEngineId_Click(object sender, RoutedEventArgs e)
+    {
+        var id = await DialogService.PromptTextAsync(
+            XamlRoot,
+            "Search engine id",
+            "The id (cx) of your Programmable Search Engine from programmablesearchengine.google.com.",
+            initialText: ViewModel.WebSearchEngineId,
+            placeholder: "a1b2c3d4e5f6g7h8i");
+
+        if (id is not null)
+            await ViewModel.SaveWebSearchEngineIdAsync(id);
+    }
+
+    private async void ManageWebSearchKey_Click(object sender, RoutedEventArgs e)
+    {
+        var key = await DialogService.PromptPasswordAsync(
+            XamlRoot,
+            "Web search API key",
+            "Your Custom Search JSON API key from the Google Cloud console. Stored encrypted (DPAPI) on this PC only.",
+            placeholder: "AIza…");
+
+        if (key is not null)
+            ViewModel.SaveWebSearchKey(key);
+    }
+
+    private void RemoveWebSearchKey_Click(object sender, RoutedEventArgs e)
+        => ViewModel.ClearWebSearchKey();
+
     // ── Google sign-in (Vertex AI) ───────────────────────────────────────────
 
     private async void ChangeGoogleClientId_Click(object sender, RoutedEventArgs e)

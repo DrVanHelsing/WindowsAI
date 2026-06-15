@@ -412,6 +412,90 @@
                     </Grid>
                 </Border>
 
+                <!--  Section label  -->
+                <TextBlock
+                    Margin="2,8,0,2"
+                    FontSize="11"
+                    CharacterSpacing="60"
+                    Foreground="{StaticResource TextTertiaryBrush}"
+                    Text="TOOLS" />
+
+                <!--  Web search (Google Programmable Search)  -->
+                <Border Padding="18,14" Style="{StaticResource GlassCardStyle}">
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource SettingsIconTileStyle}">
+                            <FontIcon
+                                FontSize="16"
+                                Foreground="{StaticResource AccentTextBrush}"
+                                Glyph="&#xE721;" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Spacing="3">
+                            <TextBlock
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                Foreground="{StaticResource TextPrimaryBrush}"
+                                Text="Web search" />
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="{StaticResource TextTertiaryBrush}"
+                                Text="Lets the assistant search the web (Google Programmable Search). Create a search engine at programmablesearchengine.google.com and an API key in your Google Cloud project."
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                Margin="0,2,0,0"
+                                FontSize="12"
+                                Foreground="{StaticResource AccentTextBrush}"
+                                Text="{x:Bind ViewModel.WebSearchStatus, Mode=OneWay}" />
+
+                            <!--  Search engine id (cx)  -->
+                            <Grid Margin="0,10,0,0" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Spacing="2">
+                                    <TextBlock
+                                        FontSize="12"
+                                        Foreground="{StaticResource TextTertiaryBrush}"
+                                        Text="Search engine id (cx)" />
+                                    <TextBlock
+                                        FontFamily="{StaticResource MonoFontFamily}"
+                                        FontSize="12"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Text="{x:Bind ViewModel.WebSearchEngineId, Mode=OneWay}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="1"
+                                    VerticalAlignment="Bottom"
+                                    Click="ChangeWebSearchEngineId_Click"
+                                    Content="Change…" />
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                            <Button
+                                Click="ManageWebSearchKey_Click"
+                                Content="Manage…"
+                                Style="{StaticResource AccentButtonStyle}" />
+                            <Button
+                                Click="RemoveWebSearchKey_Click"
+                                Content="Remove"
+                                Visibility="{x:Bind ViewModel.WebSearchConfigured, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
                 <!-- About -->
                 <Border
                     Margin="0,6,0,0"
