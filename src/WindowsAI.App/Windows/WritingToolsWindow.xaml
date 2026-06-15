@@ -85,6 +85,7 @@
 
             <!-- ── Selected-text preview ── -->
             <Border
+                x:Name="PreviewBorder"
                 Grid.Row="1"
                 Padding="10,8"
                 Background="{StaticResource GlassFillSubtleBrush}"
@@ -113,6 +114,27 @@
                     </StackPanel.ChildrenTransitions>
                 </StackPanel>
             </ScrollViewer>
+
+            <!-- ── Notice state (no selection / capture failed / error) ── -->
+            <StackPanel
+                x:Name="NoticePanel"
+                Grid.Row="2"
+                VerticalAlignment="Center"
+                Spacing="12"
+                Visibility="Collapsed">
+                <FontIcon
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    Foreground="{StaticResource TextTertiaryBrush}"
+                    Glyph="&#xE7BA;" />
+                <TextBlock
+                    x:Name="NoticeText"
+                    HorizontalAlignment="Center"
+                    FontSize="13"
+                    Foreground="{StaticResource TextSecondaryBrush}"
+                    TextAlignment="Center"
+                    TextWrapping="Wrap" />
+            </StackPanel>
 
             <!-- ── Result state ── -->
             <Grid x:Name="ResultPanel" Grid.Row="2" Visibility="Collapsed">

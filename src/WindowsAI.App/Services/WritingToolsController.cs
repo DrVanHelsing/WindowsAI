@@ -56,17 +56,30 @@ public sealed class WritingToolsController
         try
         {
             if (!_selectionService.SendCopy())
-                return; // OS rejected the copy chord — nothing was read; clipboard is untouched.
+            {
+                // OS rejected the copy chord (often a higher-integrity foreground window).
+                ShowNotice("Couldn't send a copy command to the active window. Try running this app as administrator if the target app is elevated.");
+                return;
+            }
 
-            await Task.Delay(120); // let the focused app service the Ctrl+C
+            await Task.Delay(150); // let the focused app service the Ctrl+C
             var selection = await ClipboardHelper.TryGetTextAsync();
 
             if (string.IsNullOrWhiteSpace(selection))
-                return; // Nothing selected (or the app didn't surface it).
+            {
+                // Nothing was captured — usually no selection, or the app didn't surface one.
+                ShowNotice("Select some text first, then press the writing-tools hotkey (Ctrl+Shift+Space).");
+                return;
+            }
 
             _window ??= CreateWindow();
             _window.ShowFor(selection, target, original);
             handedOff = true; // the window now owns restoring `original` after its paste.
+        }
+        catch (Exception ex)
+        {
+            // Never let the flow fail silently — surface it in the popup so it's diagnosable.
+            ShowNotice($"Writing tools hit a problem: {ex.Message}");
         }
         finally
         {
@@ -74,6 +87,13 @@ public sealed class WritingToolsController
                 ClipboardHelper.SetText(original);
             _busy = false;
         }
+    }
+
+    /// <summary>Shows the popup with a short message instead of the action menu (no selection / failure).</summary>
+    private void ShowNotice(string message)
+    {
+        _window ??= CreateWindow();
+        _window.ShowNotice(message);
     }
 
     private WritingToolsWindow CreateWindow()

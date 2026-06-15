@@ -94,6 +94,27 @@ public sealed partial class WritingToolsWindow : Window
         ShowStoryboard.Begin();
     }
 
+    /// <summary>
+    /// Shows the popup with a short message in place of the action menu — used when there's no
+    /// selection to act on or the capture failed, so the hotkey gives visible feedback instead of
+    /// silently doing nothing.
+    /// </summary>
+    public void ShowNotice(string message)
+    {
+        _cts?.Cancel();
+        _selection = string.Empty;
+        _result = string.Empty;
+        SelectionPreview.Text = string.Empty;
+        NoticeText.Text = message;
+        ShowNoticeState();
+
+        PositionNearCursor();
+        RootHost.Opacity = 0;
+        _appWindow.Show();
+        WindowChrome.BringToForeground(Hwnd);
+        ShowStoryboard.Begin();
+    }
+
     private void Hide()
     {
         _cts?.Cancel();
@@ -104,14 +125,26 @@ public sealed partial class WritingToolsWindow : Window
 
     private void ShowActionsState()
     {
+        PreviewBorder.Visibility = Visibility.Visible;
         ActionsScroller.Visibility = Visibility.Visible;
         ResultPanel.Visibility = Visibility.Collapsed;
+        NoticePanel.Visibility = Visibility.Collapsed;
     }
 
     private void ShowResultState()
     {
+        PreviewBorder.Visibility = Visibility.Visible;
         ActionsScroller.Visibility = Visibility.Collapsed;
         ResultPanel.Visibility = Visibility.Visible;
+        NoticePanel.Visibility = Visibility.Collapsed;
+    }
+
+    private void ShowNoticeState()
+    {
+        PreviewBorder.Visibility = Visibility.Collapsed;
+        ActionsScroller.Visibility = Visibility.Collapsed;
+        ResultPanel.Visibility = Visibility.Collapsed;
+        NoticePanel.Visibility = Visibility.Visible;
     }
 
     // ── Action menu ───────────────────────────────────────────────────────
