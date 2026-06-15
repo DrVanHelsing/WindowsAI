@@ -17,10 +17,6 @@
         x:Name="RootHost"
         Background="{StaticResource OverlayScrimBrush}"
         IsTabStop="True">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
         <Grid.RenderTransform>
             <TranslateTransform x:Name="RootSlide" Y="-8" />
         </Grid.RenderTransform>
@@ -58,38 +54,14 @@
             </Style>
         </Grid.Resources>
 
-        <!-- Specular sheen over the whole card (non-interactive, so it never blocks the drag region) -->
+        <!-- Specular sheen over the whole card (non-interactive) -->
         <Rectangle
-            Grid.RowSpan="2"
             Fill="{StaticResource GlassSheenBrush}"
             IsHitTestVisible="False" />
 
-        <!--  ── Title bar (drag region; brand mark + name live here, not duplicated in the body) ──  -->
+        <!--  The name + logo live in the native window title bar (Title + SetIcon), not here.  -->
         <Grid
-            x:Name="AppTitleBar"
-            Grid.Row="0"
-            Height="40"
-            Padding="14,0,0,0">
-            <StackPanel
-                Orientation="Horizontal"
-                Spacing="8"
-                VerticalAlignment="Center">
-                <controls:SparkleIcon
-                    Width="18"
-                    Height="18"
-                    VerticalAlignment="Center" />
-                <TextBlock
-                    VerticalAlignment="Center"
-                    FontSize="13"
-                    FontWeight="SemiBold"
-                    Foreground="{StaticResource TextPrimaryBrush}"
-                    Text="Writing tools" />
-            </StackPanel>
-        </Grid>
-
-        <Grid
-            Grid.Row="1"
-            Margin="16,2,16,16"
+            Margin="16,14,16,16"
             RowSpacing="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />

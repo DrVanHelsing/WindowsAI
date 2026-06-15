@@ -67,12 +67,11 @@ public sealed partial class WritingToolsWindow : Window
 
         _appWindow.IsShownInSwitchers = true;
         SystemBackdrop = new MicaBackdrop();
-        Title = "Writing tools";
 
-        // Brand the native title bar: our sparkle + name live in the drag region (no body header),
-        // and the app icon shows in the taskbar / alt-tab.
-        ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
+        // Branding lives in the native window title bar — the app icon (logo) and the window title —
+        // not redrawn in the body. The content does not extend into the title bar, so there is a
+        // single name + logo, owned by the window chrome itself.
+        Title = "Writing tools";
         _appWindow.SetIcon("Assets/AppIcon.ico");
 
         // The close (X) button hides the window instead of destroying it, since the controller caches
