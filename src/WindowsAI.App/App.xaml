@@ -26,6 +26,16 @@
             <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/InterVariable.ttf#Inter Variable</FontFamily>
 
             <!--
+                Inter on every bare TextBlock app-wide (pages and the floating windows alike) —
+                Windows can't set FontFamily on their root Grid, so this implicit style is the
+                single mechanism that unifies the face. FontFamily-only; explicit text styles
+                (Brand*, PageTitle) already set Inter and win where applied.
+            -->
+            <Style TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+            </Style>
+
+            <!--
                 Brand typography — defined here (not in Palette.xaml) so BasedOn can resolve
                 against XamlControlsResources, which is only in scope in this merged context.
             -->
