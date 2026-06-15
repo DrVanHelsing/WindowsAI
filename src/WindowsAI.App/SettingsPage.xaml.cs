@@ -18,6 +18,7 @@ public sealed partial class SettingsPage : Page
     private static readonly (string Name, string? Hex)[] AccentPresets =
     [
         ("Windows default", null),
+        ("Electric Iris", "#6E7BFF"),
         ("Indigo", "#6366F1"),
         ("Blue", "#3B82F6"),
         ("Cyan", "#06B6D4"),

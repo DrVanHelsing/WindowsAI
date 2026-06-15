@@ -149,12 +149,14 @@
                 VerticalAlignment="Center">
                 <TextBlock
                     FontSize="16"
-                    Foreground="{StaticResource AccentTextBrush}"
+                    Foreground="{StaticResource GlowGradientBrush}"
                     Text="✦"
                     VerticalAlignment="Center" />
                 <TextBlock
+                    FontFamily="{StaticResource AppFontFamily}"
                     FontSize="14"
                     FontWeight="SemiBold"
+                    CharacterSpacing="-10"
                     Foreground="{StaticResource TextPrimaryBrush}"
                     Text="WindowsAI"
                     VerticalAlignment="Center" />
@@ -200,15 +202,18 @@
                     Margin="12,12,12,6"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Left"
-                    Background="{StaticResource GlassFillBrush}"
-                    BorderBrush="{StaticResource GlassStrokeSubtleBrush}"
+                    Background="{StaticResource GlassFillAccentBrush}"
+                    BorderBrush="{StaticResource AccentStrokeBrush}"
                     BorderThickness="1"
                     CornerRadius="{StaticResource RadiusMedium}"
                     Foreground="{StaticResource TextPrimaryBrush}"
                     Padding="12,10"
                     Click="NewChatButton_Click">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon FontSize="13" Glyph="&#xE710;" />
+                        <FontIcon
+                            FontSize="13"
+                            Foreground="{StaticResource AccentTextBrush}"
+                            Glyph="&#xE710;" />
                         <TextBlock FontSize="13" Text="New chat" />
                     </StackPanel>
                 </Button>
@@ -270,6 +275,7 @@
                     Grid.Row="2"
                     Margin="18,0,18,16"
                     VerticalAlignment="Bottom"
+                    FontFamily="{StaticResource AppFontFamily}"
                     FontSize="11"
                     Foreground="{StaticResource TextGhostBrush}"
                     Text="WindowsAI · Preview" />

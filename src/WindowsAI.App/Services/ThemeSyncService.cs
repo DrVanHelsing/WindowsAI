@@ -155,11 +155,11 @@ public sealed class ThemeSyncService
 
     private void BuildRegistrations()
     {
-        // Text hierarchy: white-on-dark ⇄ black-on-light.
-        Solid("TextPrimaryBrush", "#F2FFFFFF", "#E6000000");
-        Solid("TextSecondaryBrush", "#9AFFFFFF", "#99000000");
-        Solid("TextTertiaryBrush", "#5CFFFFFF", "#66000000");
-        Solid("TextGhostBrush", "#33FFFFFF", "#33000000");
+        // Text hierarchy: white-on-dark ⇄ black-on-light. (Mirrors Tokens.xaml v3.)
+        Solid("TextPrimaryBrush", "#F4FFFFFF", "#E6000000");
+        Solid("TextSecondaryBrush", "#A6FFFFFF", "#99000000");
+        Solid("TextTertiaryBrush", "#6EFFFFFF", "#66000000");
+        Solid("TextGhostBrush", "#38FFFFFF", "#33000000");
 
         // Liquid-glass fills: white veils on dark ⇄ black veils on light.
         Solid("GlassFillSubtleBrush", "#0AFFFFFF", "#0A000000");
@@ -169,20 +169,20 @@ public sealed class ThemeSyncService
         Solid("GlassPressedBrush", "#29FFFFFF", "#1F000000");
 
         // Chat + chrome surfaces.
-        Solid("UserBubbleFillBrush", "#B32A2470", "#FFE6E2FF");
+        Solid("UserBubbleFillBrush", "#B32E2A78", "#FFE7E6FF");
         Solid("CodeFillBrush", "#66000000", "#0F000000");
         Solid("CodeHeaderFillBrush", "#1AFFFFFF", "#0F000000");
-        Solid("HairlineBrush", "#0FFFFFFF", "#14000000");
+        Solid("HairlineBrush", "#12FFFFFF", "#14000000");
         Solid("DialogSurfaceBrush", "#F21A1626", "#F7F6F5FB");
         Solid("OverlayScrimBrush", "#B30D0A1C", "#A6F4F3FA");
         Solid("SidebarFillBrush", "#590A0816", "#14000000");
 
         // Edge-lit strokes + specular sheen (gradient stops).
         Stops("GlassStrokeBrush",
-            darks: new[] { "#55FFFFFF", "#12FFFFFF", "#26FFFFFF" },
+            darks: new[] { "#5CFFFFFF", "#12FFFFFF", "#26FFFFFF" },
             lights: new[] { "#2E000000", "#0A000000", "#14000000" });
         Stops("GlassStrokeSubtleBrush",
-            darks: new[] { "#30FFFFFF", "#0CFFFFFF", "#16FFFFFF" },
+            darks: new[] { "#33FFFFFF", "#0CFFFFFF", "#16FFFFFF" },
             lights: new[] { "#1F000000", "#08000000", "#0E000000" });
         Stops("GlassSheenBrush",
             darks: new[] { "#14FFFFFF", "#05FFFFFF", "#00FFFFFF" },
@@ -195,6 +195,7 @@ public sealed class ThemeSyncService
         Accent("AccentFillMediumBrush", 0x38, 0x40);
         Accent("AccentStrokeBrush", 0x4D, 0x59);
         Accent("InlineCodeFillBrush", 0x2E, 0x24);
+        Accent("GlassFillAccentBrush", 0x1A, 0x16);
     }
 
     private void Solid(string key, string dark, string light)

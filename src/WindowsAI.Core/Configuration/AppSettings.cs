@@ -60,8 +60,10 @@ public sealed class AppearanceSettings
 
     /// <summary>
     /// Custom accent as <c>#RRGGBB</c>, or empty/null to follow the Windows accent color.
+    /// Defaults to the brand "Electric Iris" so the app ships with its own identity; the user
+    /// can switch to "Windows default" (null) or any preset from Settings.
     /// </summary>
-    public string? AccentColor { get; set; }
+    public string? AccentColor { get; set; } = "#6E7BFF";
 }
 
 /// <summary>Identifies a concrete model: which provider serves it and the model id to request.</summary>

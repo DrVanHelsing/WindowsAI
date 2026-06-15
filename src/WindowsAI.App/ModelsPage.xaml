@@ -8,6 +8,7 @@
     xmlns:local="using:WindowsAI_App"
     xmlns:providers="using:WindowsAI.Core.Providers"
     Background="Transparent"
+    FontFamily="{StaticResource AppFontFamily}"
     NavigationCacheMode="Required"
     mc:Ignorable="d">
 
