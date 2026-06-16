@@ -1,40 +1,250 @@
 namespace WindowsAI.Core.Configuration;
 
 /// <summary>
-/// Root application settings, persisted as JSON. Secrets (API keys) are NOT stored
+/// Root application settings, persisted as JSON. Secrets (API keys, OAuth tokens) are NOT stored
 /// here — they live in <see cref="WindowsAI.Core.Security.ISecretStore"/>.
+///
+/// <para>The schema is fully data-driven: instead of a fixed field per known backend, the user
+/// configures an arbitrary list of <see cref="ProviderConnection"/>s through the UI, and each app
+/// capability (chat, vision, writing, …) routes to a model on one of those connections. Older
+/// (schema v1) files are upgraded in place by <c>SettingsMigrator</c>; the legacy fields below are
+/// kept nullable purely so the migrator can read them.</para>
 /// </summary>
 public sealed class AppSettings
 {
-    /// <summary>The model the user has selected for new conversations (provider + model id).</summary>
-    public ModelSelection ActiveModel { get; set; } = new();
+    /// <summary>The newest schema this build writes. Bump when the shape changes incompatibly.</summary>
+    public const int CurrentSchemaVersion = 2;
 
-    public LocalModelSettings LocalModel { get; set; } = new();
+    /// <summary>
+    /// Persisted schema version. Defaults to <c>0</c> so a pre-migration file (which has no such
+    /// field) deserializes below <see cref="CurrentSchemaVersion"/> and triggers the migrator.
+    /// </summary>
+    public int SchemaVersion { get; set; }
 
-    public OpenRouterSettings OpenRouter { get; set; } = new();
+    /// <summary>User-configured chat backends. The single source of truth for "what can I talk to".</summary>
+    public List<ProviderConnection> Providers { get; set; } = new();
 
-    public GeminiSettings Gemini { get; set; } = new();
+    /// <summary>Which model each capability uses (chat, vision, writing, image, embeddings).</summary>
+    public CapabilityRouting Capabilities { get; set; } = new();
 
-    /// <summary>Google Cloud / Vertex AI access via Google sign-in (OAuth), as an alternative to a Gemini API key.</summary>
-    public GoogleCloudSettings GoogleCloud { get; set; } = new();
+    /// <summary>Per-feature enable flags and rebindable global hotkeys.</summary>
+    public FeatureSettings Features { get; set; } = new();
 
-    /// <summary>Theme + accent customization (defaults to following Windows).</summary>
+    /// <summary>Theme + accent customization (defaults to following Windows / the brand accent).</summary>
     public AppearanceSettings Appearance { get; set; } = new();
 
-    /// <summary>Web-search tool (Tavily) the agent can call during chat.</summary>
-    public WebSearchSettings WebSearch { get; set; } = new();
+    /// <summary>"Search my PC" scope (folders surfaced to the Windows Search index).</summary>
+    public LocalIndexSettings LocalIndex { get; set; } = new();
+
+    /// <summary>First-run wizard state.</summary>
+    public OnboardingState Onboarding { get; set; } = new();
+
+    // ── Legacy (schema v1) — read once by SettingsMigrator, then dropped. Nullable so a
+    //    migrated/fresh file omits them entirely. ──────────────────────────────────────────────
+
+    /// <summary>Legacy v1 active model (provider id + model id). Migrated to <see cref="CapabilityRouting.Chat"/>.</summary>
+    public ModelSelection? ActiveModel { get; set; }
+
+    public LocalModelSettings? LocalModel { get; set; }
+    public OpenRouterSettings? OpenRouter { get; set; }
+    public GeminiSettings? Gemini { get; set; }
+    public GoogleCloudSettings? GoogleCloud { get; set; }
+    public WebSearchSettings? WebSearch { get; set; }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+//  Providers (data-driven)
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+
+/// <summary>How a <see cref="ProviderConnection"/> is reached at runtime.</summary>
+public enum ProviderKind
+{
+    /// <summary>Any OpenAI chat-completions-compatible endpoint (OpenAI, OpenRouter, Gemini-compat, Groq, LM Studio, …).</summary>
+    OpenAiCompatible,
+
+    /// <summary>A local Ollama server (no key; live model list via <c>/api/tags</c>).</summary>
+    Ollama,
+
+    /// <summary>Gemini through Vertex AI's OpenAI-compatible endpoint, authenticated with a Google sign-in (OAuth).</summary>
+    GoogleVertex,
 }
 
 /// <summary>
-/// Configuration for the <c>search_web</c> agent tool, backed by Tavily's Search API. The API key
-/// is a secret (<see cref="WindowsAI.Core.Security.SecretKeys.TavilyApiKey"/>); nothing else is
-/// required. The user creates a key (free tier available) at tavily.com.
+/// A single user-configured chat backend. The key/secret is never stored here — it lives in the
+/// secret store under <see cref="WindowsAI.Core.Security.SecretKeys.ApiKeyFor"/>(<see cref="Id"/>).
 /// </summary>
-public sealed class WebSearchSettings
+public sealed class ProviderConnection
 {
-    /// <summary>When true (and a key is present), the agent is offered the <c>search_web</c> tool.</summary>
+    /// <summary>Stable identifier (slug for built-ins like "openrouter"; "custom-xxxxxxxx" for user-added).</summary>
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>Human-friendly name shown in the UI.</summary>
+    public string DisplayName { get; set; } = string.Empty;
+
+    public ProviderKind Kind { get; set; } = ProviderKind.OpenAiCompatible;
+
+    /// <summary>Base URL of the endpoint (OpenAI-compatible / Ollama). Unused for Vertex (computed from project+region).</summary>
+    public string BaseUrl { get; set; } = string.Empty;
+
+    /// <summary>When false the connection is hidden from pickers and never used.</summary>
     public bool Enabled { get; set; } = true;
+
+    /// <summary>True if this backend's models can accept image input (multimodal).</summary>
+    public bool SupportsVision { get; set; }
+
+    /// <summary>True if this backend can generate images (OpenRouter-style image modality).</summary>
+    public bool SupportsImageGeneration { get; set; }
+
+    /// <summary>Curated/discovered model ids offered in pickers (the live Ollama list is merged in at runtime).</summary>
+    public List<ProviderModel> Models { get; set; } = new();
+
+    /// <summary>Default model id for this connection (used when a capability doesn't pin one).</summary>
+    public string? DefaultModelId { get; set; }
+
+    // ── Vertex (GoogleVertex) only ──
+    public string? ProjectId { get; set; }
+    public string? Location { get; set; }
+    public string? OAuthClientId { get; set; }
+
+    // ── Ollama only ──
+    public string? KeepAlive { get; set; }
 }
+
+/// <summary>A selectable model on a provider connection.</summary>
+public sealed record ProviderModel(string Id, string? DisplayName = null);
+
+/// <summary>Identifies a concrete model: which provider connection serves it and the model id to request.</summary>
+public sealed class ModelSelection
+{
+    public string ProviderId { get; set; } = "ollama";
+
+    public string ModelId { get; set; } = "gemma4:e2b-it-qat";
+
+    public ModelSelection() { }
+
+    public ModelSelection(string providerId, string modelId)
+    {
+        ProviderId = providerId;
+        ModelId = modelId;
+    }
+
+    public bool IsEmpty => string.IsNullOrWhiteSpace(ProviderId) || string.IsNullOrWhiteSpace(ModelId);
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+//  Capability routing (per-feature model)
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+
+/// <summary>
+/// Which model each capability uses. <c>Chat</c> is the everyday model; the rest are optional
+/// overrides — when null the <c>CapabilityRouter</c> falls back (writing → chat; vision/image →
+/// first capable provider; embeddings → local/off).
+/// </summary>
+public sealed class CapabilityRouting
+{
+    public ModelSelection Chat { get; set; } = new();
+
+    public ModelSelection? VisualIntelligence { get; set; }
+
+    public ModelSelection? WritingTools { get; set; }
+
+    public ModelSelection? ImageGeneration { get; set; }
+
+    public ModelSelection? Embeddings { get; set; }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+//  Feature flags + hotkeys
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+
+/// <summary>Per-feature enable flags and the rebindable global hotkeys. Everything is user-configurable.</summary>
+public sealed class FeatureSettings
+{
+    /// <summary>Screen-region capture + ask (Alt+Shift+S). Gates the hotkey and the vision flow.</summary>
+    public bool VisualIntelligence { get; set; } = true;
+
+    /// <summary>Type-anywhere writing tools (Ctrl+Shift+Space). Gates the hotkey and the flyout.</summary>
+    public bool WritingTools { get; set; } = true;
+
+    /// <summary>Tavily-backed <c>search_web</c> tool offered to the agent during chat.</summary>
+    public bool WebSearch { get; set; } = true;
+
+    /// <summary>Text-to-image generation in chat.</summary>
+    public bool ImageGeneration { get; set; } = true;
+
+    /// <summary>"Search my PC" (<c>search_my_pc</c> / <c>open_path</c>) backed by the Windows Search index.</summary>
+    public bool PcIndexing { get; set; } = true;
+
+    /// <summary>Global hotkey that summons the overlay search surface.</summary>
+    public HotkeyChord SummonHotkey { get; set; } = HotkeyChord.AltSpace;
+
+    /// <summary>Global hotkey that opens the writing tools over the current selection.</summary>
+    public HotkeyChord WritingToolsHotkey { get; set; } = HotkeyChord.CtrlShiftSpace;
+
+    /// <summary>Global hotkey that starts a visual-intelligence region capture.</summary>
+    public HotkeyChord VisualIntelligenceHotkey { get; set; } = HotkeyChord.AltShiftS;
+}
+
+/// <summary>
+/// A serializable global-hotkey chord (Win32 RegisterHotKey modifier flags + virtual-key code).
+/// Lives in Core (platform-agnostic); the Services layer maps it to its native HotkeyDefinition.
+/// </summary>
+public sealed class HotkeyChord
+{
+    // Win32 RegisterHotKey modifier flags.
+    public const uint MOD_ALT = 0x0001;
+    public const uint MOD_CONTROL = 0x0002;
+    public const uint MOD_SHIFT = 0x0004;
+    public const uint MOD_WIN = 0x0008;
+
+    public uint Modifiers { get; set; }
+
+    public uint VirtualKey { get; set; }
+
+    public HotkeyChord() { }
+
+    public HotkeyChord(uint modifiers, uint virtualKey)
+    {
+        Modifiers = modifiers;
+        VirtualKey = virtualKey;
+    }
+
+    public static HotkeyChord AltSpace => new(MOD_ALT, 0x20 /* VK_SPACE */);
+    public static HotkeyChord CtrlShiftSpace => new(MOD_CONTROL | MOD_SHIFT, 0x20 /* VK_SPACE */);
+    public static HotkeyChord AltShiftS => new(MOD_ALT | MOD_SHIFT, 0x53 /* VK_S */);
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+//  Local index ("Search my PC")
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+
+/// <summary>
+/// Folders the user has added to the Windows Search index scope for "Search my PC". The app does
+/// not build its own index — it manages the OS index scope and reads its status.
+/// </summary>
+public sealed class LocalIndexSettings
+{
+    /// <summary>Folders the user explicitly added through the app (for display/management).</summary>
+    public List<string> Folders { get; set; } = new();
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+//  Onboarding
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+
+/// <summary>First-run wizard state, so onboarding shows exactly once (until reset from Settings).</summary>
+public sealed class OnboardingState
+{
+    /// <summary>True once the user has completed or skipped the wizard.</summary>
+    public bool HasCompleted { get; set; }
+
+    /// <summary>App version that completed onboarding (lets a future build re-show "what's new").</summary>
+    public string? Version { get; set; }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+//  Appearance (current)
+// ════════════════════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Which light/dark theme the app uses.</summary>
 public enum ThemeMode
@@ -46,104 +256,65 @@ public enum ThemeMode
 }
 
 /// <summary>
-/// Look-and-feel customization. By default everything follows Windows; the user can pin a
-/// light/dark theme and/or override the accent with a custom color from Settings.
+/// Look-and-feel customization. By default the theme follows Windows; the accent defaults to the
+/// brand "Electric Iris" (the user can switch to "Windows default" (null) or any custom color).
 /// </summary>
 public sealed class AppearanceSettings
 {
-    /// <summary>Light/dark mode. <see cref="ThemeMode.System"/> tracks the OS setting live.</summary>
     public ThemeMode Theme { get; set; } = ThemeMode.System;
 
-    /// <summary>
-    /// Custom accent as <c>#RRGGBB</c>, or empty/null to follow the Windows accent color.
-    /// Defaults to the brand "Electric Iris" so the app ships with its own identity; the user
-    /// can switch to "Windows default" (null) or any preset from Settings.
-    /// </summary>
+    /// <summary>Custom accent as <c>#RRGGBB</c>, or null to follow the Windows accent color.</summary>
     public string? AccentColor { get; set; } = "#6E7BFF";
 }
 
-/// <summary>Identifies a concrete model: which provider serves it and the model id to request.</summary>
-public sealed class ModelSelection
-{
-    public string ProviderId { get; set; } = "ollama";
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+//  Web search tool (current)
+// ════════════════════════════════════════════════════════════════════════════════════════════════
 
-    public string ModelId { get; set; } = "gemma4:e2b-it-qat";
+/// <summary>
+/// Configuration for the <c>search_web</c> agent tool, backed by Tavily's Search API. The API key
+/// is a secret (<see cref="WindowsAI.Core.Security.SecretKeys.TavilyApiKey"/>). The enable flag now
+/// lives on <see cref="FeatureSettings.WebSearch"/>; this legacy type is read by the migrator.
+/// </summary>
+public sealed class WebSearchSettings
+{
+    public bool Enabled { get; set; } = true;
 }
 
-/// <summary>Configuration for the local (Ollama) inference engine.</summary>
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+//  Legacy v1 provider settings — retained for migration only. New code uses ProviderConnection.
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+
+/// <summary>Legacy v1 local (Ollama) settings. Migrated into an Ollama <see cref="ProviderConnection"/>.</summary>
 public sealed class LocalModelSettings
 {
     public string Endpoint { get; set; } = "http://localhost:11434";
-
-    /// <summary>
-    /// Default local model tag. Gemma 4 2B / E2B (QAT, ~4.3 GB) — sized to fit on
-    /// 8–16 GB integrated-graphics laptops.
-    /// </summary>
     public string DefaultModelId { get; set; } = "gemma4:e2b-it-qat";
-
-    /// <summary>
-    /// Local embedding model used to re-rank "Search my PC" results by semantic relevance.
-    /// Optional — if it isn't pulled, retrieval silently falls back to keyword ranking.
-    /// </summary>
     public string EmbeddingModelId { get; set; } = "nomic-embed-text";
-
-    /// <summary>How long Ollama keeps the model resident after a request (keeps the overlay snappy).</summary>
     public string KeepAlive { get; set; } = "10m";
 }
 
-/// <summary>Configuration for OpenRouter (OpenAI-compatible cloud, opt-in).</summary>
+/// <summary>Legacy v1 OpenRouter settings. Migrated into an OpenAI-compatible <see cref="ProviderConnection"/>.</summary>
 public sealed class OpenRouterSettings
 {
     public string BaseUrl { get; set; } = "https://openrouter.ai/api/v1";
-
     public string DefaultModelId { get; set; } = "google/gemma-4-31b-it:free";
-
-    /// <summary>Model used for text-to-image generation (OpenRouter, image modality).</summary>
     public string ImageModelId { get; set; } = "google/gemini-2.5-flash-image-preview";
-
-    /// <summary>
-    /// Vision model used by the screen-capture "ask about this region" flow. Must be a multimodal
-    /// (image-input) model on OpenRouter; defaults to a free one so the feature works out of the
-    /// box once an OpenRouter key is added. Gemma 4 31B is a strong free all-rounder for screenshots
-    /// (text/UI/documents and general imagery); swap to nvidia/nemotron-nano-12b-v2-vl:free for
-    /// faster OCR/document-heavy use. User-configurable in Settings.
-    /// </summary>
     public string VisionModelId { get; set; } = "google/gemma-4-31b-it:free";
 }
 
-/// <summary>Configuration for Google Gemini via its OpenAI-compatible endpoint (opt-in).</summary>
+/// <summary>Legacy v1 Gemini settings. Migrated into an OpenAI-compatible <see cref="ProviderConnection"/>.</summary>
 public sealed class GeminiSettings
 {
     public string BaseUrl { get; set; } = "https://generativelanguage.googleapis.com/v1beta/openai";
-
     public string DefaultModelId { get; set; } = "gemini-3.5-flash";
 }
 
-/// <summary>
-/// Configuration for reaching Gemini through Vertex AI's OpenAI-compatible endpoint using a
-/// Google sign-in (OAuth) instead of an API key. The OAuth client id lives here (it isn't a
-/// secret for an installed/desktop app); the client secret and the refresh token are held in
-/// <see cref="WindowsAI.Core.Security.ISecretStore"/>. The user creates the OAuth "Desktop app"
-/// client in their own Google Cloud project and pastes the id + project here.
-/// </summary>
+/// <summary>Legacy v1 Google Cloud / Vertex settings. Migrated into a GoogleVertex <see cref="ProviderConnection"/>.</summary>
 public sealed class GoogleCloudSettings
 {
-    /// <summary>OAuth 2.0 client id (type "Desktop app") from the user's Google Cloud project.</summary>
     public string ClientId { get; set; } = string.Empty;
-
-    /// <summary>The Google Cloud project id that has the Vertex AI API enabled.</summary>
     public string ProjectId { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Vertex AI region serving the model. Defaults to <c>global</c> because the current Gemini
-    /// generation (3.x) is only served there — regional hosts like <c>us-central1</c> 404 on them.
-    /// </summary>
     public string Location { get; set; } = "global";
-
-    /// <summary>
-    /// Default model id for the Vertex OpenAI-compatible endpoint. Vertex expects the
-    /// publisher-qualified form, e.g. <c>google/gemini-3.5-flash</c> (the latest GA flash; verified
-    /// live via Model Garden 2026-06-15).
-    /// </summary>
     public string DefaultModelId { get; set; } = "google/gemini-3.5-flash";
 }

@@ -29,6 +29,12 @@ public interface IChatProvider
     /// </summary>
     bool SupportsVision => false;
 
+    /// <summary>True if this backend can generate images (OpenRouter-style image modality).</summary>
+    bool SupportsImageGeneration => false;
+
+    /// <summary>The connection's default model id (used when a capability doesn't pin one), or null.</summary>
+    string? DefaultModelId => null;
+
     /// <summary>
     /// Returns a chat client for the given model id, configured from current settings and secrets.
     /// Throws <see cref="ProviderNotConfiguredException"/> if a required key is missing.
