@@ -30,9 +30,19 @@ public sealed class OllamaEmbeddingClient : IEmbeddingClient
 
         try
         {
-            var local = _settings.Current.LocalModel;
-            var endpoint = local.Endpoint.TrimEnd('/');
-            var request = new EmbedRequest(local.EmbeddingModelId, inputs);
+            // Embeddings run on the Ollama connection bound to the Embeddings capability. If none is
+            // configured (or it isn't an Ollama connection), skip — retrieval falls back to keyword order.
+            var selection = _settings.Current.Capabilities.Embeddings;
+            if (selection is null || selection.IsEmpty)
+                return null;
+
+            var connection = _settings.Current.Providers
+                .FirstOrDefault(c => c.Id == selection.ProviderId && c.Kind == ProviderKind.Ollama);
+            if (connection is null || string.IsNullOrWhiteSpace(connection.BaseUrl))
+                return null;
+
+            var endpoint = connection.BaseUrl.TrimEnd('/');
+            var request = new EmbedRequest(selection.ModelId, inputs);
 
             using var response = await _http.PostAsJsonAsync(
                 $"{endpoint}/api/embed", request, cancellationToken);

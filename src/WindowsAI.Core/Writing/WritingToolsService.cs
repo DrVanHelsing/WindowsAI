@@ -1,5 +1,6 @@
 using System.Text;
 using WindowsAI.Core.Chat;
+using WindowsAI.Core.Providers;
 
 namespace WindowsAI.Core.Writing;
 
@@ -20,7 +21,7 @@ public sealed class WritingToolsService
         WritingAction action, string selection, CancellationToken ct = default)
     {
         var prompt = WritingPrompt.Build(action, selection);
-        return _orchestrator.StreamReplyAsync(prompt, tools: null, ct);
+        return _orchestrator.StreamReplyAsync(prompt, tools: null, capability: Capability.WritingTools, ct: ct);
     }
 
     /// <summary>
@@ -31,7 +32,7 @@ public sealed class WritingToolsService
         string request, string selection, CancellationToken ct = default)
     {
         var prompt = WritingPrompt.BuildAsk(request, selection);
-        return _orchestrator.StreamReplyAsync(prompt, tools: null, ct);
+        return _orchestrator.StreamReplyAsync(prompt, tools: null, capability: Capability.WritingTools, ct: ct);
     }
 
     /// <summary>

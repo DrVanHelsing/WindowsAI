@@ -1,52 +1,59 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
-using WindowsAI.Core.Configuration;
 using WindowsAI.Core.Providers;
 
 namespace WindowsAI.Core.Chat;
 
 /// <summary>
-/// Central entry point for chat. Resolves the active provider/model from settings and
-/// streams the reply token-by-token. When <paramref name="tools"/> are supplied it runs an
-/// agent tool-calling loop (model → tool → model …) via Microsoft.Extensions.AI's
-/// <c>FunctionInvokingChatClient</c>; without tools it is a plain streaming pass-through.
+/// Central entry point for chat. Resolves the model for a capability (chat by default) via the
+/// <see cref="CapabilityRouter"/> and streams the reply token-by-token. When <paramref name="tools"/>
+/// are supplied it runs an agent tool-calling loop (model → tool → model …) via
+/// Microsoft.Extensions.AI's <c>FunctionInvokingChatClient</c>; without tools it is a plain
+/// streaming pass-through.
 /// </summary>
 public sealed class ChatOrchestrator
 {
-    private readonly IReadOnlyList<IChatProvider> _providers;
-    private readonly ISettingsStore _settings;
+    private readonly CapabilityRouter _router;
 
-    public ChatOrchestrator(IEnumerable<IChatProvider> providers, ISettingsStore settings)
+    public ChatOrchestrator(CapabilityRouter router) => _router = router;
+
+    /// <summary>The provider serving the currently selected chat model, or null if none is configured.</summary>
+    public IChatProvider? ActiveProvider => _router.Resolve(Capability.Chat)?.Provider;
+
+    /// <summary>A short label for the active chat model, e.g. "gemma4:e2b-it-qat · Ollama (local)".</summary>
+    public string ActiveModelLabel
     {
-        _providers = providers.ToList();
-        _settings = settings;
+        get
+        {
+            var resolved = _router.Resolve(Capability.Chat);
+            return resolved is null
+                ? "No model configured"
+                : $"{resolved.ModelId} · {resolved.Provider.DisplayName}";
+        }
     }
 
-    /// <summary>The provider serving the currently selected model (falls back to the first registered).</summary>
-    public IChatProvider ActiveProvider =>
-        _providers.FirstOrDefault(p => p.Id == _settings.Current.ActiveModel.ProviderId)
-        ?? _providers[0];
-
-    /// <summary>A short label for the active model, e.g. "gemma4:e2b-it-qat · Ollama (local)".</summary>
-    public string ActiveModelLabel => $"{_settings.Current.ActiveModel.ModelId} · {ActiveProvider.DisplayName}";
-
     /// <summary>
-    /// Streams the assistant reply for the given conversation as text deltas. If
-    /// <paramref name="tools"/> are provided the model may call them; tool invocation and the
-    /// follow-up turns are handled internally and only assistant text is yielded.
+    /// Streams the assistant reply for the given conversation as text deltas, using the model bound
+    /// to <paramref name="capability"/>. If <paramref name="tools"/> are provided the model may call
+    /// them; tool invocation and follow-up turns are handled internally and only text is yielded.
     /// </summary>
     public async IAsyncEnumerable<string> StreamReplyAsync(
         IEnumerable<ChatMessage> conversation,
         IReadOnlyList<AITool>? tools = null,
+        Capability capability = Capability.Chat,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        var selection = _settings.Current.ActiveModel;
+        var resolved = _router.Resolve(capability)
+            ?? throw new ProviderNotConfiguredException(
+                "No model is configured. Add a provider in Settings → Models & providers.");
+
+        var modelId = resolved.ModelId;
 
         if (tools is not { Count: > 0 })
         {
             // No tools: plain streaming pass-through.
-            var plain = new ChatOptions { ModelId = selection.ModelId };
-            await foreach (var delta in StreamTextAsync(ActiveProvider.GetClient(selection.ModelId), conversation, plain, ct))
+            var plain = new ChatOptions { ModelId = modelId };
+            await foreach (var delta in StreamTextAsync(resolved.Provider.GetClient(modelId), conversation, plain, ct))
                 yield return delta;
             yield break;
         }
@@ -54,11 +61,11 @@ public sealed class ChatOrchestrator
         // Tool-calling loop. Some local models (e.g. Gemma via Ollama) reject requests that
         // carry tools; that rejection arrives before any text streams, so if the first token
         // throws we retry once without tools rather than failing the whole message.
-        var agentClient = ActiveProvider.GetClient(selection.ModelId)
+        var agentClient = resolved.Provider.GetClient(modelId)
             .AsBuilder()
             .UseFunctionInvocation()
             .Build();
-        var options = new ChatOptions { ModelId = selection.ModelId, Tools = tools.ToList() };
+        var options = new ChatOptions { ModelId = modelId, Tools = tools.ToList() };
 
         await using var enumerator = agentClient
             .GetStreamingResponseAsync(conversation, options, ct)
@@ -79,7 +86,6 @@ public sealed class ChatOrchestrator
             catch (Exception ex) when (!streamedAnyText && ex is not OperationCanceledException)
             {
                 // Model/provider doesn't support tools — break out and retry without them.
-                // (yield can't appear inside a catch, so the fallback runs after the loop.)
                 toolsRejected = true;
             }
 
@@ -97,8 +103,8 @@ public sealed class ChatOrchestrator
         }
 
         // Fallback: stream a plain (tool-free) reply for models that rejected the tools.
-        var fallbackOptions = new ChatOptions { ModelId = selection.ModelId };
-        await foreach (var d in StreamTextAsync(ActiveProvider.GetClient(selection.ModelId), conversation, fallbackOptions, ct))
+        var fallbackOptions = new ChatOptions { ModelId = modelId };
+        await foreach (var d in StreamTextAsync(resolved.Provider.GetClient(modelId), conversation, fallbackOptions, ct))
             yield return d;
     }
 

@@ -27,30 +27,39 @@ public sealed class ImageGenerationService
 
     private readonly ISettingsStore _settings;
     private readonly ISecretStore _secrets;
+    private readonly CapabilityRouter _router;
 
-    public ImageGenerationService(ISettingsStore settings, ISecretStore secrets)
+    public ImageGenerationService(ISettingsStore settings, ISecretStore secrets, CapabilityRouter router)
     {
         _settings = settings;
         _secrets = secrets;
+        _router = router;
     }
 
-    /// <summary>True once an OpenRouter API key is present.</summary>
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(_secrets.Get(SecretKeys.OpenRouterApiKey));
+    /// <summary>True when an image-capable provider is configured for the image-generation capability.</summary>
+    public bool IsConfigured =>
+        _settings.Current.Features.ImageGeneration && _router.Resolve(Capability.ImageGeneration) is not null;
 
     public async Task<ImageGenerationResult> GenerateAsync(string prompt, CancellationToken ct = default)
     {
-        var key = _secrets.Get(SecretKeys.OpenRouterApiKey);
-        if (string.IsNullOrWhiteSpace(key))
-            return ImageGenerationResult.Fail("Image generation uses OpenRouter — add an OpenRouter API key in Settings.");
+        var resolved = _router.Resolve(Capability.ImageGeneration);
+        if (resolved is null)
+            return ImageGenerationResult.Fail(
+                "Image generation needs an image-capable provider (e.g. OpenRouter). Add one in Settings and pick it under Image Generation.");
 
-        var options = _settings.Current.OpenRouter;
-        var url = options.BaseUrl.TrimEnd('/') + "/chat/completions";
+        var connection = _settings.Current.Providers.FirstOrDefault(c => c.Id == resolved.Provider.Id);
+        if (connection is null)
+            return ImageGenerationResult.Fail("The image-generation provider is no longer configured.");
+
+        var key = _secrets.Get(SecretKeys.ApiKeyFor(connection.Id));
+        var url = connection.BaseUrl.TrimEnd('/') + "/chat/completions";
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+        if (!string.IsNullOrWhiteSpace(key))
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
         request.Content = JsonContent.Create(new
         {
-            model = options.ImageModelId,
+            model = resolved.ModelId,
             messages = new[] { new { role = "user", content = prompt } },
             modalities = new[] { "image", "text" },
         });
@@ -60,7 +69,7 @@ public sealed class ImageGenerationService
             using var response = await s_http.SendAsync(request, ct);
             var json = await response.Content.ReadAsStringAsync(ct);
             if (!response.IsSuccessStatusCode)
-                return ImageGenerationResult.Fail($"OpenRouter image request failed ({(int)response.StatusCode}): {ExtractError(json)}");
+                return ImageGenerationResult.Fail($"{connection.DisplayName} image request failed ({(int)response.StatusCode}): {ExtractError(json)}");
 
             return await ParseAsync(json, ct);
         }

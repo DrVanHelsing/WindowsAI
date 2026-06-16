@@ -30,7 +30,7 @@ public sealed class WebSearchService
 
     /// <summary>True when the feature is enabled and a Tavily API key is present.</summary>
     public bool IsConfigured
-        => _settings.Current.WebSearch.Enabled
+        => _settings.Current.Features.WebSearch
            && !string.IsNullOrWhiteSpace(_secrets.Get(SecretKeys.TavilyApiKey));
 
     /// <summary>

@@ -31,17 +31,29 @@ public sealed class JsonSettingsStore : ISettingsStore
     {
         try
         {
-            if (!File.Exists(_path))
-                return;
-
-            await using var fs = File.OpenRead(_path);
-            var loaded = await JsonSerializer.DeserializeAsync<AppSettings>(fs, s_json, ct);
-            if (loaded is not null)
-                Current = loaded;
+            if (File.Exists(_path))
+            {
+                await using var fs = File.OpenRead(_path);
+                var loaded = await JsonSerializer.DeserializeAsync<AppSettings>(fs, s_json, ct);
+                if (loaded is not null)
+                    Current = loaded;
+            }
         }
         catch
         {
             // Unreadable settings should never block startup — keep defaults.
+        }
+
+        // Upgrade an older (or fresh) schema to the current data-driven shape, then persist so
+        // the migration only runs once. Failure-silent: a save error must not block startup.
+        try
+        {
+            if (SettingsMigrator.Migrate(Current))
+                await SaveAsync(ct);
+        }
+        catch
+        {
+            // Ignore — the in-memory Current is still upgraded for this session.
         }
     }
 

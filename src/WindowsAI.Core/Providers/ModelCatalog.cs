@@ -1,96 +1,63 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using WindowsAI.Core.Configuration;
 
 namespace WindowsAI.Core.Providers;
 
 /// <summary>
-/// Builds the model picker list: locally installed Ollama models (queried live from
-/// <c>/api/tags</c>) plus a curated set of cloud models. Cloud entries always appear so
-/// users can select one and then add the key in Settings.
+/// Builds the model picker list from the user's configured provider connections: locally installed
+/// Ollama models (queried live) plus each connection's curated model list. Fully data-driven — no
+/// hardcoded providers or model ids; the curated lists are populated by "Fetch models" in the UI.
 /// </summary>
 public sealed class ModelCatalog : IModelCatalog
 {
-    private static readonly HttpClient s_http = new() { Timeout = TimeSpan.FromSeconds(5) };
-
     private readonly ISettingsStore _settings;
+    private readonly ProviderProbe _probe;
 
-    public ModelCatalog(ISettingsStore settings) => _settings = settings;
+    public ModelCatalog(ISettingsStore settings, ProviderProbe probe)
+    {
+        _settings = settings;
+        _probe = probe;
+    }
 
     public async Task<IReadOnlyList<ModelOption>> GetModelsAsync(CancellationToken ct = default)
     {
         var models = new List<ModelOption>();
-        models.AddRange(await GetLocalModelsAsync(ct));
-        models.AddRange(GetCloudModels());
+
+        foreach (var connection in _settings.Current.Providers)
+        {
+            if (!connection.Enabled)
+                continue;
+
+            var isLocal = IsLocal(connection);
+
+            if (connection.Kind == ProviderKind.Ollama)
+            {
+                // Live tags are the source of truth for a local Ollama server; fall back to the
+                // curated list if it's unreachable so the default model still appears.
+                IReadOnlyList<ProviderModel> live;
+                try { live = await _probe.ListModelsAsync(connection, ct); }
+                catch { live = connection.Models; }
+
+                foreach (var m in live.Where(m => !IsEmbeddingModel(m.Id)))
+                    models.Add(new ModelOption(connection.Id, m.Id, $"{m.Id} (local)", isLocal: true));
+            }
+            else
+            {
+                foreach (var m in connection.Models)
+                    models.Add(new ModelOption(
+                        connection.Id, m.Id, $"{m.DisplayName ?? m.Id} ({connection.DisplayName})", isLocal));
+            }
+        }
+
         return models;
     }
 
-    private async Task<IReadOnlyList<ModelOption>> GetLocalModelsAsync(CancellationToken ct)
-    {
-        var result = new List<ModelOption>();
-        try
-        {
-            var url = _settings.Current.LocalModel.Endpoint.TrimEnd('/') + "/api/tags";
-            var tags = await s_http.GetFromJsonSafeAsync<OllamaTagsResponse>(url, ct);
-            if (tags?.Models is not null)
-            {
-                foreach (var m in tags.Models.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase))
-                {
-                    // Embedding models (e.g. nomic-embed-text) are pulled for local RAG
-                    // re-ranking, not chat — keep them out of the model picker.
-                    if (IsEmbeddingModel(m.Name))
-                        continue;
-                    result.Add(new ModelOption("ollama", m.Name, $"{m.Name} (local)", isLocal: true));
-                }
-            }
-        }
-        catch
-        {
-            // Ollama not running / unreachable — just show no local models.
-        }
-
-        return result;
-    }
+    /// <summary>Local = an Ollama connection or a loopback OpenAI-compatible server (LM Studio, llama.cpp).</summary>
+    private static bool IsLocal(ProviderConnection c) =>
+        c.Kind == ProviderKind.Ollama
+        || (Uri.TryCreate(c.BaseUrl, UriKind.Absolute, out var u)
+            && (u.IsLoopback || u.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)));
 
     /// <summary>True for models that produce embeddings rather than chat completions.</summary>
-    private bool IsEmbeddingModel(string name) =>
-        name.Contains("embed", StringComparison.OrdinalIgnoreCase) ||
-        name.StartsWith(_settings.Current.LocalModel.EmbeddingModelId, StringComparison.OrdinalIgnoreCase);
-
-    private IReadOnlyList<ModelOption> GetCloudModels()
-    {
-        var s = _settings.Current;
-        return
-        [
-            new ModelOption("openrouter", s.OpenRouter.DefaultModelId, $"{s.OpenRouter.DefaultModelId} (OpenRouter)", isLocal: false),
-            new ModelOption("openrouter", "deepseek/deepseek-r1:free", "deepseek-r1:free (OpenRouter)", isLocal: false),
-            new ModelOption("gemini", s.Gemini.DefaultModelId, $"{s.Gemini.DefaultModelId} (Gemini)", isLocal: false),
-            new ModelOption("gemini", "gemini-3.1-pro-preview", "gemini-3.1-pro-preview (Gemini)", isLocal: false),
-            new ModelOption("vertex", s.GoogleCloud.DefaultModelId, $"{s.GoogleCloud.DefaultModelId} (Google sign-in)", isLocal: false),
-            new ModelOption("vertex", "google/gemini-3.1-pro-preview", "google/gemini-3.1-pro-preview (Google sign-in)", isLocal: false),
-        ];
-    }
-
-    private sealed class OllamaTagsResponse
-    {
-        [JsonPropertyName("models")]
-        public List<OllamaTag>? Models { get; set; }
-    }
-
-    private sealed class OllamaTag
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
-    }
-}
-
-file static class HttpClientJsonExtensions
-{
-    public static async Task<T?> GetFromJsonSafeAsync<T>(this HttpClient http, string url, CancellationToken ct)
-    {
-        using var response = await http.GetAsync(url, ct);
-        response.EnsureSuccessStatusCode();
-        await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<T>(stream, cancellationToken: ct);
-    }
+    private static bool IsEmbeddingModel(string name) =>
+        name.Contains("embed", StringComparison.OrdinalIgnoreCase);
 }

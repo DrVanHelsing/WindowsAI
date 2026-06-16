@@ -17,16 +17,13 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<ISettingsStore, JsonSettingsStore>();
         services.AddSingleton<IConversationStore, JsonConversationStore>();
 
-        // Chat providers — resolved as a collection by the orchestrator.
-        // Cloud providers depend on ISecretStore, which the host registers.
-        services.AddSingleton<IChatProvider, OllamaChatProvider>();
-        services.AddSingleton<IChatProvider, OpenRouterChatProvider>();
-        services.AddSingleton<IChatProvider, GeminiChatProvider>();
-
-        // Gemini via Vertex AI authenticated with a Google sign-in (OAuth), as an alternative
-        // to a pasted Gemini API key. Depends on ISecretStore from the host.
+        // Data-driven providers: the registry builds one IChatProvider per user-configured
+        // connection (OpenAI-compatible / Ollama / Vertex). GoogleOAuthService backs Vertex
+        // sign-in; both depend on ISecretStore, which the host registers.
         services.AddSingleton<GoogleOAuthService>();
-        services.AddSingleton<IChatProvider, VertexChatProvider>();
+        services.AddSingleton<IProviderRegistry, ProviderRegistry>();
+        services.AddSingleton<ProviderProbe>();
+        services.AddSingleton<CapabilityRouter>();
 
         services.AddSingleton<IModelCatalog, ModelCatalog>();
         services.AddSingleton<ActiveModelService>();

@@ -16,8 +16,8 @@ public sealed class ActiveModelService
 
     public ActiveModelService(ISettingsStore settings) => _settings = settings;
 
-    /// <summary>The currently selected provider + model id.</summary>
-    public ModelSelection Current => _settings.Current.ActiveModel;
+    /// <summary>The currently selected provider + model id (the Chat capability).</summary>
+    public ModelSelection Current => _settings.Current.Capabilities.Chat;
 
     /// <summary>Sets and persists the active model, notifying listeners. No-op if unchanged.</summary>
     public async Task SetAsync(string providerId, string modelId, CancellationToken ct = default)
