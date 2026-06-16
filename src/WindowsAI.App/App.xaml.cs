@@ -105,6 +105,9 @@ public partial class App : Application
                 sp.GetRequiredService<WindowsAI.Services.Search.WindowsSearchRetriever>(),
                 sp.GetRequiredService<WindowsAI.Core.Context.IEmbeddingClient>()));
 
+        // PC Indexing: manage the Windows Search index scope (folders) + read its status.
+        services.AddSingleton<WindowsAI.Services.Search.WindowsSearchIndexService>();
+
         // Overlay launcher search: apps + file names + settings, fanned out per keystroke.
         services.AddSingleton<WindowsAI.Services.Search.AppCatalog>();
         services.AddSingleton<WindowsAI.Services.Search.FileNameSearch>();
@@ -115,6 +118,8 @@ public partial class App : Application
         // stay in sync across the overlay, the chat page, and the models page.
         services.AddSingleton<ChatViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<ProvidersViewModel>();
+        services.AddTransient<PcIndexingViewModel>();
         services.AddTransient<HistoryViewModel>();
 
         // Keeps every window in step with the Windows light/dark + accent settings, live.
@@ -178,24 +183,41 @@ public partial class App : Application
         // starts a visual-intelligence region capture. Registration can fail transiently (e.g. a
         // previous instance not fully exited still holds a chord), so retry instead of failing
         // silently forever.
+        // Hotkeys + the writing/visual controllers are gated by the user's feature flags and use
+        // the (rebindable) chords from settings rather than the static defaults.
+        var features = settingsStore.Current.Features;
         _hotkey = new HotkeyManager(_overlay.Hwnd);
-        _hotkey.Add(HotkeyDefinition.Default, () => _overlay?.ToggleOverlay());
+        _hotkey.Add(ToDefinition(features.SummonHotkey), () => _overlay?.ToggleOverlay());
 
-        _writingTools = new WritingToolsController(
-            Services.GetRequiredService<WindowsAI.Services.Writing.TextSelectionService>(),
-            Services.GetRequiredService<WindowsAI.Core.Writing.WritingToolsService>(),
-            _overlay.DispatcherQueue,
-            window => _themeSync?.RegisterWindow(window.ThemeRoot));
-        _hotkey.Add(HotkeyDefinition.WritingTools, () => _writingTools?.Trigger());
+        if (features.WritingTools)
+        {
+            _writingTools = new WritingToolsController(
+                Services.GetRequiredService<WindowsAI.Services.Writing.TextSelectionService>(),
+                Services.GetRequiredService<WindowsAI.Core.Writing.WritingToolsService>(),
+                _overlay.DispatcherQueue,
+                window => _themeSync?.RegisterWindow(window.ThemeRoot));
+            _hotkey.Add(ToDefinition(features.WritingToolsHotkey), () => _writingTools?.Trigger());
+        }
 
-        _visualIntelligence = new VisualIntelligenceController(
-            Services.GetRequiredService<WindowsAI.Services.Capture.ScreenCaptureService>(),
-            Services.GetRequiredService<WindowsAI.Core.Providers.VisionService>(),
-            _overlay.DispatcherQueue,
-            window => _themeSync?.RegisterWindow(window.ThemeRoot));
-        _hotkey.Add(HotkeyDefinition.VisualIntelligence, () => _visualIntelligence?.Trigger());
+        if (features.VisualIntelligence)
+        {
+            _visualIntelligence = new VisualIntelligenceController(
+                Services.GetRequiredService<WindowsAI.Services.Capture.ScreenCaptureService>(),
+                Services.GetRequiredService<WindowsAI.Core.Providers.VisionService>(),
+                _overlay.DispatcherQueue,
+                window => _themeSync?.RegisterWindow(window.ThemeRoot));
+            _hotkey.Add(ToDefinition(features.VisualIntelligenceHotkey), () => _visualIntelligence?.Trigger());
+        }
 
         _ = RegisterHotkeyWithRetryAsync();
+
+        // First run: show the setup wizard over the tray app. It persists its own completion flag.
+        if (!settingsStore.Current.Onboarding.HasCompleted)
+        {
+            var onboarding = new OnboardingWindow(ShowMainApp);
+            _themeSync?.RegisterWindow(onboarding.ThemeRoot);
+            onboarding.Activate();
+        }
 
         // Native tray icon + menu. Built on Win32 (not H.NotifyIcon's XAML flyout) so it has
         // no dependency on an activated window's XamlRoot — the overlay is never activated.
@@ -208,6 +230,10 @@ public partial class App : Application
         _tray.LeftClicked += () => _overlay?.ToggleOverlay();
         _tray.Show();
     }
+
+    /// <summary>Maps a serializable settings chord to the native hotkey definition.</summary>
+    private static HotkeyDefinition ToDefinition(WindowsAI.Core.Configuration.HotkeyChord chord)
+        => new(chord.Modifiers, chord.VirtualKey);
 
     /// <summary>Keeps retrying hotkey registration until the chord is free (or we give up).</summary>
     private async Task RegisterHotkeyWithRetryAsync()

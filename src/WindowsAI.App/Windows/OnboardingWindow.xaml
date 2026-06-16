@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="WindowsAI_App.Windows.OnboardingWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!--  Window XAML gotchas: no {StaticResource} on this ROOT element (silent compiler fail — set
+          Background/FontFamily in code-behind), no x:Bind, and events wired in code-behind.
+          {StaticResource} on child elements below is fine.  -->
+    <Grid x:Name="RootGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid x:Name="AppTitleBar" Height="40" Padding="14,0">
+            <StackPanel VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                <TextBlock FontSize="14" Foreground="{StaticResource GlowGradientBrush}" Text="&#x2726;" />
+                <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Text="WindowsAI setup" />
+            </StackPanel>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" Padding="40,12,40,12" VerticalScrollBarVisibility="Auto">
+            <Grid>
+                <!--  Step 0 — Welcome  -->
+                <StackPanel x:Name="StepWelcome" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="560" Spacing="16">
+                    <TextBlock HorizontalAlignment="Center" FontSize="40" Foreground="{StaticResource GlowGradientBrush}" Text="&#x2726;" />
+                    <TextBlock HorizontalAlignment="Center" FontSize="28" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="Welcome to WindowsAI" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontSize="15"
+                        Foreground="{StaticResource TextSecondaryBrush}"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap"
+                        Text="A private, on-device-first AI assistant. Press Alt + Space anywhere to summon it. Setup takes a minute, and you can change everything later in Settings." />
+                </StackPanel>
+
+                <!--  Step 1 — Connect AI  -->
+                <StackPanel x:Name="StepConnect" MaxWidth="600" Spacing="14" Visibility="Collapsed">
+                    <TextBlock FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="Connect your AI" />
+                    <TextBlock
+                        FontSize="14"
+                        Foreground="{StaticResource TextSecondaryBrush}"
+                        TextWrapping="Wrap"
+                        Text="Choose any provider: paste a cloud API key (OpenRouter, OpenAI, Gemini, Claude, Groq), sign in with Google, or run a local model with Ollama. Running locally is optional. You can add more later." />
+                    <Button HorizontalAlignment="Left" Click="AddProvider_Click" Content="+ Add a provider" Style="{StaticResource AccentButtonStyle}" />
+                    <ItemsControl x:Name="ConnectProviderList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,4" Padding="14,12" Style="{StaticResource GlassCardStyle}">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon Grid.Column="0" VerticalAlignment="Center" FontSize="16" Foreground="{StaticResource AccentTextBrush}" Glyph="{Binding Glyph}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="{Binding DisplayName}" />
+                                            <TextBlock FontSize="12" Foreground="{StaticResource TextTertiaryBrush}" Text="{Binding StatusText}" />
+                                        </StackPanel>
+                                        <Ellipse Grid.Column="2" Width="9" Height="9" VerticalAlignment="Center" Fill="{Binding StatusBrush}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="ConnectEmptyHint" FontSize="13" Foreground="{StaticResource TextTertiaryBrush}" Text="No providers yet — add one above, or skip and set it up later." />
+                </StackPanel>
+
+                <!--  Step 2 — Features  -->
+                <StackPanel x:Name="StepFeatures" MaxWidth="600" Spacing="12" Visibility="Collapsed">
+                    <TextBlock FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="Choose your features" />
+                    <TextBlock FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Text="Turn on what you want. Each can be changed anytime in Settings." />
+
+                    <Border Padding="16,12" Style="{StaticResource GlassCardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="Visual Intelligence" />
+                                <TextBlock FontSize="12" Foreground="{StaticResource TextTertiaryBrush}" Text="Capture a screen region and ask about it." />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="VisionToggle" Grid.Column="1" />
+                        </Grid>
+                    </Border>
+                    <Border Padding="16,12" Style="{StaticResource GlassCardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="Writing Tools" />
+                                <TextBlock FontSize="12" Foreground="{StaticResource TextTertiaryBrush}" Text="Proofread and rewrite selected text in any app." />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="WritingToggle" Grid.Column="1" />
+                        </Grid>
+                    </Border>
+                    <Border Padding="16,12" Style="{StaticResource GlassCardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="Web Search" />
+                                <TextBlock FontSize="12" Foreground="{StaticResource TextTertiaryBrush}" Text="Let the assistant search the web (Tavily key)." />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="WebSearchToggle" Grid.Column="1" />
+                        </Grid>
+                    </Border>
+                    <Border Padding="16,12" Style="{StaticResource GlassCardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="Image Generation" />
+                                <TextBlock FontSize="12" Foreground="{StaticResource TextTertiaryBrush}" Text="Create images from a prompt in chat." />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="ImageToggle" Grid.Column="1" />
+                        </Grid>
+                    </Border>
+                    <Border Padding="16,12" Style="{StaticResource GlassCardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="Search my PC (indexing)" />
+                                <TextBlock FontSize="12" Foreground="{StaticResource TextTertiaryBrush}" Text="Find your files via the Windows Search index." />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="PcToggle" Grid.Column="1" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!--  Step 3 — PC Indexing  -->
+                <StackPanel x:Name="StepIndex" MaxWidth="600" Spacing="14" Visibility="Collapsed">
+                    <TextBlock FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="Set up PC indexing" />
+                    <TextBlock FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Text="Add folders for the assistant to search. Windows keeps the index up to date in the background." />
+                    <StackPanel Spacing="4">
+                        <ProgressBar x:Name="IndexProgress" Maximum="100" />
+                        <TextBlock x:Name="IndexStatusText" FontSize="12" Foreground="{StaticResource TextTertiaryBrush}" />
+                    </StackPanel>
+                    <Button HorizontalAlignment="Left" Click="AddFolder_Click" Content="Add folder" Style="{StaticResource AccentButtonStyle}" />
+                    <ItemsControl x:Name="FoldersList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Margin="0,3" FontFamily="{StaticResource MonoFontFamily}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding}" TextTrimming="CharacterEllipsis" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!--  Step 4 — Personalize  -->
+                <StackPanel x:Name="StepPersonalize" MaxWidth="560" Spacing="16" Visibility="Collapsed">
+                    <TextBlock FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="Make it yours" />
+                    <StackPanel Spacing="8">
+                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="Theme" />
+                        <RadioButtons x:Name="ThemeRadios" MaxColumns="3">
+                            <RadioButton Content="Windows default" />
+                            <RadioButton Content="Light" />
+                            <RadioButton Content="Dark" />
+                        </RadioButtons>
+                    </StackPanel>
+                    <StackPanel Spacing="8">
+                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="Accent color" />
+                        <StackPanel x:Name="AccentSwatchPanel" Orientation="Horizontal" Spacing="10" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!--  Step 5 — Done  -->
+                <StackPanel x:Name="StepDone" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="560" Spacing="16" Visibility="Collapsed">
+                    <TextBlock HorizontalAlignment="Center" FontSize="40" Foreground="{StaticResource GlowGradientBrush}" Text="&#x2726;" />
+                    <TextBlock HorizontalAlignment="Center" FontSize="26" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="You're all set" />
+                    <TextBlock HorizontalAlignment="Center" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" TextAlignment="Center" TextWrapping="Wrap" Text="Press Alt + Space to summon WindowsAI anywhere. Writing tools: Ctrl + Shift + Space. Ask about your screen: Alt + Shift + S. Change anything in Settings." />
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+
+        <Grid Grid.Row="2" Padding="40,16,40,24" ColumnSpacing="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="BackButton" Grid.Column="0" Click="Back_Click" Content="Back" Visibility="Collapsed" />
+            <TextBlock x:Name="StepCounter" Grid.Column="1" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource TextTertiaryBrush}" />
+            <Button x:Name="SkipButton" Grid.Column="2" Click="Skip_Click" Content="Skip" />
+            <Button x:Name="NextButton" Grid.Column="3" Click="Next_Click" Content="Next" Style="{StaticResource AccentButtonStyle}" />
+        </Grid>
+    </Grid>
+</Window>

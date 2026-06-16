@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.AI;
 using Microsoft.UI.Dispatching;
 using WindowsAI.Core.Chat;
+using WindowsAI.Core.Configuration;
 using WindowsAI.Core.Context;
 using WindowsAI.Core.History;
 using WindowsAI.Core.Providers;
@@ -34,6 +35,7 @@ public partial class ChatViewModel : ObservableObject
     private readonly ILocalContextRetriever _localContext;
     private readonly ImageGenerationService _imageGen;
     private readonly WebSearchService _webSearch;
+    private readonly ISettingsStore _settings;
     private readonly List<ChatMessage> _conversation = new();
 
     private StoredConversation _current = new();
@@ -101,7 +103,7 @@ public partial class ChatViewModel : ObservableObject
 
     /// <summary>Badge glyph for the model's source: cloud, or a PC for on-device models.</summary>
     public string ModelGlyph =>
-        (SelectedModel?.IsLocal ?? _orchestrator.ActiveProvider.IsLocal) ? "" : "";
+        (SelectedModel?.IsLocal ?? _orchestrator.ActiveProvider?.IsLocal ?? false) ? "" : "";
 
     public ChatViewModel(
         ChatOrchestrator orchestrator,
@@ -110,7 +112,8 @@ public partial class ChatViewModel : ObservableObject
         IConversationStore history,
         ILocalContextRetriever localContext,
         ImageGenerationService imageGen,
-        WebSearchService webSearch)
+        WebSearchService webSearch,
+        ISettingsStore settings)
     {
         _orchestrator = orchestrator;
         _catalog = catalog;
@@ -119,6 +122,7 @@ public partial class ChatViewModel : ObservableObject
         _localContext = localContext;
         _imageGen = imageGen;
         _webSearch = webSearch;
+        _settings = settings;
         _conversation.Add(new ChatMessage(ChatRole.System, EffectiveSystemPrompt()));
 
         // Stay in sync when the active model is changed on any other surface.
@@ -146,10 +150,11 @@ public partial class ChatViewModel : ObservableObject
 
             if (PendingAttachment.IsImagePath(path))
             {
-                if (_orchestrator.ActiveProvider.SupportsVision)
+                var provider = _orchestrator.ActiveProvider;
+                if (provider?.SupportsVision == true)
                     PendingAttachments.Add(new PendingAttachment(path));
                 else
-                    notices.Add($"{Path.GetFileName(path)} skipped — {_orchestrator.ActiveProvider.DisplayName} can't read images; switch to a cloud model.");
+                    notices.Add($"{Path.GetFileName(path)} skipped — {provider?.DisplayName ?? "the current model"} can't read images; switch to a vision-capable model.");
             }
             else if (FileTextExtractor.CanExtract(path))
             {
@@ -252,12 +257,13 @@ public partial class ChatViewModel : ObservableObject
         }
         Messages.Add(userBubble);
 
-        var reply = new ChatMessageViewModel(_orchestrator.ActiveProvider.DisplayName, string.Empty, isUser: false);
+        var reply = new ChatMessageViewModel(_orchestrator.ActiveProvider?.DisplayName ?? "Assistant", string.Empty, isUser: false);
         Messages.Add(reply);
 
-        // Image generation is a distinct path: detected by intent, served by OpenRouter regardless
-        // of the selected chat model, and rendered as an inline image rather than a streamed reply.
-        if (attachments.Count == 0 && LooksLikeImageRequest(text))
+        // Image generation is a distinct path: detected by intent, served by the image-capable
+        // provider regardless of the selected chat model, and rendered as an inline image. Only
+        // taken when the feature is enabled and a provider is configured.
+        if (attachments.Count == 0 && _imageGen.IsConfigured && LooksLikeImageRequest(text))
         {
             await GenerateImageAsync(text, reply);
             return;
@@ -289,7 +295,7 @@ public partial class ChatViewModel : ObservableObject
                 hints.Add("When the user asks about current events or facts that may have changed, call search_web and cite sources.");
             }
 
-            if (UseLocalContext)
+            if (UseLocalContext && _settings.Current.Features.PcIndexing)
             {
                 toolSet.AddRange(AgentToolFactory.CreateLocalTools(
                     _localContext,
@@ -315,7 +321,7 @@ public partial class ChatViewModel : ObservableObject
             _conversation.Add(BuildUserMessage(text, attachments));
 
             var sb = new StringBuilder();
-            await foreach (var delta in _orchestrator.StreamReplyAsync(_conversation, tools, _cts.Token))
+            await foreach (var delta in _orchestrator.StreamReplyAsync(_conversation, tools, ct: _cts.Token))
             {
                 sb.Append(delta);
                 reply.Text = sb.ToString();
