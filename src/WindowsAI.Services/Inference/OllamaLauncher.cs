@@ -33,7 +33,10 @@ public static class OllamaLauncher
     /// </summary>
     public static async Task EnsureRunningAsync(ISettingsStore settings)
     {
-        var endpoint = settings.Current.LocalModel.Endpoint;
+        // Use the endpoint of the first enabled Ollama connection (falls back to the default).
+        var endpoint = settings.Current.Providers
+            .FirstOrDefault(p => p.Enabled && p.Kind == ProviderKind.Ollama)?.BaseUrl
+            ?? "http://localhost:11434";
         var probeUrl = endpoint.TrimEnd('/') + "/api/tags";
 
         if (await IsRespondingAsync(probeUrl))
