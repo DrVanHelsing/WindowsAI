@@ -46,8 +46,8 @@ The application owns a single `Microsoft.Extensions.DependencyInjection` contain
 startup in `App.ConfigureServices` and exposed as `App.Services`.
 
 - `AddWindowsAiCore()` (in `WindowsAI.Core`) registers the engine: settings and conversation stores,
-  the chat providers, the model catalog, the active-model service, the chat orchestrator, and the
-  writing, vision, image, and web-search services.
+  the **provider registry** + probe + **capability router**, the model catalog, the active-model
+  service, the chat orchestrator, and the writing, vision, image, and web-search services.
 - The app then layers in the Windows implementations the core declares as abstractions — most
   importantly `ISecretStore`, implemented by `DpapiSecretStore`, and `ILocalContextRetriever`,
   composed from the Windows Search retriever wrapped in the embedding re-ranker.
@@ -72,14 +72,15 @@ and the shell write to one shared conversation archive while keeping independent
 
 ## The chat pipeline
 
-All chat flows through `ChatOrchestrator` in the core. It resolves the active provider and model
-from settings and streams the reply token by token.
+All chat flows through `ChatOrchestrator` in the core. It resolves the model for a capability (chat
+by default) via `CapabilityRouter` and streams the reply token by token.
 
 ```
  ChatViewModel
      |  builds the message list (system + history + user, plus any RAG context)
      v
- ChatOrchestrator.StreamReplyAsync(messages, tools?)
+ ChatOrchestrator.StreamReplyAsync(messages, tools?, capability = Chat)
+     |  CapabilityRouter resolves provider + model id for the capability
      |
      +-- no tools --> active provider's IChatClient --> stream text deltas
      |
@@ -101,23 +102,66 @@ Two design points matter:
 
 ## The provider model
 
-Every backend implements `IChatProvider` (id, display name, an `IChatClient` factory, and a vision
-capability flag). Providers are registered as a collection and selected by id from settings.
+Providers are **data-driven**: instead of a fixed class per backend, the user configures an
+arbitrary list of `ProviderConnection`s through the UI, and the app builds a runtime `IChatProvider`
+for each. This is what lets WindowsAI talk to *any* provider — OpenAI, OpenRouter, Gemini, Anthropic,
+Groq, DeepSeek, Mistral, local LM Studio / Ollama, Azure, or a custom endpoint — with no code change.
 
-| Provider | Id | Backend |
+A `ProviderConnection` (persisted in settings) carries an id, display name, `ProviderKind`, base URL,
+enabled flag, capability hints (vision / image generation), a curated model list, and a default
+model. Three kinds cover everything:
+
+| `ProviderKind` | Runtime provider | Backend |
 | :--- | :--- | :--- |
-| `OllamaChatProvider` | `ollama` | Local Ollama server (default `http://localhost:11434`) |
-| `OpenRouterChatProvider` | `openrouter` | OpenRouter cloud, OpenAI-compatible |
-| `GeminiChatProvider` | `gemini` | Google Gemini via an AI Studio API key |
-| `VertexChatProvider` | `vertex` | Gemini via Vertex AI, authenticated with a Google sign-in (OAuth) |
+| `OpenAiCompatible` | `OpenAiConnectionProvider` | Any OpenAI chat-completions endpoint (OpenAI, OpenRouter, Gemini-compat, Anthropic, Groq, LM Studio, vLLM, …) |
+| `Ollama` | `OllamaConnectionProvider` | Local Ollama server; live model list via `/api/tags`; no key |
+| `GoogleVertex` | `VertexConnectionProvider` | Gemini via Vertex AI, authenticated with a Google sign-in (OAuth) |
 
-`OpenAiCompatibleChatProvider` is the shared base for the OpenAI-shaped backends. `ModelCatalog`
-discovers available models (local pulls plus the configured cloud catalogs), and `ActiveModelService`
-holds the current selection and broadcasts changes.
+The supporting pieces:
 
-Vision requests are special: `VisionService` always needs a multimodal backend even when the
-everyday chat model is local text-only. It prefers the active provider when multimodal, otherwise
-the first configured vision provider in priority order Gemini, then Vertex, then OpenRouter.
+- **`IProviderRegistry`** builds and caches one `IChatProvider` per *enabled* connection, exposing
+  `All` / `GetById` / `GetConfigured`. Editing the connection list and calling `Invalidate()` rebuilds
+  it — no DI re-registration.
+- **`ProviderPresets`** is a pure-data catalog (OpenAI, OpenRouter, Gemini, Anthropic, Groq, DeepSeek,
+  Mistral, Together, xAI, Azure, Ollama, LM Studio, Custom, Gemini-via-Google-sign-in) used only to
+  pre-fill the "Add provider" form and the onboarding gallery.
+- **`ProviderProbe`** lists models (`GET /models`, or Ollama `/api/tags`) and powers the dialog's
+  **Test connection** / **Fetch models** with clear ok / auth-failed / unreachable results.
+- **`ModelCatalog`** builds the picker list from the configured connections (live Ollama tags +
+  curated cloud models). **`ActiveModelService`** holds the current chat selection and broadcasts changes.
+- Secrets are keyed per connection (`SecretKeys.ApiKeyFor(id)`); the seeded built-ins reuse the
+  original v1 key names so a migrated user keeps their stored keys.
+
+### Schema migration
+
+`AppSettings` is versioned (`SchemaVersion`). On load, `SettingsMigrator` upgrades an older v1 file
+(fixed per-provider fields) in place: it seeds `ProviderConnection`s from the legacy fields — reusing
+the well-known ids `ollama`/`openrouter`/`gemini`/`vertex` so DPAPI keys survive — and maps the old
+scattered model ids onto the new capability routing. A fresh install is seeded with just a local
+Ollama connection; the onboarding wizard adds the rest.
+
+---
+
+## Feature routing and flags
+
+Each AI capability picks its **own** model from any configured provider, resolved by
+`CapabilityRouter` over `CapabilityRouting` in settings:
+
+| Capability | Default | Fallback when unset |
+| :--- | :--- | :--- |
+| Chat | the everyday model | first configured provider |
+| Visual Intelligence | explicit pick | first configured vision-capable provider |
+| Writing Tools | explicit pick | the chat model |
+| Image Generation | explicit pick | first configured image-capable provider |
+| Embeddings | explicit pick (local Ollama) | off (RAG falls back to keyword order) |
+
+This replaces the old hardcoded vision-priority list — `VisionService` and `ImageGenerationService`
+now resolve through the router, so they work with whatever the user configured.
+
+`FeatureSettings` carries an enable flag per feature (Visual Intelligence, Writing Tools, Web Search,
+Image Generation, PC Indexing) plus the **rebindable** global hotkey chords. Disabled features are
+not offered as tools and their hotkeys are not registered. Everything is set in the first-run wizard
+and editable later in Settings.
 
 ---
 
@@ -147,14 +191,15 @@ The retriever is composed in the app: `ILocalContextRetriever` is built from the
 
 When tools are enabled, the orchestrator runs the tool-calling loop and the app surfaces each call
 as a compact step line above the reply. Tools are built per send by `AgentToolFactory`, so the
-shell and overlay update independently.
+shell and overlay update independently. Each tool is offered only when its **feature flag** is on
+(and any key is configured).
 
-| Tool | Purpose | Notes |
+| Tool | Purpose | Gated by |
 | :--- | :--- | :--- |
-| `search_my_pc` | Runs the Windows Search RAG | Drives the "Searching your PC" indicator and source chips |
-| `open_path` | Opens a file or folder | Constrained to paths a prior `search_my_pc` actually surfaced this conversation |
+| `search_my_pc` | Runs the Windows Search RAG | PC Indexing feature + the composer's "Search my PC" toggle |
+| `open_path` | Opens a file or folder | Constrained to paths a prior `search_my_pc` surfaced this conversation |
 | `get_current_datetime` | Returns the local date and time | Always offered |
-| `search_web` | Tavily Search | Requires a configured API key; results render as link chips |
+| `search_web` | Tavily Search | Web Search feature + a configured Tavily key; results render as link chips |
 
 ---
 
@@ -162,8 +207,9 @@ shell and overlay update independently.
 
 `WindowsAI.Services` isolates everything that touches Win32 or Windows-only APIs:
 
-- **Hotkeys** — `HotkeyManager` multiplexes multiple global chords (`Alt+Space`,
-  `Ctrl+Shift+Space`, `Alt+Shift+S`) over one window subclass.
+- **Hotkeys** — `HotkeyManager` multiplexes multiple global chords over one window subclass; the
+  chords come from `FeatureSettings` (rebindable; defaults `Alt+Space`, `Ctrl+Shift+Space`,
+  `Alt+Shift+S`) and disabled features register no chord.
 - **Window chrome** — `WindowChrome` and `NativeMethods` handle borderless windows, drag, resize,
   and monitor placement.
 - **Capture** — `ScreenCaptureService` grabs the monitor under the cursor via GDI into a frozen
@@ -172,6 +218,10 @@ shell and overlay update independently.
 - **Secrets** — `DpapiSecretStore` encrypts keys and tokens per-user with Windows DPAPI.
 - **Search** — `WindowsSearchRetriever`, `AppCatalog`, `FileNameSearch`, and `SettingsCatalog`
   power both RAG and the overlay launcher.
+- **Index management** — `WindowsSearchIndexService` drives the Windows Search Manager COM API
+  (`CSearchManager` → SystemIndex catalog → crawl-scope manager) to add/remove folders from the
+  OS index scope and read its item counts for the PC Indexing progress UI. The app builds no index
+  of its own; it manages the OS scope and is failure-silent if Windows Search is off.
 
 ---
 
@@ -179,11 +229,16 @@ shell and overlay update independently.
 
 1. `App` constructor wires crash logging (three fatal-exception channels routed to
    `%TEMP%\WindowsAI-crash.log`) and builds the DI container.
-2. The app starts to the **tray** — no top-level window is shown.
-3. The always-alive overlay is created and the global hotkeys are registered.
-4. `ThemeSyncService` begins mirroring the Windows light/dark and accent settings into the live
+2. Settings load; `SettingsMigrator` upgrades/seeds the schema as needed.
+3. The app starts to the **tray** — no top-level window is shown.
+4. The always-alive overlay is created and the **enabled** features' global hotkeys are registered
+   from `FeatureSettings`.
+5. `ThemeSyncService` begins mirroring the Windows light/dark and accent settings into the live
    brush resources.
-5. `Alt+Space` toggles the overlay; the tray menu opens the full app or quits.
+6. **First run only:** if `Onboarding.HasCompleted` is false, the `OnboardingWindow` setup wizard is
+   shown (welcome → connect a provider → choose features → PC indexing → personalize → done). It
+   persists its own completion flag; everything it sets is editable later in Settings.
+7. `Alt+Space` (or the user's chord) toggles the overlay; the tray menu opens the full app or quits.
 
 > Fatal exceptions are deliberately **not** swallowed. An unhandled exception means unknown state,
 > and masking it risks corrupting user data, so the app logs the stack and fails fast. Before a
@@ -195,10 +250,26 @@ shell and overlay update independently.
 
 | Data | Location | Format and protection |
 | :--- | :--- | :--- |
-| Settings | `%LOCALAPPDATA%\WindowsAI\` | Plain JSON |
+| Settings | `%LOCALAPPDATA%\WindowsAI\settings.json` | Plain JSON, versioned (`SchemaVersion`); migrated in place on load |
 | Conversations | `%LOCALAPPDATA%\WindowsAI\conversations\` | One JSON file per conversation, auto-titled |
 | Secrets | `%LOCALAPPDATA%\WindowsAI\secrets\` | DPAPI-encrypted, per-user |
 | Crash log | `%TEMP%\WindowsAI-crash.log` | Appended plain text |
+
+---
+
+## Packaging and distribution
+
+Two paths share one codebase:
+
+- **MSIX (packaged)** — the default for `dotnet run` and Store-style distribution; the app runs with
+  package identity (`Package.appxmanifest`).
+- **Unpackaged installer** — `installer/build.ps1` runs `dotnet publish` with
+  `WindowsPackageType=None` + `WindowsAppSDKSelfContained=true` + `SelfContained=true`, producing a
+  folder that runs on a clean PC with no MSIX identity and no separately-installed .NET / WindowsApp
+  SDK runtime (self-containing the runtime + bootstrap auto-init avoids the historical bare-exe
+  `REGDB_E_CLASSNOTREG` crash). `installer/WindowsAI.iss` then compiles a classic Inno Setup `.exe`:
+  Program Files install, Start Menu / optional desktop shortcuts, opt-in run-at-startup, a WebView2
+  runtime check, and an uninstaller that **preserves** `%LOCALAPPDATA%\WindowsAI` user data.
 
 ---
 

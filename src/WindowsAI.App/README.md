@@ -32,18 +32,20 @@ from the tray menu.
 
 | Folder | Contents |
 | :--- | :--- |
-| `Windows/` | The floating surfaces: `OverlayWindow`, `WritingToolsWindow`, `RegionCaptureWindow`. |
-| `ViewModels/` | MVVM view models, led by the singleton `ChatViewModel`; plus settings, history, chat-message, and tool-activity models. |
+| `Windows/` | The floating surfaces: `OverlayWindow`, `WritingToolsWindow`, `RegionCaptureWindow`, and the first-run `OnboardingWindow` setup wizard. |
+| `ViewModels/` | MVVM view models, led by the singleton `ChatViewModel`; plus `SettingsViewModel` (feature-organized), `ProvidersViewModel` (the connection list), `PcIndexingViewModel`, history, chat-message, and tool-activity models. |
 | `Services/` | App-level controllers and sync: `ThemeSyncService`, `WritingToolsController`, `VisualIntelligenceController`. |
 | `Agents/` | `AgentToolFactory` (builds the tools per send) and `ToolActivity` (the surfaced step model). |
-| `Controls/` | Custom controls: `RichMessageView` and `MessageContentControl` (markdown rendering), `SparkleIcon`, `FileGlyphs`, and `DialogService`. |
+| `Controls/` | Custom controls: `RichMessageView` and `MessageContentControl` (markdown rendering), `SparkleIcon`, `FileGlyphs`, `DialogService`, and `ProviderEditDialog` (the add/edit-provider dialog with Test + Fetch models). |
 | `Helpers/` | `GlassBackdrop` and `TransparentBackdrop`, `ClipboardHelper`, `ShellIconProvider`. |
 | `Converters/` | XAML value converters. |
 | `Themes/` | `Tokens.xaml` and `Palette.xaml` — the Electric Iris design tokens. |
 | `Assets/` | App icons, the Inter typeface, and the vendored WebView2 assets for rich message rendering. |
 
 Top-level pages live in the project root: `MainWindow` (the shell), `MainPage` (Chat),
-`HistoryPage`, `ModelsPage`, and `SettingsPage`.
+`HistoryPage`, `ModelsPage` (the **Models & providers** hub — provider cards + Add/Edit/Test/Remove
+plus the model picker), and `SettingsPage` (organized **by feature**: Appearance, Chat, Visual
+Intelligence, Writing Tools, Web Search, Image Generation, PC Indexing, Privacy, About).
 
 ---
 
@@ -56,6 +58,8 @@ Top-level pages live in the project root: `MainWindow` (the shell), `MainPage` (
 | `WritingToolsWindow` | The `Ctrl+Shift+Space` writing-tools popup over a text selection. |
 | `RegionCaptureWindow` | The `Alt+Shift+S` screen-region capture and vision ask card. |
 | `ChatViewModel` | Singleton chat state: messages, streaming with cancel/retry, attachments, model selection, RAG toggle. |
+| `OnboardingWindow` | First-run setup wizard: connect a provider, choose features, set up PC indexing, personalize. Gated by `Onboarding.HasCompleted`. |
+| `ProvidersViewModel` / `ProviderEditDialog` | Manage the data-driven provider connections (add/edit/test/remove/enable, fetch models, Google sign-in). |
 | `ThemeSyncService` | Mirrors the Windows light/dark and accent into the live brush resources; the runtime source of truth for brush values. |
 | `WritingToolsController` / `VisualIntelligenceController` | Bridge the global hotkeys to their floating windows. |
 | `AgentToolFactory` | Builds the agent tools per send and routes each call to a surfaced step line. |
@@ -91,6 +95,11 @@ dotnet run --project WindowsAI.App.csproj
 - **Window XAML and converters.** The standalone-compiled window XAML rejects `x:Bind` converters;
   those windows drive content from code-behind or function binds instead. A converter in window
   XAML can fail the build with no visible error text.
+- **`{StaticResource}` on a Window's root element.** This *also* silently fails the markup compiler
+  (MSB3073, no error text). Set the root `Background`/`FontFamily` in code-behind instead
+  (`OnboardingWindow` does this). The same silent failure masks ordinary C# errors in a Window's
+  code-behind — when a Window build fails with no message, reduce the `.xaml` to minimal markup to
+  surface the real compiler error.
 - **Custom backdrops.** `OnDefaultSystemBackdropConfigurationChanged` is overridden as a no-op to
   avoid a theme-change crash with the custom backdrop.
 - **Round-button focus.** Round buttons set `UseSystemFocusVisuals="False"` and draw their own ring,

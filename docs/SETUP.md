@@ -19,20 +19,24 @@ wired assistant with local and cloud models, web search, and visual intelligence
 
 1. [Prerequisites](#1-prerequisites)
 2. [Build and run](#2-build-and-run)
-3. [First run](#3-first-run)
-4. [Configure models and providers](#4-configure-models-and-providers)
-   - [Local model (Ollama)](#41-local-model-ollama)
-   - [OpenRouter](#42-openrouter)
-   - [Gemini (API key)](#43-gemini-api-key)
+3. [First run — the setup wizard](#3-first-run--the-setup-wizard)
+4. [Add a provider](#4-add-a-provider)
+   - [The Add-provider dialog](#41-the-add-provider-dialog)
+   - [Cloud API key (OpenRouter, OpenAI, Gemini, …)](#42-cloud-api-key-openrouter-openai-gemini-)
+   - [Local model (Ollama / LM Studio)](#43-local-model-ollama--lm-studio)
    - [Gemini via Google sign-in (Vertex AI, OAuth)](#44-gemini-via-google-sign-in-vertex-ai-oauth)
-   - [Vision model](#45-vision-model)
-   - [Web search](#46-web-search)
-5. [Where your data lives](#5-where-your-data-lives)
-6. [Troubleshooting](#6-troubleshooting)
+5. [Configure features](#5-configure-features)
+   - [Per-feature models](#51-per-feature-models)
+   - [Web search](#52-web-search)
+   - [PC indexing](#53-pc-indexing)
+   - [Hotkeys](#54-hotkeys)
+6. [Build a distributable installer](#6-build-a-distributable-installer)
+7. [Where your data lives](#7-where-your-data-lives)
+8. [Troubleshooting](#8-troubleshooting)
 
-> **You do not need any of the cloud providers.** A local Ollama model alone powers chat,
-> retrieval, and writing tools with no network and no keys. Sections 4.2 onward are optional
-> upgrades — set up only the ones you want.
+> **A local model is optional, not required — and so is every cloud provider.** Pick whatever suits
+> you: a cloud API key, a Google sign-in, or a local Ollama model. You can add as many providers as
+> you like and change everything later.
 
 ---
 
@@ -78,77 +82,77 @@ dotnet run --project tools\WindowsAI.Smoke       # integrated smoke runner (need
 
 ---
 
-## 3. First run
+## 3. First run — the setup wizard
 
-1. The app launches to the **tray**. Find its icon in the system tray (the up-arrow overflow if
-   hidden).
-2. Press the global hotkeys from anywhere:
+The first launch opens a **setup wizard** (it appears once; reach the same settings anytime
+afterward). It walks through, and every step is skippable:
 
-   | Shortcut | Action |
-   | :--- | :--- |
-   | `Alt + Space` | Summon or dismiss the overlay |
-   | `Ctrl + Shift + Space` | Writing tools over the current text selection |
-   | `Alt + Shift + S` | Capture a screen region and ask about it |
-   | `Esc` | Dismiss the overlay or any floating surface |
+1. **Welcome.**
+2. **Connect your AI** — add a provider (cloud key, Google sign-in, or local Ollama). See [§4](#4-add-a-provider).
+3. **Choose your features** — toggle Visual Intelligence, Writing Tools, Web Search, Image
+   Generation, and PC Indexing.
+4. **PC indexing** — pick folders for "Search my PC" (only if you enabled it).
+5. **Personalize** — theme and accent.
+6. **Done** — a reminder of the global shortcuts.
 
-3. Open the full app from the tray menu and go to **Settings** to configure models. With no setup,
-   the app expects a local Ollama server (next section).
+After the wizard the app lives in the **tray**. Global shortcuts (all rebindable in Settings):
+
+| Shortcut | Action |
+| :--- | :--- |
+| `Alt + Space` | Summon or dismiss the overlay |
+| `Ctrl + Shift + Space` | Writing tools over the current text selection |
+| `Alt + Shift + S` | Capture a screen region and ask about it |
+| `Esc` | Dismiss the overlay or any floating surface |
 
 ---
 
-## 4. Configure models and providers
+## 4. Add a provider
 
-All configuration is in the app under **Settings → Models & providers** (and **Settings → Tools**
-for web search). API keys and OAuth tokens are encrypted with Windows DPAPI and never leave this PC.
-The active model is shared across the overlay, the chat page, and the models page.
+Providers are fully data-driven — add as many as you like through the UI, from a one-click preset or
+a custom endpoint. Everything lives on the **Models & providers** tab (in the app shell) or the
+wizard's Connect step. API keys and OAuth tokens are encrypted with Windows DPAPI and never leave
+this PC. After adding providers, pick your default chat model in the **Models** list (it is shared
+across the overlay, chat page, and models page).
 
-### 4.1 Local model (Ollama)
+### 4.1 The Add-provider dialog
 
-The default, fully offline path.
+1. On **Models & providers**, click **+ Add provider** (or **+ Add a provider** in the wizard).
+2. Pick a **preset** — OpenAI, OpenRouter, Google Gemini, Anthropic (Claude), Groq, DeepSeek,
+   Mistral, Together, xAI, Azure OpenAI, Ollama, LM Studio, Gemini via Google sign-in — or
+   **Custom (OpenAI-compatible)** for any other endpoint. The form pre-fills the base URL,
+   suggested models, and capability flags.
+3. Paste the **API key** (if the provider needs one), then click **Test connection** for an instant
+   ok / auth-failed / unreachable result, and **Fetch models** to pull the live model list.
+4. Set the **default model**, tick **vision** / **image generation** if the endpoint supports them,
+   and **Add**.
+5. Each provider card shows a status dot (connected / needs key / disabled), an enable toggle, and
+   **Edit / Test / Remove**.
 
-1. Install Ollama from [ollama.com/download](https://ollama.com/download).
-2. Pull a chat model and the embedding model used for local-file re-ranking:
+### 4.2 Cloud API key (OpenRouter, OpenAI, Gemini, …)
+
+Use a preset and paste the key from the provider's console — e.g. [openrouter.ai](https://openrouter.ai)
+(**Keys**), [OpenAI](https://platform.openai.com/api-keys), [Google AI Studio](https://aistudio.google.com/apikey),
+[Anthropic](https://console.anthropic.com/settings/keys), [Groq](https://console.groq.com/keys). The
+key is stored encrypted (DPAPI), local only; remove it anytime from the card.
+
+### 4.3 Local model (Ollama / LM Studio)
+
+A fully offline path — optional, and no key required.
+
+1. Install [Ollama](https://ollama.com/download) (or [LM Studio](https://lmstudio.ai)) and pull a model:
 
    ```powershell
    ollama pull gemma3            # any chat model works; pick to taste
    ollama pull nomic-embed-text  # enables semantic re-rank for "Search my PC"
    ```
 
-3. Confirm the server is running — Ollama normally runs as a background service at
-   `http://localhost:11434`. Test it:
-
-   ```powershell
-   ollama list
-   ```
-
-4. In **Settings → Models & providers → Local model (Ollama)**, the endpoint defaults to
-   `http://localhost:11434`. Use **Change…** only if your server runs elsewhere.
-5. Open **Models** (in the app shell) and select your pulled model. You are ready to chat offline.
+2. Confirm the server responds (`ollama list`; default `http://localhost:11434`).
+3. Add the **Ollama (local)** preset (or **LM Studio (local)**). The endpoint defaults to localhost;
+   live models are listed automatically. Local OpenAI-compatible servers need no key.
+4. Pick the model in **Models**. You are ready to chat offline.
 
 > If a model rejects tool-calling (some local models do), the app automatically falls back to a
 > plain reply — agent tools simply stay inactive for that model.
-
-### 4.2 OpenRouter
-
-A single key that reaches many cloud models (and the default vision backend).
-
-1. Create an account at [openrouter.ai](https://openrouter.ai) and generate an API key under
-   **Keys**.
-2. In **Settings → Models & providers → OpenRouter (cloud)**, click **Manage…** and paste the key.
-   The status dot turns to the accent color when configured.
-3. The key is stored encrypted (DPAPI) on this PC only. Use **Remove** to delete it.
-4. Select an OpenRouter model from the **Models** page to make it active.
-
-### 4.3 Gemini (API key)
-
-Google Gemini through a simple AI Studio key.
-
-1. Get a key from [Google AI Studio](https://aistudio.google.com/apikey).
-2. In **Settings → Models & providers → Gemini (cloud)**, click **Manage…** and paste the key.
-3. Stored encrypted (DPAPI), local only. Use **Remove** to delete it.
-4. Select a Gemini model from the **Models** page.
-
-> Prefer signing in with Google instead of pasting a key? Use the Vertex AI path in [4.4](#44-gemini-via-google-sign-in-vertex-ai-oauth).
 
 ### 4.4 Gemini via Google sign-in (Vertex AI, OAuth)
 
@@ -165,42 +169,87 @@ only a refresh token (DPAPI-encrypted).
 4. Create credentials → **OAuth client ID** → application type **Desktop app**. Copy the generated
    **client ID** and **client secret**.
 
-**In WindowsAI — Settings → Models & providers → Gemini via Google sign-in:**
+**In WindowsAI** — add the **Gemini via Google sign-in** preset (in the Add-provider dialog or the
+wizard) and fill in:
 
-5. **OAuth client id** → **Change…** → paste the client ID.
-6. **Client secret** → **Set…** → paste the secret (stored encrypted via DPAPI).
-7. **Google Cloud project id** → **Change…** → enter your project ID.
-8. **Vertex AI region** → **Change…** → set to **`global`**. The Gemini 3.x generation is only
-   served on `global`; regional endpoints such as `us-central1` return 404 for those models.
-9. Click **Sign in…** and complete the browser consent. The status updates when connected.
-10. Select a Vertex model on the **Models** page. Defaults are **`google/gemini-3.5-flash`** with
-    **`google/gemini-3.1-pro-preview`** also available.
+5. **OAuth client id** and **client secret** (the secret is stored encrypted via DPAPI).
+6. **Google Cloud project id**.
+7. **Vertex region** → **`global`**. The Gemini 3.x generation is only served on `global`; regional
+   endpoints such as `us-central1` return 404 for those models.
+8. Save, then click **Sign in** on the provider card and complete the browser consent. The status
+   dot turns connected.
+9. Pick a Vertex model in **Models** (defaults to `google/gemini-3.5-flash`).
 
-> Use **Sign out** to revoke the stored token at any time.
-
-### 4.5 Vision model
-
-Visual intelligence (`Alt + Shift + S`) always needs a multimodal model, even when your everyday
-chat model is local text-only. The app prefers the active provider when it is multimodal, otherwise
-the first configured vision provider in the order Gemini, then Vertex, then OpenRouter.
-
-To set the OpenRouter vision model explicitly: **Settings → Models & providers → OpenRouter →
-Vision model → Change…**. The default is a capable free multimodal all-rounder; switch to a faster
-OCR-focused model for document-heavy regions.
-
-### 4.6 Web search
-
-Lets the assistant search the web via [Tavily](https://tavily.com) (the agent `search_web` tool).
-
-1. Sign up at [tavily.com](https://tavily.com) and create an **API key** (the free tier is enough
-   for occasional agent use; keys start with `tvly-`).
-2. In **Settings → Tools → Web search** → **Manage…** → paste the API key (encrypted via DPAPI).
-3. Ask a cloud model something current; the `search_web` step and result link chips appear above the
-   reply when the tool is used.
+> Use **Remove** on the card (or sign out) to revoke the stored token at any time.
 
 ---
 
-## 5. Where your data lives
+## 5. Configure features
+
+Each feature has an on/off toggle and its own settings page. Onboarding sets initial choices;
+**Settings** is where you fine-tune.
+
+### 5.1 Per-feature models
+
+Route each capability to whichever configured model you prefer:
+
+| Settings page | What it sets |
+| :--- | :--- |
+| **Chat** | The default everyday model |
+| **Visual Intelligence** | A **vision-capable** model for `Alt + Shift + S` (defaults to "auto — first vision-capable provider") |
+| **Writing Tools** | The model for `Ctrl + Shift + Space` (defaults to the chat model) |
+| **Image Generation** | An **image-capable** model for in-chat image prompts |
+
+The pickers only list providers that advertise the matching capability, so you can mix (e.g. a local
+model for chat, a cloud vision model for screen captures).
+
+### 5.2 Web search
+
+Lets the assistant search the web via [Tavily](https://tavily.com) (the agent `search_web` tool).
+
+1. Enable **Web Search** in Settings.
+2. Create a free **API key** at [tavily.com](https://tavily.com) (keys start with `tvly-`).
+3. **Settings → Web Search → Manage…** → paste the key (encrypted via DPAPI).
+4. Ask a cloud model something current; the `search_web` step and result link chips appear above the reply.
+
+### 5.3 PC indexing
+
+"Search my PC" uses the **Windows Search index** — the app manages which folders are in scope rather
+than building its own index.
+
+1. Enable **PC Indexing** (Settings, or the wizard step).
+2. **Settings → PC Indexing → Add folder…** to add a folder to the Windows Search scope. The progress
+   bar and status reflect Windows' own indexer; **Windows options…** opens the OS Indexing Options.
+3. Semantic re-ranking is optional and uses the **Embeddings** model (a local Ollama
+   `nomic-embed-text`); without it, results fall back to keyword order.
+
+### 5.4 Hotkeys
+
+The summon, writing-tools, and visual-intelligence shortcuts are all **rebindable**: open the
+relevant Settings page, click **Change…**, and press a new combination (include a modifier). Hotkey
+changes apply on the next launch.
+
+---
+
+## 6. Build a distributable installer
+
+To ship WindowsAI to machines without the .NET SDK or the Store, build a self-contained, unpackaged
+`.exe` installer. This needs [Inno Setup 6](https://jrsoftware.org/isdl.php) on the build machine.
+
+```powershell
+pwsh installer\build.ps1            # win-x64 (default); use -Rid win-arm64 for ARM64
+```
+
+`build.ps1` runs `dotnet publish` with `WindowsPackageType=None` + self-contained WindowsAppSDK (so
+the app runs with no MSIX identity and no separately-installed runtime), then compiles
+`installer\WindowsAI.iss`. The finished installer is written to `installer\output\`. It installs to
+Program Files, adds Start Menu / optional desktop shortcuts, offers an opt-in "run at startup", and
+its uninstaller **preserves** your `%LOCALAPPDATA%\WindowsAI` data. If WebView2 is missing it points
+you to the free runtime. Code signing is recommended (to avoid SmartScreen) but optional.
+
+---
+
+## 7. Where your data lives
 
 Everything is local to your Windows profile. Nothing is sent to a server unless you actively use a
 cloud model or web search.
@@ -216,7 +265,7 @@ To reset the app completely, quit it from the tray and delete the `%LOCALAPPDATA
 
 ---
 
-## 6. Troubleshooting
+## 8. Troubleshooting
 
 ### The app crashes immediately with `REGDB_E_CLASSNOTREG`
 
@@ -259,10 +308,11 @@ The region is wrong. Set **Vertex AI region** to **`global`** — the 3.x models
 - Add your Google account as a **test user** on the OAuth consent screen.
 - Confirm the **Vertex AI API** is enabled on the project you entered.
 
-### A cloud model is configured but not used
+### A provider is added but not used
 
-Configuring a provider does not switch to it. Open the **Models** page and select the model to make
-it the active one. The active model is shared across every surface.
+Adding a provider does not switch to it. Open the **Models** page and select its model to make it the
+active chat model (and set per-feature models under Settings). If a card shows "Add an API key" or
+"Sign in to connect", it is not yet usable — use **Edit** / **Test** on the card to finish setup.
 
 ### Hotkeys do nothing
 

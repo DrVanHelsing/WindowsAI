@@ -36,11 +36,12 @@ For **each** target app — **Notepad**, **WordPad / Word**, **Chrome (Gmail com
 
 ## 2. Visual-intelligence round-trip (screen capture → vision answer)
 
-Verifies `Alt+Shift+S` capture → a real multimodal answer. Vision now uses **any configured vision
-provider**, preferring the active one, else **Gemini → Vertex → OpenRouter**. With the user's
-working Gemini key this is testable today.
+Verifies `Alt+Shift+S` capture → a real multimodal answer. Vision uses the **Visual Intelligence**
+capability model (Settings → Visual Intelligence), or auto-picks the first configured vision-capable
+provider when left unset. With any working vision provider (e.g. a Gemini key) this is testable today.
 
-1. Ensure a vision provider is configured (a **Gemini API key** in Settings is enough).
+1. Ensure a vision-capable provider is configured (add a **Gemini** provider on the Models & providers
+   tab), the **Visual Intelligence** feature is enabled, and (optionally) a vision model is picked under Settings → Visual Intelligence.
 2. Press **`Alt+Shift+S`** and drag a region over:
    - [ ] A **text-heavy** area (e.g. a paragraph or code) — ask "what does this say?" → OCR-quality
      answer streams.
@@ -59,13 +60,14 @@ Verifies the in-app OAuth consent (the API-key path to the same models is alread
 
 1. In your Google Cloud project: enable the **Vertex AI API** and create an **OAuth "Desktop app"**
    client.
-2. Settings → **Gemini via Google sign-in**: enter the **client id**, **client secret**, **project
-   id**, and leave **region = `global`** (the 3.x models are only served there).
-3. Click **Sign in** → the system browser opens for consent → approve.
-   - [ ] Status flips to **"Signed in ✓"**.
-4. Pick **`google/gemini-3.5-flash (Google sign-in)`** in the model picker and send a message.
+2. Models & providers → **+ Add provider** → preset **Gemini via Google sign-in**: enter the
+   **client id**, **client secret**, **project id**, and leave **region = `global`** (the 3.x models
+   are only served there). Save.
+3. On the new provider card, click **Sign in** → the system browser opens for consent → approve.
+   - [ ] The card's status dot turns connected.
+4. Pick the Vertex model (`google/gemini-3.5-flash`) in **Models** and send a message.
    - [ ] A reply streams via Vertex.
-   - [ ] **Sign out** forgets the session (status returns to "Ready to sign in").
+   - [ ] **Remove** (or sign out) forgets the session.
 
 ---
 
@@ -74,12 +76,49 @@ Verifies the in-app OAuth consent (the API-key path to the same models is alread
 Verifies the `search_web` agent tool and its step surfacing.
 
 1. Create a free **Tavily API key** at [tavily.com](https://tavily.com) (starts with `tvly-`).
-2. Settings → **Web search** → **Manage…**: paste the API key.
-   - [ ] Status shows **"Configured ✓"**.
+2. Settings → **Web Search**: enable the feature, then **Manage…** and paste the API key.
+   - [ ] Status shows **"Key set ✓"**.
 3. With a **cloud** model active, ask something current (e.g. "search the web for the latest .NET
    release").
    - [ ] A **"Searched the web · …"** step line appears above the reply.
    - [ ] Result **link chips** render and open in the browser when clicked.
    - [ ] The answer reflects the fetched results.
+   - [ ] Turning **Web Search off** in Settings stops the tool being offered.
 4. Also confirm **`get_current_datetime`**: ask "what's today's date?" → a "Checked the current
    time" step appears and the date is correct.
+
+---
+
+## 5. Configurable providers, onboarding & installer (Phase 8)
+
+Verifies the data-driven provider rework, the first-run wizard, per-feature routing, and the installer.
+
+**First-run wizard** — clear onboarding state (delete `%LOCALAPPDATA%\WindowsAI\settings.json` or set
+`Onboarding.HasCompleted` to false) and relaunch:
+- [ ] The setup wizard appears: welcome → connect → features → PC indexing → personalize → done.
+- [ ] **Skip** works at any step; **Back/Next** navigate; the PC indexing step only shows when enabled.
+- [ ] Completing it (or skipping) doesn't show the wizard again on the next launch.
+
+**Add any provider** — Models & providers → **+ Add provider**:
+- [ ] Picking a preset (e.g. **OpenAI**, **Groq**, **LM Studio**) pre-fills the base URL + models.
+- [ ] **Test connection** reports a clear result (connected / key rejected / unreachable).
+- [ ] **Fetch models** lists the provider's models; pick a default and **Add**.
+- [ ] Add a fully **Custom (OpenAI-compatible)** endpoint and confirm it works the same way.
+- [ ] The card shows status + enable toggle; **Edit / Remove** work; disabling hides its models.
+
+**Per-feature routing & flags** (Settings):
+- [ ] Assign **different** models to Chat vs Visual Intelligence vs Writing Tools; confirm each
+  feature uses its assigned model.
+- [ ] Toggle a feature off (e.g. Writing Tools) → its hotkey no longer fires; re-enable → works.
+- [ ] **Change…** a hotkey (capture a new chord) → applies after the next launch.
+
+**PC indexing** (Settings → PC Indexing):
+- [ ] **Add folder…** adds it to the Windows index scope; status/progress updates; `search_my_pc`
+  returns files from it. "Windows options…" opens the OS Indexing Options.
+
+**Migration** — start with an existing pre-rework `settings.json`:
+- [ ] Providers are seeded from the old fields and previously-stored API keys still work.
+
+**Installer** — `pwsh installer\build.ps1` (with Inno Setup installed), then on a **clean** machine:
+- [ ] The `.exe` installs; the app launches unpackaged (tray, Alt+Space, no `REGDB_E_CLASSNOTREG`).
+- [ ] Uninstall removes the app but **preserves** `%LOCALAPPDATA%\WindowsAI` data.

@@ -12,9 +12,10 @@ code compiles cleanly but has not been visually verified by launching the app.
 
 ## Architecture at a glance
 
-- **`WindowsAI.Core`** — platform-agnostic: chat orchestration, providers (Ollama / OpenRouter /
-  Gemini via `Microsoft.Extensions.AI`), settings, secrets abstraction, conversation history,
-  active-model service.
+- **`WindowsAI.Core`** — platform-agnostic: chat orchestration, **data-driven providers**
+  (any OpenAI-compatible endpoint / Ollama / Vertex, built from user-configured connections via
+  `IProviderRegistry`), **per-feature model routing** (`CapabilityRouter`), settings + schema
+  migration, secrets abstraction, conversation history, active-model service.
 - **`WindowsAI.Services`** — Windows-specific interop: global hotkey, window chrome, DPAPI secrets.
 - **`WindowsAI.App`** — WinUI 3 UI: the overlay window, the NavigationView shell, view models.
 
@@ -206,17 +207,60 @@ The former ⏭ Next / 💡 Later feature work, built and compile-verified end to
   copy/paste now report acceptance), foreground-window verification with a single focus retry before
   pasting, and clipboard restore in a `finally` on every path. See the QA checklist below.
 
+## Phase 8 — Configurable providers, per-feature routing, onboarding & installer ✅ (built; manual QA pending)
+
+A major rework so the app works with **any** provider the user configures, with everything tunable
+from a redesigned UI and a first-run wizard. Compiles clean (Core + Services + App + Smoke);
+**27/27** unit tests pass.
+
+- ✅ **Data-driven providers.** `AppSettings` now holds a list of `ProviderConnection`s instead of
+  fixed per-provider fields. `IProviderRegistry` builds one runtime `IChatProvider` per enabled
+  connection — `OpenAiConnectionProvider` (any OpenAI-compatible endpoint), `OllamaConnectionProvider`
+  (local), `VertexConnectionProvider` (Google sign-in). The old `OpenRouter`/`Gemini`/`Ollama`/
+  `Vertex` provider classes are removed. `ProviderPresets` (OpenAI, OpenRouter, Gemini, Anthropic,
+  Groq, DeepSeek, Mistral, Together, xAI, Azure, Ollama, LM Studio, Custom, Vertex) pre-fill the form;
+  `ProviderProbe` does live model discovery + connection testing.
+- ✅ **Per-feature model routing.** `CapabilityRouter` resolves Chat / Visual Intelligence / Writing
+  Tools / Image Generation / Embeddings to any configured model, with fallbacks — replacing the old
+  hardcoded vision priority. `VisionService` and `ImageGenerationService` now route through it.
+- ✅ **Feature flags + rebindable hotkeys.** `FeatureSettings` toggles each feature and stores the
+  (rebindable) global chords; `App` registers only enabled features' hotkeys and `ChatViewModel`/
+  `AgentToolFactory` offer only enabled tools.
+- ✅ **Schema migration.** `SettingsMigrator` upgrades a v1 settings file in place (seeds connections
+  from the legacy fields, reusing the original ids so DPAPI keys survive) and seeds a fresh install
+  with a local Ollama connection.
+- ✅ **Redesigned UI.** The **Models** tab is now a **Models & providers** hub (provider cards with
+  status, enable toggle, Add/Edit/Test/Remove, Google sign-in) backed by `ProvidersViewModel` +
+  `ProviderEditDialog`. **Settings** is reorganized **by feature** (Appearance, Chat, Visual
+  Intelligence, Writing Tools, Web Search, Image Generation, PC Indexing, Privacy, About) with an
+  enable toggle and a capability model picker on each, plus accent swatches and hotkey rebinding.
+- ✅ **PC Indexing.** `WindowsSearchIndexService` manages the Windows Search **scope** (add/remove
+  folders via the Search Manager COM API) and reads item-count **status/progress** for a Settings
+  card and the onboarding step. The app builds no index of its own.
+- ✅ **Onboarding wizard.** `OnboardingWindow` — a clean, skippable first-run flow (welcome → connect
+  a provider [cloud / Google / local, all optional] → choose features → PC indexing → personalize →
+  done), gated by `Onboarding.HasCompleted`.
+- ✅ **Installer.** `installer/build.ps1` publishes an **unpackaged, self-contained** build
+  (`WindowsPackageType=None` + self-contained WindowsAppSDK — publish verified to succeed) and
+  `installer/WindowsAI.iss` compiles a classic Inno Setup `.exe` (Program Files install, shortcuts,
+  opt-in run-at-startup, WebView2 check, data-preserving uninstall).
+- 🚧 **Manual QA pending** — launch the app and verify: first-run wizard, add a custom provider →
+  Test → Fetch models → chat, per-capability model assignment, feature toggles + hotkey rebinding,
+  PC indexing folder add + progress, migration of an existing `settings.json`, and an installed-build
+  run on a clean machine.
+
 ## QA checklist
 
-The three manual sign-offs that need a human at the keyboard live in
+The manual sign-offs that need a human at the keyboard live in
 [`docs/QA-checklist.md`](QA-checklist.md): writing-tools paste across apps, the vision live
-round-trip, and the Google sign-in round-trip.
+round-trip, the Google sign-in round-trip, and the Phase 8 provider/onboarding/installer checks.
 
 ## Unit tests ✅
 
-`tests/WindowsAI.Core.Tests` (xUnit) — the first dedicated unit-test project. **16 tests** cover the
-writing-tools action catalog, prompt shape, result cleaning, and the web-search result parser. Run
-with `dotnet test tests/WindowsAI.Core.Tests`.
+`tests/WindowsAI.Core.Tests` (xUnit). **27 tests** cover the writing-tools action catalog, prompt
+shape, result cleaning, the web-search result parser, and the new provider system — registry build +
+enabled/configured filtering, capability routing + fallbacks, settings migration (v1 → v2, keys
+preserved), secret-key derivation, and the preset catalog. Run with `dotnet test tests/WindowsAI.Core.Tests`.
 
 ## ⏭ Next — manual verifications
 

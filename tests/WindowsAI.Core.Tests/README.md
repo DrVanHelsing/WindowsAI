@@ -32,8 +32,9 @@ instead.
 | Prompt shape | `WritingPrompt` produces the expected instructions for each action. |
 | Result cleaning | `CleanResult` strips stray quotes and code fences without mangling content. |
 | Web search parsing | The Tavily Search result parser maps responses to result objects. |
+| Provider system | `ProviderRegistry` build + enabled/configured filtering, `CapabilityRouter` resolution + fallbacks, `SettingsMigrator` (v1 → v2, keys preserved), `SecretKeys` derivation, and the `ProviderPresets` catalog. |
 
-The `Writing/` and `Tools/` folders mirror the structure of the code under test.
+The `Writing/`, `Tools/`, and `Providers/` folders mirror the structure of the code under test.
 
 ---
 

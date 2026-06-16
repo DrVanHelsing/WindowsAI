@@ -35,7 +35,7 @@ about without dragging in P/Invoke.
 | `Capture/` | `ScreenCaptureService` — GDI grab of the monitor under the cursor into a frozen bitmap, then a cropped region. |
 | `Tray/` | `NativeTrayIcon` — tray presence and menu. |
 | `Security/` | `DpapiSecretStore` — per-user DPAPI encryption implementing the core's `ISecretStore`. |
-| `Search/` | `WindowsSearchRetriever` (OLE DB over the live Windows Search index) plus the overlay launcher catalogs: `AppCatalog`, `FileNameSearch`, `SettingsCatalog`, and `OverlaySearchService`. |
+| `Search/` | `WindowsSearchRetriever` (OLE DB over the live Windows Search index); `WindowsSearchIndexService` (manages the index *scope* + reads status for PC Indexing); plus the overlay launcher catalogs: `AppCatalog`, `FileNameSearch`, `SettingsCatalog`, and `OverlaySearchService`. |
 | `Writing/` | `TextSelectionService` — synthesizes the copy/paste chords to read and replace the selection in any focused app. |
 | `Inference/` | `OllamaLauncher` — detects and cold-starts a local Ollama server. |
 
@@ -50,6 +50,7 @@ about without dragging in P/Invoke.
 | `ScreenCaptureService` | Captures the monitor under the cursor up front, so the selection is drawn against a still image and never captures the dimming overlay. |
 | `DpapiSecretStore` | Encrypts secrets per-user with `System.Security.Cryptography.ProtectedData`. |
 | `WindowsSearchRetriever` | Queries `SYSTEMINDEX` over OLE DB (FREETEXT, user-profile scope, rank order) and snippets results. |
+| `WindowsSearchIndexService` | Drives the Search Manager COM API (`CSearchManager` → SystemIndex → crawl-scope manager) to add/remove folders from the OS index scope and read item counts for the PC Indexing progress UI. Failure-silent. |
 | `TextSelectionService` | Reads and replaces the focused selection via SendInput chords, with return-count checks, focus retry, and clipboard restore. |
 | `NativeTrayIcon` | Owns the tray icon and context menu. |
 

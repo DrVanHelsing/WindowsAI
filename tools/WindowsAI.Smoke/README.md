@@ -29,11 +29,11 @@ It references both `WindowsAI.Core` and `WindowsAI.Services`.
 
 ## What it checks
 
-- Settings round-trip (save and reload).
+- Settings round-trip (save and reload), including schema migration/seeding to the current version.
 - Conversation persistence: save, list, get, delete.
 - Active-model persistence and the `Changed` event, including a no-op on an unchanged value.
 - Windows Search retrieval with embedding re-rank.
-- Model catalog discovery across local and cloud.
+- Model catalog discovery from configured provider connections (local + cloud).
 - Live local streaming through `ChatOrchestrator`, confirming reasoning traces do not leak.
 - The agent tool-calling loop end to end: a scripted stub client invokes a real tool with the right
   arguments and the final reply reflects the tool result.

@@ -52,20 +52,29 @@ Three principles shape the project:
 
 ## Features
 
+- **First-run setup wizard** — a clean, skippable onboarding flow: connect a provider, choose which
+  features to enable, set up PC indexing, and personalize the theme. Everything is editable later.
+- **Bring any provider** — add as many provider connections as you like through the UI: any
+  OpenAI-compatible endpoint (OpenAI, OpenRouter, Gemini, Anthropic, Groq, DeepSeek, Mistral, Azure,
+  local LM Studio…), a local Ollama server, or Gemini via Google sign-in. One-click presets pre-fill
+  the form, with **Test connection** and **Fetch models** built in. No hardcoded providers or keys.
+- **Per-feature models** — route each capability (Chat, Visual Intelligence, Writing Tools, Image
+  Generation) to whichever configured model you prefer.
+- **Configurable features** — enable/disable Visual Intelligence, Writing Tools, Web Search, Image
+  Generation, and PC Indexing, and rebind every global hotkey.
 - **Instant overlay** — `Alt + Space` slides in a glass command surface for chat, app launching,
   and local file search, with its own independent conversation.
-- **Full desktop app** — Chat, History, Models, and Settings behind a clean navigation shell.
-- **Multi-provider chat** — Ollama (local), OpenRouter, Gemini (API key), and Gemini via Google
-  sign-in (Vertex AI, OAuth). The active model is a single source of truth across every surface.
+- **Full desktop app** — Chat, History, Models & providers, and Settings behind a clean shell.
 - **Local-first RAG** — opt-in "Search my PC" injects matching files from the Windows Search index
-  as context, re-ranked by local embeddings, with source chips under each reply.
-- **Agent tools** — the assistant can search your PC, open files, fetch the current date/time, and
-  run web searches; each tool call surfaces as a compact step above the answer.
+  as context, re-ranked by local embeddings, with source chips under each reply. Manage exactly which
+  folders are indexed (and watch progress) from Settings.
 - **Type-anywhere writing tools** — `Ctrl + Shift + Space` over selected text opens proofread,
   rewrite, summarize, and other transforms that paste back into any app.
 - **Visual intelligence** — `Alt + Shift + S` captures a screen region and asks a vision model
   about it.
 - **Theming** — follows the Windows light/dark mode and accent, or pins its own Electric Iris look.
+- **Classic installer** — ship a self-contained Inno Setup `.exe` (no MSIX/Store required) alongside
+  the packaged build.
 
 ### Keyboard shortcuts
 
@@ -75,6 +84,9 @@ Three principles shape the project:
 | `Ctrl + Shift + Space` | Open writing tools over the current text selection |
 | `Alt + Shift + S` | Capture a screen region and ask about it |
 | `Esc` | Dismiss the overlay or any floating surface |
+
+All three global shortcuts are rebindable in **Settings**, and the writing-tools and
+visual-intelligence shortcuts only register when their feature is enabled.
 
 ---
 
@@ -160,18 +172,32 @@ directly is not supported.
 dotnet run --project src\WindowsAI.App\WindowsAI.App.csproj
 ```
 
-The app starts to the tray. Press `Alt + Space` to summon the overlay.
+On first launch the **setup wizard** appears — connect a provider, choose features, and personalize.
+After that the app starts to the tray; press `Alt + Space` to summon the overlay.
 
-### Configure models
+### Configure providers and features
 
-Open **Settings** (from the tray menu or the app shell) to:
+The wizard covers the essentials; everything is editable afterward:
 
-- point the local provider at your Ollama endpoint,
-- paste an OpenRouter or Gemini API key (stored encrypted with DPAPI),
-- sign in with Google for Gemini via Vertex AI,
-- add a Tavily API key for web search.
+- **Models & providers** tab — add any provider (cloud API key, Google sign-in, or local Ollama /
+  LM Studio) from a preset or a custom endpoint, **Test** it, and **Fetch** its models. Keys are
+  stored encrypted with DPAPI.
+- **Settings** — pick the model for each feature (Chat, Visual Intelligence, Writing Tools, Image
+  Generation), toggle features on/off, rebind hotkeys, add a Tavily key for web search, and manage
+  the PC indexing folders.
 
 No keys are required for local-only use.
+
+### Build a distributable installer
+
+Produce a self-contained, unpackaged `.exe` (no MSIX/Store needed; requires
+[Inno Setup 6](https://jrsoftware.org/isdl.php) for the final step):
+
+```powershell
+pwsh installer\build.ps1            # publishes win-x64, then compiles the installer
+```
+
+The installer lands in `installer\output\`. See the [Setup Guide](docs/SETUP.md) for details.
 
 ---
 
