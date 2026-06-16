@@ -33,13 +33,15 @@ try
     {
         var path = Path.Combine(tmp, "settings.json");
         var store = new JsonSettingsStore(path);
-        await store.LoadAsync();                       // missing file -> defaults
-        store.Current.ActiveModel.ModelId = "sentinel-model";
+        await store.LoadAsync();                       // missing file -> defaults + fresh seed
+        store.Current.Capabilities.Chat.ModelId = "sentinel-model";
         await store.SaveAsync();
 
         var reloaded = new JsonSettingsStore(path);
         await reloaded.LoadAsync();
-        Check("save + reload persists ActiveModel", reloaded.Current.ActiveModel.ModelId == "sentinel-model");
+        Check("save + reload persists chat model", reloaded.Current.Capabilities.Chat.ModelId == "sentinel-model");
+        Check("fresh load migrates to current schema + seeds a provider",
+            reloaded.Current.SchemaVersion == AppSettings.CurrentSchemaVersion && reloaded.Current.Providers.Count > 0);
     }
 
     // 2) Conversation history: save / list (ordered) / get / delete.
@@ -212,17 +214,27 @@ try
         services.AddSingleton<ISecretStore, InMemorySecretStore>();
         var sp = services.BuildServiceProvider();
 
-        await sp.GetRequiredService<ISettingsStore>().LoadAsync();
+        var settings = sp.GetRequiredService<ISettingsStore>();
+        await settings.LoadAsync();
+
+        // Add a cloud connection with curated models to verify data-driven catalog listing,
+        // then point the chat capability at the local Ollama model (in-memory only).
+        settings.Current.Providers.Add(new ProviderConnection
+        {
+            Id = "openrouter",
+            DisplayName = "OpenRouter",
+            Kind = ProviderKind.OpenAiCompatible,
+            BaseUrl = "https://openrouter.ai/api/v1",
+            Models = { new ProviderModel("google/gemma-4-31b-it:free") },
+            DefaultModelId = "google/gemma-4-31b-it:free",
+        });
+        settings.Current.Capabilities.Chat = new ModelSelection("ollama", LocalModel);
+        sp.GetRequiredService<IProviderRegistry>().Invalidate();
 
         var models = await sp.GetRequiredService<IModelCatalog>().GetModelsAsync();
         var localCount = models.Count(m => m.IsLocal);
         Check("catalog lists a local model", localCount > 0, $"local={localCount}, total={models.Count}");
         Check("catalog lists cloud models", models.Any(m => !m.IsLocal));
-
-        // Point the active model at the local one (in-memory only) and stream a reply.
-        var settings = sp.GetRequiredService<ISettingsStore>();
-        settings.Current.ActiveModel.ProviderId = "ollama";
-        settings.Current.ActiveModel.ModelId = LocalModel;
 
         var conversation = new List<ChatMessage>
         {
@@ -234,7 +246,7 @@ try
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
         try
         {
-            await foreach (var delta in sp.GetRequiredService<ChatOrchestrator>().StreamReplyAsync(conversation, tools: null, cts.Token))
+            await foreach (var delta in sp.GetRequiredService<ChatOrchestrator>().StreamReplyAsync(conversation, tools: null, ct: cts.Token))
                 sb.Append(delta);
 
             var reply = sb.ToString().Trim();
