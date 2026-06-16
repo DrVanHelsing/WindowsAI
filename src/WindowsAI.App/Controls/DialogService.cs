@@ -1,6 +1,11 @@
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Windows.System;
+using Windows.UI.Core;
+using WindowsAI.Core.Configuration;
 using WindowsAI.Core.Providers;
+using WindowsAI_App.ViewModels;
 
 namespace WindowsAI_App.Controls;
 
@@ -61,6 +66,75 @@ public static class DialogService
         var secret = box.Password.Trim();
         return secret.Length == 0 ? null : secret;
     }
+
+    /// <summary>
+    /// Captures a new global-hotkey chord. Shows a live preview as the user presses keys; requires at
+    /// least one modifier. Returns the chosen chord, or null if cancelled.
+    /// </summary>
+    public static async Task<HotkeyChord?> PromptHotkeyAsync(XamlRoot root, string title, HotkeyChord current)
+    {
+        HotkeyChord captured = current;
+        var preview = new TextBlock { Text = SettingsViewModel.Format(current), FontSize = 18, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
+        var hint = new TextBlock
+        {
+            Text = "Press a new combination (include Ctrl, Alt, Shift, or Win).",
+            Opacity = 0.7,
+            TextWrapping = TextWrapping.Wrap,
+        };
+        var capture = new Border
+        {
+            IsTabStop = true,
+            MinHeight = 56,
+            Padding = new Thickness(14, 10, 14, 10),
+            CornerRadius = new CornerRadius(8),
+            Child = preview,
+        };
+
+        capture.KeyDown += (_, e) =>
+        {
+            var key = e.Key;
+            if (key is VirtualKey.Control or VirtualKey.Menu or VirtualKey.Shift
+                or VirtualKey.LeftWindows or VirtualKey.RightWindows)
+                return;
+
+            uint mods = 0;
+            if (IsDown(VirtualKey.Control)) mods |= HotkeyChord.MOD_CONTROL;
+            if (IsDown(VirtualKey.Menu)) mods |= HotkeyChord.MOD_ALT;
+            if (IsDown(VirtualKey.Shift)) mods |= HotkeyChord.MOD_SHIFT;
+            if (IsDown(VirtualKey.LeftWindows) || IsDown(VirtualKey.RightWindows)) mods |= HotkeyChord.MOD_WIN;
+
+            if (mods == 0)
+            {
+                hint.Text = "Include at least one modifier (Ctrl, Alt, Shift, or Win).";
+                e.Handled = true;
+                return;
+            }
+
+            captured = new HotkeyChord(mods, (uint)key);
+            preview.Text = SettingsViewModel.Format(captured);
+            e.Handled = true;
+        };
+
+        var panel = new StackPanel { Spacing = 10 };
+        panel.Children.Add(hint);
+        panel.Children.Add(capture);
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = root,
+            Title = title,
+            Content = panel,
+            PrimaryButtonText = "Save",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+        };
+        capture.Loaded += (_, _) => capture.Focus(FocusState.Programmatic);
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary ? captured : null;
+    }
+
+    private static bool IsDown(VirtualKey key) =>
+        InputKeyboardSource.GetKeyStateForCurrentThread(key).HasFlag(CoreVirtualKeyStates.Down);
 
     /// <summary>The settings chosen in the conversation-settings dialog.</summary>
     public sealed record ConversationSettingsResult(string SystemPrompt, ModelOption? Model);

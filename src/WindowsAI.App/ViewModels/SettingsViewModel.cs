@@ -1,110 +1,66 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using WindowsAI.Core.Auth;
 using WindowsAI.Core.Configuration;
+using WindowsAI.Core.Providers;
 using WindowsAI.Core.Security;
 using WindowsAI_App.Services;
 
 namespace WindowsAI_App.ViewModels;
 
 /// <summary>
-/// Backs the Settings page: local endpoint plus secure (DPAPI) API-key management for
-/// the opt-in cloud providers. Keys are written through <see cref="ISecretStore"/> and
-/// never surfaced back to the UI in plaintext.
+/// Backs the feature-organized Settings page: appearance, per-capability model routing (Chat,
+/// Visual Intelligence, Writing Tools, Image Generation), feature enable toggles, the web-search
+/// key, and rebindable hotkeys. Provider/key management lives on the Models tab
+/// (<see cref="ProvidersViewModel"/>); secrets are written through <see cref="ISecretStore"/> and
+/// never surfaced back in plaintext.
 /// </summary>
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly ISettingsStore _settings;
     private readonly ISecretStore _secrets;
     private readonly ThemeSyncService _theme;
-    private readonly GoogleOAuthService _googleAuth;
+    private readonly IModelCatalog _catalog;
+    private readonly ActiveModelService _activeModel;
     private bool _initializing;
 
-    [ObservableProperty]
-    public partial string OllamaEndpoint { get; set; }
-
-    /// <summary>OpenRouter model used for the screen-capture "ask about this region" flow (must support vision).</summary>
-    [ObservableProperty]
-    public partial string VisionModelId { get; set; }
-
-    /// <summary>Light/dark selection bound to the theme RadioButtons (0 = Windows default, 1 = Light, 2 = Dark).</summary>
-    [ObservableProperty]
-    public partial int ThemeIndex { get; set; }
-
-    /// <summary>The active accent override as <c>#RRGGBB</c>, or null when following Windows.</summary>
-    public string? AccentColor { get; private set; }
-
-    [ObservableProperty]
-    public partial string OpenRouterStatus { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial string GeminiStatus { get; set; } = string.Empty;
-
-    /// <summary>True once a key is stored — drives the "Remove" button + "Add/Update" wording.</summary>
-    [ObservableProperty]
-    public partial bool OpenRouterConfigured { get; set; }
-
-    [ObservableProperty]
-    public partial bool GeminiConfigured { get; set; }
-
-    /// <summary>OAuth client id for the user's Google "Desktop app" client.</summary>
-    [ObservableProperty]
-    public partial string GoogleClientId { get; set; }
-
-    /// <summary>Google Cloud project id with the Vertex AI API enabled.</summary>
-    [ObservableProperty]
-    public partial string GoogleProjectId { get; set; }
-
-    /// <summary>Vertex AI region (e.g. us-central1, global).</summary>
-    [ObservableProperty]
-    public partial string GoogleLocation { get; set; }
-
-    [ObservableProperty]
-    public partial string WebSearchStatus { get; set; } = string.Empty;
-
-    /// <summary>True once a Tavily API key is present.</summary>
-    [ObservableProperty]
-    public partial bool WebSearchConfigured { get; set; }
-
-    [ObservableProperty]
-    public partial string GoogleStatus { get; set; } = string.Empty;
-
-    /// <summary>True once the user has signed in with Google — drives the Sign in/out buttons.</summary>
-    [ObservableProperty]
-    public partial bool GoogleConnected { get; set; }
-
     public SettingsViewModel(
-        ISettingsStore settings, ISecretStore secrets, ThemeSyncService theme, GoogleOAuthService googleAuth)
+        ISettingsStore settings, ISecretStore secrets, ThemeSyncService theme,
+        IModelCatalog catalog, ActiveModelService activeModel)
     {
         _settings = settings;
         _secrets = secrets;
         _theme = theme;
-        _googleAuth = googleAuth;
+        _catalog = catalog;
+        _activeModel = activeModel;
 
-        OllamaEndpoint = _settings.Current.LocalModel.Endpoint;
-        VisionModelId = _settings.Current.OpenRouter.VisionModelId;
-        GoogleClientId = _settings.Current.GoogleCloud.ClientId;
-        GoogleProjectId = _settings.Current.GoogleCloud.ProjectId;
-        GoogleLocation = _settings.Current.GoogleCloud.Location;
-
+        var f = _settings.Current.Features;
         _initializing = true;
         ThemeIndex = (int)_settings.Current.Appearance.Theme;
+        VisualIntelligenceEnabled = f.VisualIntelligence;
+        WritingToolsEnabled = f.WritingTools;
+        WebSearchEnabled = f.WebSearch;
+        ImageGenerationEnabled = f.ImageGeneration;
         _initializing = false;
         AccentColor = _settings.Current.Appearance.AccentColor;
 
-        RefreshStatuses();
+        RefreshWebSearch();
     }
 
-    /// <summary>Persists the light/dark choice and re-applies it live across every window.</summary>
+    // ── Appearance ────────────────────────────────────────────────────────────
+
+    [ObservableProperty]
+    public partial int ThemeIndex { get; set; }
+
+    public string? AccentColor { get; private set; }
+
     partial void OnThemeIndexChanged(int value)
     {
-        if (_initializing)
-            return;
+        if (_initializing) return;
         _settings.Current.Appearance.Theme = (ThemeMode)value;
         _ = _settings.SaveAsync();
         _theme.Refresh();
     }
 
-    /// <summary>Sets the accent override (null = follow Windows), persists it, and re-applies live.</summary>
     public async Task SetAccentAsync(string? hex)
     {
         AccentColor = hex;
@@ -113,133 +69,172 @@ public partial class SettingsViewModel : ObservableObject
         _theme.Refresh();
     }
 
-    public async Task SaveOllamaEndpointAsync()
+    // ── Per-capability model pickers ────────────────────────────────────────────
+
+    public ObservableCollection<ModelOption> ChatModels { get; } = new();
+    public ObservableCollection<ModelOption> VisionModels { get; } = new();
+    public ObservableCollection<ModelOption> WritingModels { get; } = new();
+    public ObservableCollection<ModelOption> ImageModels { get; } = new();
+
+    [ObservableProperty] public partial ModelOption? ChatModel { get; set; }
+    [ObservableProperty] public partial ModelOption? VisionModel { get; set; }
+    [ObservableProperty] public partial ModelOption? WritingModel { get; set; }
+    [ObservableProperty] public partial ModelOption? ImageModel { get; set; }
+
+    /// <summary>Loads the model catalog and selects each capability's current model. Call on page load.</summary>
+    public async Task InitializeAsync()
     {
-        _settings.Current.LocalModel.Endpoint = OllamaEndpoint.Trim();
-        await _settings.SaveAsync();
+        var models = await _catalog.GetModelsAsync();
+        var providers = _settings.Current.Providers.ToDictionary(p => p.Id);
+
+        Fill(ChatModels, models);
+        Fill(VisionModels, models.Where(m => Supports(providers, m, vision: true)));
+        Fill(WritingModels, models);
+        Fill(ImageModels, models.Where(m => Supports(providers, m, image: true)));
+
+        _initializing = true;
+        ChatModel = Match(ChatModels, _settings.Current.Capabilities.Chat);
+        VisionModel = Match(VisionModels, _settings.Current.Capabilities.VisualIntelligence);
+        WritingModel = Match(WritingModels, _settings.Current.Capabilities.WritingTools);
+        ImageModel = Match(ImageModels, _settings.Current.Capabilities.ImageGeneration);
+        _initializing = false;
     }
 
-    public async Task SaveVisionModelAsync()
+    partial void OnChatModelChanged(ModelOption? value)
     {
-        _settings.Current.OpenRouter.VisionModelId = VisionModelId.Trim();
-        await _settings.SaveAsync();
+        if (_initializing || value is null) return;
+        _ = _activeModel.SetAsync(value.ProviderId, value.ModelId);
     }
 
-    public void SaveOpenRouterKey(string key)
+    partial void OnVisionModelChanged(ModelOption? value) => Persist(s => s.VisualIntelligence = ToSelection(value));
+    partial void OnWritingModelChanged(ModelOption? value) => Persist(s => s.WritingTools = ToSelection(value));
+    partial void OnImageModelChanged(ModelOption? value) => Persist(s => s.ImageGeneration = ToSelection(value));
+
+    private void Persist(Action<CapabilityRouting> apply)
     {
-        if (!string.IsNullOrWhiteSpace(key))
-            _secrets.Set(SecretKeys.OpenRouterApiKey, key.Trim());
-        RefreshStatuses();
+        if (_initializing) return;
+        apply(_settings.Current.Capabilities);
+        _ = _settings.SaveAsync();
     }
 
-    public void ClearOpenRouterKey()
+    private static ModelSelection? ToSelection(ModelOption? m) =>
+        m is null ? null : new ModelSelection(m.ProviderId, m.ModelId);
+
+    // ── Feature toggles ──────────────────────────────────────────────────────
+
+    [ObservableProperty] public partial bool VisualIntelligenceEnabled { get; set; }
+    [ObservableProperty] public partial bool WritingToolsEnabled { get; set; }
+    [ObservableProperty] public partial bool WebSearchEnabled { get; set; }
+    [ObservableProperty] public partial bool ImageGenerationEnabled { get; set; }
+
+    partial void OnVisualIntelligenceEnabledChanged(bool value) => SetFeature(f => f.VisualIntelligence = value);
+    partial void OnWritingToolsEnabledChanged(bool value) => SetFeature(f => f.WritingTools = value);
+    partial void OnWebSearchEnabledChanged(bool value) => SetFeature(f => f.WebSearch = value);
+    partial void OnImageGenerationEnabledChanged(bool value) => SetFeature(f => f.ImageGeneration = value);
+
+    private void SetFeature(Action<FeatureSettings> apply)
     {
-        _secrets.Delete(SecretKeys.OpenRouterApiKey);
-        RefreshStatuses();
+        if (_initializing) return;
+        apply(_settings.Current.Features);
+        _ = _settings.SaveAsync();
     }
 
-    public void SaveGeminiKey(string key)
-    {
-        if (!string.IsNullOrWhiteSpace(key))
-            _secrets.Set(SecretKeys.GeminiApiKey, key.Trim());
-        RefreshStatuses();
-    }
+    // ── Web search key (Tavily) ─────────────────────────────────────────────────
 
-    public void ClearGeminiKey()
-    {
-        _secrets.Delete(SecretKeys.GeminiApiKey);
-        RefreshStatuses();
-    }
-
-    // ── Web search (Tavily) ──────────────────────────────────────────────────
+    [ObservableProperty] public partial string WebSearchStatus { get; set; } = string.Empty;
+    [ObservableProperty] public partial bool WebSearchConfigured { get; set; }
 
     public void SaveWebSearchKey(string key)
     {
         if (!string.IsNullOrWhiteSpace(key))
             _secrets.Set(SecretKeys.TavilyApiKey, key.Trim());
-        RefreshStatuses();
+        RefreshWebSearch();
     }
 
     public void ClearWebSearchKey()
     {
         _secrets.Delete(SecretKeys.TavilyApiKey);
-        RefreshStatuses();
+        RefreshWebSearch();
     }
 
-    // ── Google sign-in (Vertex AI) ───────────────────────────────────────────
-
-    public async Task SaveGoogleClientIdAsync(string clientId)
+    private void RefreshWebSearch()
     {
-        GoogleClientId = clientId.Trim();
-        _settings.Current.GoogleCloud.ClientId = GoogleClientId;
+        WebSearchConfigured = !string.IsNullOrWhiteSpace(_secrets.Get(SecretKeys.TavilyApiKey));
+        WebSearchStatus = WebSearchConfigured ? "Key set ✓" : "No key set";
+    }
+
+    // ── Hotkeys ────────────────────────────────────────────────────────────────
+
+    public HotkeyChord SummonHotkey => _settings.Current.Features.SummonHotkey;
+    public HotkeyChord WritingHotkey => _settings.Current.Features.WritingToolsHotkey;
+    public HotkeyChord VisionHotkey => _settings.Current.Features.VisualIntelligenceHotkey;
+
+    public string SummonHotkeyText => Format(_settings.Current.Features.SummonHotkey);
+    public string WritingHotkeyText => Format(_settings.Current.Features.WritingToolsHotkey);
+    public string VisionHotkeyText => Format(_settings.Current.Features.VisualIntelligenceHotkey);
+
+    public async Task SetSummonHotkeyAsync(HotkeyChord chord)
+    {
+        _settings.Current.Features.SummonHotkey = chord;
         await _settings.SaveAsync();
-        RefreshStatuses();
+        OnPropertyChanged(nameof(SummonHotkeyText));
     }
 
-    public void SaveGoogleClientSecret(string secret)
+    public async Task SetWritingHotkeyAsync(HotkeyChord chord)
     {
-        if (!string.IsNullOrWhiteSpace(secret))
-            _secrets.Set(SecretKeys.GoogleClientSecret, secret.Trim());
-        RefreshStatuses();
-    }
-
-    public async Task SaveGoogleProjectAsync(string projectId)
-    {
-        GoogleProjectId = projectId.Trim();
-        _settings.Current.GoogleCloud.ProjectId = GoogleProjectId;
+        _settings.Current.Features.WritingToolsHotkey = chord;
         await _settings.SaveAsync();
-        RefreshStatuses();
+        OnPropertyChanged(nameof(WritingHotkeyText));
     }
 
-    public async Task SaveGoogleLocationAsync(string location)
+    public async Task SetVisionHotkeyAsync(HotkeyChord chord)
     {
-        GoogleLocation = location.Trim();
-        _settings.Current.GoogleCloud.Location = GoogleLocation;
+        _settings.Current.Features.VisualIntelligenceHotkey = chord;
         await _settings.SaveAsync();
+        OnPropertyChanged(nameof(VisionHotkeyText));
     }
 
-    /// <summary>Runs the browser consent flow. Throws if the OAuth client isn't configured or consent fails.</summary>
-    public async Task SignInWithGoogleAsync()
+    /// <summary>Human-readable chord, e.g. "Alt + Space".</summary>
+    public static string Format(HotkeyChord chord)
     {
-        await _googleAuth.SignInAsync();
-        RefreshStatuses();
+        var parts = new List<string>();
+        if ((chord.Modifiers & HotkeyChord.MOD_CONTROL) != 0) parts.Add("Ctrl");
+        if ((chord.Modifiers & HotkeyChord.MOD_ALT) != 0) parts.Add("Alt");
+        if ((chord.Modifiers & HotkeyChord.MOD_SHIFT) != 0) parts.Add("Shift");
+        if ((chord.Modifiers & HotkeyChord.MOD_WIN) != 0) parts.Add("Win");
+        parts.Add(KeyName(chord.VirtualKey));
+        return string.Join(" + ", parts);
     }
 
-    public async Task SignOutOfGoogleAsync()
+    private static string KeyName(uint vk) => vk switch
     {
-        await _googleAuth.SignOutAsync();
-        RefreshStatuses();
-    }
+        0x20 => "Space",
+        >= 0x41 and <= 0x5A => ((char)vk).ToString(),
+        >= 0x30 and <= 0x39 => ((char)vk).ToString(),
+        >= 0x70 and <= 0x7B => $"F{vk - 0x6F}",
+        _ => $"Key {vk:X}",
+    };
 
-    private void RefreshStatuses()
+    // ── helpers ─────────────────────────────────────────────────────────────────
+
+    private static void Fill(ObservableCollection<ModelOption> target, IEnumerable<ModelOption> source)
     {
-        var openRouter = _secrets.Get(SecretKeys.OpenRouterApiKey);
-        var gemini = _secrets.Get(SecretKeys.GeminiApiKey);
-
-        OpenRouterConfigured = !string.IsNullOrWhiteSpace(openRouter);
-        GeminiConfigured = !string.IsNullOrWhiteSpace(gemini);
-        OpenRouterStatus = Describe(openRouter);
-        GeminiStatus = Describe(gemini);
-
-        GoogleConnected = _googleAuth.IsSignedIn;
-        GoogleStatus = DescribeGoogle();
-
-        var searchKey = _secrets.Get(SecretKeys.TavilyApiKey);
-        WebSearchConfigured = !string.IsNullOrWhiteSpace(searchKey);
-        WebSearchStatus = WebSearchConfigured ? "Configured ✓" : "Not set";
+        target.Clear();
+        foreach (var m in source)
+            target.Add(m);
     }
 
-    /// <summary>Human-readable Google sign-in state for the Settings card.</summary>
-    private string DescribeGoogle()
+    private static ModelOption? Match(ObservableCollection<ModelOption> options, ModelSelection? selection)
     {
-        if (_googleAuth.IsSignedIn)
-            return "Signed in ✓";
-
-        var hasClient = !string.IsNullOrWhiteSpace(_settings.Current.GoogleCloud.ClientId)
-            && !string.IsNullOrWhiteSpace(_secrets.Get(SecretKeys.GoogleClientSecret));
-        return hasClient ? "Ready to sign in" : "Add OAuth client to begin";
+        if (selection is null || selection.IsEmpty)
+            return null;
+        return options.FirstOrDefault(m => m.ProviderId == selection.ProviderId && m.ModelId == selection.ModelId);
     }
 
-    private static string Describe(string? key)
-        => string.IsNullOrWhiteSpace(key) ? "Not set" : "Configured ✓";
+    private static bool Supports(IReadOnlyDictionary<string, ProviderConnection> providers, ModelOption m, bool vision = false, bool image = false)
+    {
+        if (!providers.TryGetValue(m.ProviderId, out var c))
+            return false;
+        return (!vision || c.SupportsVision) && (!image || c.SupportsImageGeneration);
+    }
 }

@@ -1,9 +1,12 @@
+using System.Diagnostics;
 using System.Globalization;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
+using Windows.Storage.Pickers;
 using Windows.UI;
 using Windows.UI.ViewManagement;
 using WindowsAI_App.Controls;
@@ -11,10 +14,10 @@ using WindowsAI_App.ViewModels;
 
 namespace WindowsAI_App;
 
-/// <summary>Settings: appearance, local endpoint, and secure (DPAPI) cloud API-key management.</summary>
+/// <summary>Settings, organized by feature: appearance, per-capability models, feature toggles, web search, PC indexing.</summary>
 public sealed partial class SettingsPage : Page
 {
-    // Accent palette offered in Settings. null = follow the Windows accent color.
+    // Curated accent palette. null = follow the Windows accent color.
     private static readonly (string Name, string? Hex)[] AccentPresets =
     [
         ("Windows default", null),
@@ -32,35 +35,45 @@ public sealed partial class SettingsPage : Page
     ];
 
     private readonly List<Button> _swatches = new();
+    private readonly StackPanel[] _sections;
 
     public SettingsViewModel ViewModel { get; }
+    public PcIndexingViewModel Pc { get; }
 
-    /// <summary>Assembly version shown on the About card.</summary>
     public string AppVersion { get; } =
         typeof(SettingsPage).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
 
     public SettingsPage()
     {
         ViewModel = App.GetService<SettingsViewModel>();
+        Pc = App.GetService<PcIndexingViewModel>();
         InitializeComponent();
+
+        _sections =
+        [
+            AppearanceSection, ChatSection, VisionSection, WritingSection,
+            WebSearchSection, ImageSection, PcIndexingSection, PrivacySection, AboutSection,
+        ];
+
         BuildAccentSwatches();
         SectionRail.SelectedIndex = 0;
+        Loaded += OnLoaded;
     }
 
-    // ── Category rail ──────────────────────────────────────────────────────────
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.InitializeAsync();
+        await Pc.RefreshStatusAsync();
+    }
 
-    /// <summary>Shows the section matching the selected rail item; the others collapse.</summary>
     private void SectionRail_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        // Fires once during InitializeComponent before the sections exist — guard it.
         if (AppearanceSection is null)
             return;
 
         var index = SectionRail.SelectedIndex;
-        AppearanceSection.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
-        ProvidersSection.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
-        ToolsSection.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
-        AboutSection.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
+        for (var i = 0; i < _sections.Length; i++)
+            _sections[i].Visibility = i == index ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // ── Accent swatches ──────────────────────────────────────────────────────
@@ -72,8 +85,6 @@ public sealed partial class SettingsPage : Page
         foreach (var (name, hex) in AccentPresets)
         {
             var color = hex is null ? osAccent : ParseHex(hex);
-
-            // Selection ring (accent-tinted) shown only on the chosen swatch.
             var ring = new Ellipse
             {
                 Width = 32,
@@ -82,13 +93,7 @@ public sealed partial class SettingsPage : Page
                 Stroke = (Brush)Application.Current.Resources["TextPrimaryBrush"],
                 Opacity = 0,
             };
-            var dot = new Ellipse
-            {
-                Width = 24,
-                Height = 24,
-                Fill = new SolidColorBrush(color),
-            };
-            // A small "follow Windows" glyph marks the default swatch.
+            var dot = new Ellipse { Width = 24, Height = 24, Fill = new SolidColorBrush(color) };
             var content = new Grid();
             content.Children.Add(dot);
             if (hex is null)
@@ -96,7 +101,7 @@ public sealed partial class SettingsPage : Page
                 content.Children.Add(new FontIcon
                 {
                     FontSize = 11,
-                    Glyph = "", // sync — "follows Windows"
+                    Glyph = "",
                     Foreground = (Brush)Application.Current.Resources["AccentTextBrush"],
                 });
             }
@@ -114,6 +119,7 @@ public sealed partial class SettingsPage : Page
                 Tag = hex,
             };
             ToolTipService.SetToolTip(button, name);
+            AutomationProperties.SetName(button, name);
             button.Click += AccentSwatch_Click;
             _swatches.Add(button);
             AccentSwatchPanel.Children.Add(button);
@@ -129,7 +135,6 @@ public sealed partial class SettingsPage : Page
         UpdateSwatchSelection();
     }
 
-    /// <summary>Highlights the swatch matching the active accent (the ring ellipse, last child).</summary>
     private void UpdateSwatchSelection()
     {
         foreach (var button in _swatches)
@@ -147,78 +152,14 @@ public sealed partial class SettingsPage : Page
         return Color.FromArgb(0xFF, (byte)(v >> 16), (byte)(v >> 8), (byte)v);
     }
 
-    private async void ChangeEndpoint_Click(object sender, RoutedEventArgs e)
-    {
-        var endpoint = await DialogService.PromptTextAsync(
-            XamlRoot,
-            "Ollama endpoint",
-            "Where your local Ollama server is listening.",
-            initialText: ViewModel.OllamaEndpoint,
-            placeholder: "http://localhost:11434");
-
-        if (endpoint is not null)
-        {
-            ViewModel.OllamaEndpoint = endpoint;
-            await ViewModel.SaveOllamaEndpointAsync();
-        }
-    }
-
-    private async void ChangeVisionModel_Click(object sender, RoutedEventArgs e)
-    {
-        var id = await DialogService.PromptTextAsync(
-            XamlRoot,
-            "Vision model",
-            "OpenRouter model id used for screen-capture questions (Alt+Shift+S). Must accept images.",
-            initialText: ViewModel.VisionModelId,
-            placeholder: "google/gemma-4-31b-it:free");
-
-        if (id is not null)
-        {
-            ViewModel.VisionModelId = id;
-            await ViewModel.SaveVisionModelAsync();
-        }
-    }
-
-    private async void ManageOpenRouterKey_Click(object sender, RoutedEventArgs e)
-    {
-        var key = await DialogService.PromptPasswordAsync(
-            XamlRoot,
-            "OpenRouter API key",
-            "Paste your key from openrouter.ai. It's stored encrypted (DPAPI) on this PC only.",
-            placeholder: "sk-or-…");
-
-        if (key is not null)
-            ViewModel.SaveOpenRouterKey(key);
-    }
-
-    private void RemoveOpenRouterKey_Click(object sender, RoutedEventArgs e)
-        => ViewModel.ClearOpenRouterKey();
-
-    private async void ManageGeminiKey_Click(object sender, RoutedEventArgs e)
-    {
-        var key = await DialogService.PromptPasswordAsync(
-            XamlRoot,
-            "Gemini API key",
-            "Paste your key from Google AI Studio. It's stored encrypted (DPAPI) on this PC only.",
-            placeholder: "AIza…");
-
-        if (key is not null)
-            ViewModel.SaveGeminiKey(key);
-    }
-
-    private void RemoveGeminiKey_Click(object sender, RoutedEventArgs e)
-        => ViewModel.ClearGeminiKey();
-
-    // ── Web search (Tavily) ──────────────────────────────────────────────────
+    // ── Web search key ────────────────────────────────────────────────────────
 
     private async void ManageWebSearchKey_Click(object sender, RoutedEventArgs e)
     {
         var key = await DialogService.PromptPasswordAsync(
-            XamlRoot,
-            "Tavily API key",
-            "Your Tavily Search API key from tavily.com (free tier available). Stored encrypted (DPAPI) on this PC only.",
+            XamlRoot, "Tavily API key",
+            "Your Tavily Search key from tavily.com (free tier available). Stored encrypted (DPAPI) on this PC only.",
             placeholder: "tvly-…");
-
         if (key is not null)
             ViewModel.SaveWebSearchKey(key);
     }
@@ -226,82 +167,85 @@ public sealed partial class SettingsPage : Page
     private void RemoveWebSearchKey_Click(object sender, RoutedEventArgs e)
         => ViewModel.ClearWebSearchKey();
 
-    // ── Google sign-in (Vertex AI) ───────────────────────────────────────────
+    // ── Hotkeys ─────────────────────────────────────────────────────────────────
 
-    private async void ChangeGoogleClientId_Click(object sender, RoutedEventArgs e)
+    private async void ChangeSummonHotkey_Click(object sender, RoutedEventArgs e)
     {
-        var id = await DialogService.PromptTextAsync(
-            XamlRoot,
-            "OAuth client id",
-            "The client id of your Google Cloud OAuth \"Desktop app\" client.",
-            initialText: ViewModel.GoogleClientId,
-            placeholder: "1234567890-abc.apps.googleusercontent.com");
-
-        if (id is not null)
-            await ViewModel.SaveGoogleClientIdAsync(id);
-    }
-
-    private async void ManageGoogleClientSecret_Click(object sender, RoutedEventArgs e)
-    {
-        var secret = await DialogService.PromptPasswordAsync(
-            XamlRoot,
-            "OAuth client secret",
-            "The client secret from the same OAuth client. Stored encrypted (DPAPI) on this PC only.",
-            placeholder: "GOCSPX-…");
-
-        if (secret is not null)
-            ViewModel.SaveGoogleClientSecret(secret);
-    }
-
-    private async void ChangeGoogleProject_Click(object sender, RoutedEventArgs e)
-    {
-        var project = await DialogService.PromptTextAsync(
-            XamlRoot,
-            "Google Cloud project id",
-            "The project that has the Vertex AI API enabled.",
-            initialText: ViewModel.GoogleProjectId,
-            placeholder: "my-gcp-project");
-
-        if (project is not null)
-            await ViewModel.SaveGoogleProjectAsync(project);
-    }
-
-    private async void ChangeGoogleLocation_Click(object sender, RoutedEventArgs e)
-    {
-        var location = await DialogService.PromptTextAsync(
-            XamlRoot,
-            "Vertex AI region",
-            "The region serving the model, e.g. us-central1 or global.",
-            initialText: ViewModel.GoogleLocation,
-            placeholder: "us-central1");
-
-        if (location is not null)
-            await ViewModel.SaveGoogleLocationAsync(location);
-    }
-
-    private async void SignInWithGoogle_Click(object sender, RoutedEventArgs e)
-    {
-        try
+        var chord = await DialogService.PromptHotkeyAsync(XamlRoot, "Summon shortcut", ViewModel.SummonHotkey);
+        if (chord is not null)
         {
-            await ViewModel.SignInWithGoogleAsync();
-        }
-        catch (Exception ex)
-        {
-            await DialogService.ConfirmAsync(
-                XamlRoot,
-                "Google sign-in failed",
-                ex.Message,
-                confirmText: "OK");
+            await ViewModel.SetSummonHotkeyAsync(chord);
+            await NoteRestartAsync();
         }
     }
 
-    private async void SignOutOfGoogle_Click(object sender, RoutedEventArgs e)
+    private async void ChangeWritingHotkey_Click(object sender, RoutedEventArgs e)
     {
-        if (await DialogService.ConfirmAsync(
-                XamlRoot, "Sign out of Google?", "The app will forget your Google sign-in on this PC.",
-                confirmText: "Sign out", isDestructive: true))
+        var chord = await DialogService.PromptHotkeyAsync(XamlRoot, "Writing Tools shortcut", ViewModel.WritingHotkey);
+        if (chord is not null)
         {
-            await ViewModel.SignOutOfGoogleAsync();
+            await ViewModel.SetWritingHotkeyAsync(chord);
+            await NoteRestartAsync();
         }
+    }
+
+    private async void ChangeVisionHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        var chord = await DialogService.PromptHotkeyAsync(XamlRoot, "Visual Intelligence shortcut", ViewModel.VisionHotkey);
+        if (chord is not null)
+        {
+            await ViewModel.SetVisionHotkeyAsync(chord);
+            await NoteRestartAsync();
+        }
+    }
+
+    private Task NoteRestartAsync() => DialogService.ConfirmAsync(
+        XamlRoot, "Shortcut saved", "The new shortcut takes effect the next time WindowsAI starts.", confirmText: "OK");
+
+    // ── PC Indexing ─────────────────────────────────────────────────────────────
+
+    private async void AddFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new FolderPicker();
+        picker.FileTypeFilter.Add("*");
+        var hwnd = (Application.Current as App)?.AppShell?.Hwnd ?? IntPtr.Zero;
+        if (hwnd != IntPtr.Zero)
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+
+        var folder = await picker.PickSingleFolderAsync();
+        if (folder is not null)
+            await Pc.AddFolderAsync(folder.Path);
+    }
+
+    private async void RemoveFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).Tag is string path)
+            await Pc.RemoveFolderAsync(path);
+    }
+
+    private async void RefreshIndex_Click(object sender, RoutedEventArgs e)
+        => await Pc.RefreshStatusAsync();
+
+    private void OpenIndexingOptions_Click(object sender, RoutedEventArgs e)
+        => Pc.OpenIndexingOptions();
+
+    // ── Privacy & data ────────────────────────────────────────────────────────
+
+    private void OpenDataFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var dir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WindowsAI");
+        TryStart(dir);
+    }
+
+    private void OpenCrashLog_Click(object sender, RoutedEventArgs e)
+    {
+        var log = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "WindowsAI-crash.log");
+        TryStart(System.IO.File.Exists(log) ? log : System.IO.Path.GetTempPath());
+    }
+
+    private static void TryStart(string path)
+    {
+        try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
+        catch { /* best effort */ }
     }
 }

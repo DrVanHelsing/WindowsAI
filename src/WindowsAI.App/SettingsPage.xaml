@@ -6,13 +6,13 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:WindowsAI_App"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:providers="using:WindowsAI.Core.Providers"
     Background="Transparent"
     FontFamily="{StaticResource AppFontFamily}"
     NavigationCacheMode="Required"
     mc:Ignorable="d">
 
     <Page.Resources>
-        <!--  Square glass tile holding a provider glyph, shared by every settings row.  -->
         <Style x:Key="SettingsIconTileStyle" TargetType="Border">
             <Setter Property="Width" Value="38" />
             <Setter Property="Height" Value="38" />
@@ -23,12 +23,28 @@
             <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
         </Style>
 
-        <!--  Section heading inside the content pane.  -->
         <Style x:Key="SectionHeadingStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="20" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
             <Setter Property="Margin" Value="2,0,0,10" />
+        </Style>
+
+        <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        </Style>
+
+        <Style x:Key="FieldHintStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{StaticResource TextTertiaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="CapabilityComboStyle" TargetType="ComboBox">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Margin" Value="0,6,0,0" />
         </Style>
     </Page.Resources>
 
@@ -38,16 +54,14 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!--  Header  -->
         <TextBlock
             Grid.Row="0"
             Style="{StaticResource PageTitleStyle}"
             Text="Settings" />
 
-        <!--  Category rail (left) + content pane (right)  -->
         <Grid Grid.Row="1" ColumnSpacing="24">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="210" />
+                <ColumnDefinition Width="220" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
@@ -61,7 +75,7 @@
                 SelectionMode="Single">
                 <ListView.ItemContainerStyle>
                     <Style TargetType="ListViewItem">
-                        <Setter Property="Padding" Value="12,10" />
+                        <Setter Property="Padding" Value="12,9" />
                         <Setter Property="Margin" Value="0,2" />
                         <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -71,62 +85,71 @@
                 <ListViewItem>
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <FontIcon FontSize="16" Glyph="&#xE790;" />
-                        <TextBlock
-                            VerticalAlignment="Center"
-                            FontSize="14"
-                            Text="Appearance" />
+                        <TextBlock VerticalAlignment="Center" FontSize="14" Text="Appearance" />
                     </StackPanel>
                 </ListViewItem>
                 <ListViewItem>
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                        <FontIcon FontSize="16" Glyph="&#xE753;" />
-                        <TextBlock
-                            VerticalAlignment="Center"
-                            FontSize="14"
-                            Text="Models &amp; providers" />
+                        <FontIcon FontSize="16" Glyph="&#xE8BD;" />
+                        <TextBlock VerticalAlignment="Center" FontSize="14" Text="Chat" />
+                    </StackPanel>
+                </ListViewItem>
+                <ListViewItem>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="16" Glyph="&#xE7B3;" />
+                        <TextBlock VerticalAlignment="Center" FontSize="14" Text="Visual Intelligence" />
+                    </StackPanel>
+                </ListViewItem>
+                <ListViewItem>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="16" Glyph="&#xE70F;" />
+                        <TextBlock VerticalAlignment="Center" FontSize="14" Text="Writing Tools" />
                     </StackPanel>
                 </ListViewItem>
                 <ListViewItem>
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <FontIcon FontSize="16" Glyph="&#xE721;" />
-                        <TextBlock
-                            VerticalAlignment="Center"
-                            FontSize="14"
-                            Text="Tools" />
+                        <TextBlock VerticalAlignment="Center" FontSize="14" Text="Web Search" />
+                    </StackPanel>
+                </ListViewItem>
+                <ListViewItem>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="16" Glyph="&#xEB9F;" />
+                        <TextBlock VerticalAlignment="Center" FontSize="14" Text="Image Generation" />
+                    </StackPanel>
+                </ListViewItem>
+                <ListViewItem>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="16" Glyph="&#xE8B7;" />
+                        <TextBlock VerticalAlignment="Center" FontSize="14" Text="PC Indexing" />
+                    </StackPanel>
+                </ListViewItem>
+                <ListViewItem>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <FontIcon FontSize="16" Glyph="&#xE72E;" />
+                        <TextBlock VerticalAlignment="Center" FontSize="14" Text="Privacy &amp; data" />
                     </StackPanel>
                 </ListViewItem>
                 <ListViewItem>
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <FontIcon FontSize="16" Glyph="&#xE946;" />
-                        <TextBlock
-                            VerticalAlignment="Center"
-                            FontSize="14"
-                            Text="About" />
+                        <TextBlock VerticalAlignment="Center" FontSize="14" Text="About" />
                     </StackPanel>
                 </ListViewItem>
             </ListView>
 
             <!--  Content pane  -->
             <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-                <Grid MaxWidth="640" HorizontalAlignment="Stretch">
+                <Grid MaxWidth="680" HorizontalAlignment="Stretch">
 
-                    <!--  ── APPEARANCE ──────────────────────────────────────────  -->
+                    <!--  ── APPEARANCE ──  -->
                     <StackPanel x:Name="AppearanceSection" Spacing="10">
                         <TextBlock Style="{StaticResource SectionHeadingStyle}" Text="Appearance" />
-
                         <Border Padding="18,16" Style="{StaticResource GlassCardStyle}">
                             <StackPanel Spacing="18">
-                                <!--  Theme mode  -->
                                 <StackPanel Spacing="8">
-                                    <TextBlock
-                                        FontSize="15"
-                                        FontWeight="SemiBold"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
-                                        Text="Theme" />
-                                    <TextBlock
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextTertiaryBrush}"
-                                        Text="Match Windows, or pin a light or dark look." />
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Theme" />
+                                    <TextBlock Style="{StaticResource FieldHintStyle}" Text="Match Windows, or pin a light or dark look." />
                                     <RadioButtons
                                         Margin="0,4,0,0"
                                         MaxColumns="3"
@@ -136,18 +159,9 @@
                                         <RadioButton Content="Dark" />
                                     </RadioButtons>
                                 </StackPanel>
-
-                                <!--  Accent color — swatches built in code-behind  -->
                                 <StackPanel Spacing="8">
-                                    <TextBlock
-                                        FontSize="15"
-                                        FontWeight="SemiBold"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
-                                        Text="Accent color" />
-                                    <TextBlock
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextTertiaryBrush}"
-                                        Text="Used across the overlay, buttons, and highlights." />
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Accent color" />
+                                    <TextBlock Style="{StaticResource FieldHintStyle}" Text="Used across the overlay, buttons, and highlights." />
                                     <StackPanel
                                         x:Name="AccentSwatchPanel"
                                         Margin="0,4,0,0"
@@ -158,496 +172,273 @@
                         </Border>
                     </StackPanel>
 
-                    <!--  ── MODELS & PROVIDERS ──────────────────────────────────  -->
-                    <StackPanel x:Name="ProvidersSection" Spacing="10">
-                        <TextBlock Style="{StaticResource SectionHeadingStyle}" Text="Models &amp; providers" />
-
-                        <!--  Local model (Ollama) — endpoint edited via a modal  -->
-                        <Border Padding="18,14" Style="{StaticResource GlassCardStyle}">
-                            <Grid ColumnSpacing="14">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <Border Grid.Column="0" Style="{StaticResource SettingsIconTileStyle}">
-                                    <FontIcon
-                                        FontSize="16"
-                                        Foreground="{StaticResource AccentTextBrush}"
-                                        Glyph="&#xE977;" />
-                                </Border>
-
-                                <StackPanel Grid.Column="1" Spacing="3">
-                                    <TextBlock
-                                        FontSize="15"
-                                        FontWeight="SemiBold"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
-                                        Text="Local model (Ollama)" />
-                                    <TextBlock
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextTertiaryBrush}"
-                                        Text="Endpoint of your local Ollama server. Pull models with 'ollama pull'." />
-                                    <TextBlock
-                                        Margin="0,2,0,0"
-                                        FontFamily="{StaticResource MonoFontFamily}"
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
-                                        Text="{x:Bind ViewModel.OllamaEndpoint, Mode=OneWay}" />
-                                </StackPanel>
-
-                                <Button
-                                    Grid.Column="2"
-                                    VerticalAlignment="Center"
-                                    Click="ChangeEndpoint_Click"
-                                    AutomationProperties.Name="Change Ollama endpoint"
-                                    Content="Change…" />
-                            </Grid>
-                        </Border>
-
-                        <!--  OpenRouter (cloud)  -->
-                        <Border Padding="18,14" Style="{StaticResource GlassCardStyle}">
-                            <Grid ColumnSpacing="14">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <Border Grid.Column="0" Style="{StaticResource SettingsIconTileStyle}">
-                                    <FontIcon
-                                        FontSize="16"
-                                        Foreground="{StaticResource AccentTextBrush}"
-                                        Glyph="&#xE968;" />
-                                </Border>
-
-                                <StackPanel Grid.Column="1" Spacing="3">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Grid
-                                            Width="10"
-                                            Height="10"
-                                            VerticalAlignment="Center">
-                                            <Ellipse Fill="{StaticResource TextGhostBrush}" />
-                                            <Ellipse Fill="{StaticResource AccentBrush}" Visibility="{x:Bind ViewModel.OpenRouterConfigured, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
-                                        </Grid>
-                                        <TextBlock
-                                            FontSize="15"
-                                            FontWeight="SemiBold"
-                                            Foreground="{StaticResource TextPrimaryBrush}"
-                                            Text="OpenRouter (cloud)" />
-                                    </StackPanel>
-                                    <TextBlock
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextTertiaryBrush}"
-                                        Text="Get a key at openrouter.ai. Stored encrypted (DPAPI) on this PC only." />
-                                    <TextBlock
-                                        Margin="0,2,0,0"
-                                        FontSize="12"
-                                        Foreground="{StaticResource AccentTextBrush}"
-                                        Text="{x:Bind ViewModel.OpenRouterStatus, Mode=OneWay}" />
-
-                                    <!--  Vision model for the screen-capture flow (Alt+Shift+S)  -->
-                                    <Grid Margin="0,10,0,0" ColumnSpacing="8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0" Spacing="2">
-                                            <TextBlock
-                                                FontSize="12"
-                                                Foreground="{StaticResource TextTertiaryBrush}"
-                                                Text="Vision model — for screen-capture questions (Alt+Shift+S)" />
-                                            <TextBlock
-                                                FontFamily="{StaticResource MonoFontFamily}"
-                                                FontSize="12"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
-                                                Text="{x:Bind ViewModel.VisionModelId, Mode=OneWay}"
-                                                TextTrimming="CharacterEllipsis" />
-                                        </StackPanel>
-                                        <Button
-                                            Grid.Column="1"
-                                            VerticalAlignment="Bottom"
-                                            Click="ChangeVisionModel_Click"
-                                            AutomationProperties.Name="Change vision model"
-                                            Content="Change…" />
-                                    </Grid>
-                                </StackPanel>
-
-                                <StackPanel
-                                    Grid.Column="2"
-                                    VerticalAlignment="Center"
-                                    Orientation="Horizontal"
-                                    Spacing="8">
-                                    <Button
-                                        Click="ManageOpenRouterKey_Click"
-                                        AutomationProperties.Name="Manage OpenRouter API key"
-                                        Content="Manage…"
-                                        Style="{StaticResource AccentButtonStyle}" />
-                                    <Button
-                                        Click="RemoveOpenRouterKey_Click"
-                                        AutomationProperties.Name="Remove OpenRouter API key"
-                                        Content="Remove"
-                                        Visibility="{x:Bind ViewModel.OpenRouterConfigured, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <!--  Gemini (cloud)  -->
-                        <Border Padding="18,14" Style="{StaticResource GlassCardStyle}">
-                            <Grid ColumnSpacing="14">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <Border Grid.Column="0" Style="{StaticResource SettingsIconTileStyle}">
-                                    <FontIcon
-                                        FontSize="16"
-                                        Foreground="{StaticResource AccentTextBrush}"
-                                        Glyph="&#xE753;" />
-                                </Border>
-
-                                <StackPanel Grid.Column="1" Spacing="3">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Grid
-                                            Width="10"
-                                            Height="10"
-                                            VerticalAlignment="Center">
-                                            <Ellipse Fill="{StaticResource TextGhostBrush}" />
-                                            <Ellipse Fill="{StaticResource AccentBrush}" Visibility="{x:Bind ViewModel.GeminiConfigured, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
-                                        </Grid>
-                                        <TextBlock
-                                            FontSize="15"
-                                            FontWeight="SemiBold"
-                                            Foreground="{StaticResource TextPrimaryBrush}"
-                                            Text="Gemini (cloud)" />
-                                    </StackPanel>
-                                    <TextBlock
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextTertiaryBrush}"
-                                        Text="Get a key from Google AI Studio. Stored encrypted (DPAPI) on this PC only." />
-                                    <TextBlock
-                                        Margin="0,2,0,0"
-                                        FontSize="12"
-                                        Foreground="{StaticResource AccentTextBrush}"
-                                        Text="{x:Bind ViewModel.GeminiStatus, Mode=OneWay}" />
-                                </StackPanel>
-
-                                <StackPanel
-                                    Grid.Column="2"
-                                    VerticalAlignment="Center"
-                                    Orientation="Horizontal"
-                                    Spacing="8">
-                                    <Button
-                                        Click="ManageGeminiKey_Click"
-                                        AutomationProperties.Name="Manage Gemini API key"
-                                        Content="Manage…"
-                                        Style="{StaticResource AccentButtonStyle}" />
-                                    <Button
-                                        Click="RemoveGeminiKey_Click"
-                                        AutomationProperties.Name="Remove Gemini API key"
-                                        Content="Remove"
-                                        Visibility="{x:Bind ViewModel.GeminiConfigured, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <!--  Gemini via Google sign-in (Vertex AI, OAuth)  -->
-                        <Border Padding="18,14" Style="{StaticResource GlassCardStyle}">
-                            <Grid ColumnSpacing="14">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <Border Grid.Column="0" Style="{StaticResource SettingsIconTileStyle}">
-                                    <FontIcon
-                                        FontSize="16"
-                                        Foreground="{StaticResource AccentTextBrush}"
-                                        Glyph="&#xE77B;" />
-                                </Border>
-
-                                <StackPanel Grid.Column="1" Spacing="3">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Grid
-                                            Width="10"
-                                            Height="10"
-                                            VerticalAlignment="Center">
-                                            <Ellipse Fill="{StaticResource TextGhostBrush}" />
-                                            <Ellipse Fill="{StaticResource AccentBrush}" Visibility="{x:Bind ViewModel.GoogleConnected, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
-                                        </Grid>
-                                        <TextBlock
-                                            FontSize="15"
-                                            FontWeight="SemiBold"
-                                            Foreground="{StaticResource TextPrimaryBrush}"
-                                            Text="Gemini via Google sign-in" />
-                                    </StackPanel>
-                                    <TextBlock
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextTertiaryBrush}"
-                                        Text="Use Gemini through Vertex AI with a Google sign-in instead of an API key. Create an OAuth &quot;Desktop app&quot; client in your Google Cloud project, then add its id, secret, and project below."
-                                        TextWrapping="Wrap" />
-                                    <TextBlock
-                                        Margin="0,2,0,0"
-                                        FontSize="12"
-                                        Foreground="{StaticResource AccentTextBrush}"
-                                        Text="{x:Bind ViewModel.GoogleStatus, Mode=OneWay}" />
-
-                                    <!--  OAuth client id  -->
-                                    <Grid Margin="0,10,0,0" ColumnSpacing="8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0" Spacing="2">
-                                            <TextBlock
-                                                FontSize="12"
-                                                Foreground="{StaticResource TextTertiaryBrush}"
-                                                Text="OAuth client id" />
-                                            <TextBlock
-                                                FontFamily="{StaticResource MonoFontFamily}"
-                                                FontSize="12"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
-                                                Text="{x:Bind ViewModel.GoogleClientId, Mode=OneWay}"
-                                                TextTrimming="CharacterEllipsis" />
-                                        </StackPanel>
-                                        <Button
-                                            Grid.Column="1"
-                                            VerticalAlignment="Bottom"
-                                            Click="ChangeGoogleClientId_Click"
-                                            AutomationProperties.Name="Change OAuth client id"
-                                            Content="Change…" />
-                                    </Grid>
-
-                                    <!--  Client secret  -->
-                                    <Grid Margin="0,8,0,0" ColumnSpacing="8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0" Spacing="2">
-                                            <TextBlock
-                                                FontSize="12"
-                                                Foreground="{StaticResource TextTertiaryBrush}"
-                                                Text="Client secret — stored encrypted (DPAPI) on this PC only" />
-                                        </StackPanel>
-                                        <Button
-                                            Grid.Column="1"
-                                            VerticalAlignment="Bottom"
-                                            Click="ManageGoogleClientSecret_Click"
-                                            AutomationProperties.Name="Set Google client secret"
-                                            Content="Set…" />
-                                    </Grid>
-
-                                    <!--  Project id  -->
-                                    <Grid Margin="0,8,0,0" ColumnSpacing="8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0" Spacing="2">
-                                            <TextBlock
-                                                FontSize="12"
-                                                Foreground="{StaticResource TextTertiaryBrush}"
-                                                Text="Google Cloud project id (Vertex AI enabled)" />
-                                            <TextBlock
-                                                FontFamily="{StaticResource MonoFontFamily}"
-                                                FontSize="12"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
-                                                Text="{x:Bind ViewModel.GoogleProjectId, Mode=OneWay}"
-                                                TextTrimming="CharacterEllipsis" />
-                                        </StackPanel>
-                                        <Button
-                                            Grid.Column="1"
-                                            VerticalAlignment="Bottom"
-                                            Click="ChangeGoogleProject_Click"
-                                            AutomationProperties.Name="Change Google Cloud project id"
-                                            Content="Change…" />
-                                    </Grid>
-
-                                    <!--  Region  -->
-                                    <Grid Margin="0,8,0,0" ColumnSpacing="8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0" Spacing="2">
-                                            <TextBlock
-                                                FontSize="12"
-                                                Foreground="{StaticResource TextTertiaryBrush}"
-                                                Text="Vertex AI region" />
-                                            <TextBlock
-                                                FontFamily="{StaticResource MonoFontFamily}"
-                                                FontSize="12"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
-                                                Text="{x:Bind ViewModel.GoogleLocation, Mode=OneWay}"
-                                                TextTrimming="CharacterEllipsis" />
-                                        </StackPanel>
-                                        <Button
-                                            Grid.Column="1"
-                                            VerticalAlignment="Bottom"
-                                            Click="ChangeGoogleLocation_Click"
-                                            AutomationProperties.Name="Change Vertex AI region"
-                                            Content="Change…" />
-                                    </Grid>
-                                </StackPanel>
-
-                                <StackPanel
-                                    Grid.Column="2"
-                                    VerticalAlignment="Center"
-                                    Orientation="Horizontal"
-                                    Spacing="8">
-                                    <Button
-                                        Click="SignInWithGoogle_Click"
-                                        AutomationProperties.Name="Sign in with Google"
-                                        Content="Sign in…"
-                                        Style="{StaticResource AccentButtonStyle}" />
-                                    <Button
-                                        Click="SignOutOfGoogle_Click"
-                                        Content="Sign out"
-                                        Visibility="{x:Bind ViewModel.GoogleConnected, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
-                                </StackPanel>
-                            </Grid>
+                    <!--  ── CHAT ──  -->
+                    <StackPanel x:Name="ChatSection" Spacing="10">
+                        <TextBlock Style="{StaticResource SectionHeadingStyle}" Text="Chat" />
+                        <Border Padding="18,16" Style="{StaticResource GlassCardStyle}">
+                            <StackPanel Spacing="6">
+                                <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Default chat model" />
+                                <TextBlock Style="{StaticResource FieldHintStyle}" Text="Used for everyday conversations. Add providers on the Models &amp; providers tab." />
+                                <ComboBox
+                                    Style="{StaticResource CapabilityComboStyle}"
+                                    DisplayMemberPath="DisplayName"
+                                    ItemsSource="{x:Bind ViewModel.ChatModels}"
+                                    PlaceholderText="Select a model"
+                                    SelectedItem="{x:Bind ViewModel.ChatModel, Mode=TwoWay}" />
+                            </StackPanel>
                         </Border>
                     </StackPanel>
 
-                    <!--  ── TOOLS ────────────────────────────────────────────────  -->
-                    <StackPanel x:Name="ToolsSection" Spacing="10">
-                        <TextBlock Style="{StaticResource SectionHeadingStyle}" Text="Tools" />
-
-                        <!--  Web search (Tavily)  -->
-                        <Border Padding="18,14" Style="{StaticResource GlassCardStyle}">
-                            <Grid ColumnSpacing="14">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <Border Grid.Column="0" Style="{StaticResource SettingsIconTileStyle}">
-                                    <FontIcon
-                                        FontSize="16"
-                                        Foreground="{StaticResource AccentTextBrush}"
-                                        Glyph="&#xE721;" />
-                                </Border>
-
-                                <StackPanel Grid.Column="1" Spacing="3">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Grid
-                                            Width="10"
-                                            Height="10"
-                                            VerticalAlignment="Center">
-                                            <Ellipse Fill="{StaticResource TextGhostBrush}" />
-                                            <Ellipse Fill="{StaticResource AccentBrush}" Visibility="{x:Bind ViewModel.WebSearchConfigured, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
-                                        </Grid>
-                                        <TextBlock
-                                            FontSize="15"
-                                            FontWeight="SemiBold"
-                                            Foreground="{StaticResource TextPrimaryBrush}"
-                                            Text="Web search" />
+                    <!--  ── VISUAL INTELLIGENCE ──  -->
+                    <StackPanel x:Name="VisionSection" Spacing="10">
+                        <TextBlock Style="{StaticResource SectionHeadingStyle}" Text="Visual Intelligence" />
+                        <Border Padding="18,16" Style="{StaticResource GlassCardStyle}">
+                            <StackPanel Spacing="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Spacing="2">
+                                        <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Ask about your screen" />
+                                        <TextBlock Style="{StaticResource FieldHintStyle}" Text="Capture a region and ask a vision-capable model about it." />
                                     </StackPanel>
+                                    <ToggleSwitch Grid.Column="1" IsOn="{x:Bind ViewModel.VisualIntelligenceEnabled, Mode=TwoWay}" />
+                                </Grid>
+                                <ComboBox
+                                    Style="{StaticResource CapabilityComboStyle}"
+                                    DisplayMemberPath="DisplayName"
+                                    Header="Vision model"
+                                    ItemsSource="{x:Bind ViewModel.VisionModels}"
+                                    PlaceholderText="Auto (first vision-capable provider)"
+                                    SelectedItem="{x:Bind ViewModel.VisionModel, Mode=TwoWay}" />
+                                <Grid Margin="0,4,0,0" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Spacing="2">
+                                        <TextBlock Style="{StaticResource FieldHintStyle}" Text="Shortcut" />
+                                        <TextBlock FontFamily="{StaticResource MonoFontFamily}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Text="{x:Bind ViewModel.VisionHotkeyText, Mode=OneWay}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" VerticalAlignment="Bottom" Click="ChangeVisionHotkey_Click" Content="Change…" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!--  ── WRITING TOOLS ──  -->
+                    <StackPanel x:Name="WritingSection" Spacing="10">
+                        <TextBlock Style="{StaticResource SectionHeadingStyle}" Text="Writing Tools" />
+                        <Border Padding="18,16" Style="{StaticResource GlassCardStyle}">
+                            <StackPanel Spacing="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Spacing="2">
+                                        <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Type-anywhere writing tools" />
+                                        <TextBlock Style="{StaticResource FieldHintStyle}" Text="Proofread, rewrite, and change tone of selected text in any app." />
+                                    </StackPanel>
+                                    <ToggleSwitch Grid.Column="1" IsOn="{x:Bind ViewModel.WritingToolsEnabled, Mode=TwoWay}" />
+                                </Grid>
+                                <ComboBox
+                                    Style="{StaticResource CapabilityComboStyle}"
+                                    DisplayMemberPath="DisplayName"
+                                    Header="Writing model"
+                                    ItemsSource="{x:Bind ViewModel.WritingModels}"
+                                    PlaceholderText="Use the chat model"
+                                    SelectedItem="{x:Bind ViewModel.WritingModel, Mode=TwoWay}" />
+                                <Grid Margin="0,4,0,0" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Spacing="2">
+                                        <TextBlock Style="{StaticResource FieldHintStyle}" Text="Shortcut" />
+                                        <TextBlock FontFamily="{StaticResource MonoFontFamily}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Text="{x:Bind ViewModel.WritingHotkeyText, Mode=OneWay}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" VerticalAlignment="Bottom" Click="ChangeWritingHotkey_Click" Content="Change…" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!--  ── WEB SEARCH ──  -->
+                    <StackPanel x:Name="WebSearchSection" Spacing="10">
+                        <TextBlock Style="{StaticResource SectionHeadingStyle}" Text="Web Search" />
+                        <Border Padding="18,16" Style="{StaticResource GlassCardStyle}">
+                            <StackPanel Spacing="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Spacing="2">
+                                        <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Let the assistant search the web" />
+                                        <TextBlock Style="{StaticResource FieldHintStyle}" Text="Backed by Tavily. Create a free key at tavily.com, then add it here." />
+                                    </StackPanel>
+                                    <ToggleSwitch Grid.Column="1" IsOn="{x:Bind ViewModel.WebSearchEnabled, Mode=TwoWay}" />
+                                </Grid>
+                                <Grid Margin="0,4,0,0" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextTertiaryBrush}"
-                                        Text="Lets the assistant search the web (Tavily). Create a free API key at tavily.com, then add it here."
-                                        TextWrapping="Wrap" />
-                                    <TextBlock
-                                        Margin="0,2,0,0"
+                                        Grid.Column="0"
+                                        VerticalAlignment="Center"
                                         FontSize="12"
                                         Foreground="{StaticResource AccentTextBrush}"
                                         Text="{x:Bind ViewModel.WebSearchStatus, Mode=OneWay}" />
-                                </StackPanel>
-
-                                <StackPanel
-                                    Grid.Column="2"
-                                    VerticalAlignment="Center"
-                                    Orientation="Horizontal"
-                                    Spacing="8">
-                                    <Button
-                                        Click="ManageWebSearchKey_Click"
-                                        AutomationProperties.Name="Manage web search API key"
-                                        Content="Manage…"
-                                        Style="{StaticResource AccentButtonStyle}" />
-                                    <Button
-                                        Click="RemoveWebSearchKey_Click"
-                                        AutomationProperties.Name="Remove web search API key"
-                                        Content="Remove"
-                                        Visibility="{x:Bind ViewModel.WebSearchConfigured, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
-                                </StackPanel>
-                            </Grid>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                        <Button Click="ManageWebSearchKey_Click" Content="Manage…" Style="{StaticResource AccentButtonStyle}" />
+                                        <Button
+                                            Click="RemoveWebSearchKey_Click"
+                                            Content="Remove"
+                                            Visibility="{x:Bind ViewModel.WebSearchConfigured, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}" />
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
                         </Border>
                     </StackPanel>
 
-                    <!--  ── ABOUT ────────────────────────────────────────────────  -->
+                    <!--  ── IMAGE GENERATION ──  -->
+                    <StackPanel x:Name="ImageSection" Spacing="10">
+                        <TextBlock Style="{StaticResource SectionHeadingStyle}" Text="Image Generation" />
+                        <Border Padding="18,16" Style="{StaticResource GlassCardStyle}">
+                            <StackPanel Spacing="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Spacing="2">
+                                        <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Generate images in chat" />
+                                        <TextBlock Style="{StaticResource FieldHintStyle}" Text="Detected from your message and served by an image-capable provider." />
+                                    </StackPanel>
+                                    <ToggleSwitch Grid.Column="1" IsOn="{x:Bind ViewModel.ImageGenerationEnabled, Mode=TwoWay}" />
+                                </Grid>
+                                <ComboBox
+                                    Style="{StaticResource CapabilityComboStyle}"
+                                    DisplayMemberPath="DisplayName"
+                                    Header="Image model"
+                                    ItemsSource="{x:Bind ViewModel.ImageModels}"
+                                    PlaceholderText="Auto (first image-capable provider)"
+                                    SelectedItem="{x:Bind ViewModel.ImageModel, Mode=TwoWay}" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!--  ── PC INDEXING ──  -->
+                    <StackPanel x:Name="PcIndexingSection" Spacing="10">
+                        <TextBlock Style="{StaticResource SectionHeadingStyle}" Text="PC Indexing" />
+                        <Border Padding="18,16" Style="{StaticResource GlassCardStyle}">
+                            <StackPanel Spacing="12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Spacing="2">
+                                        <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Search my PC" />
+                                        <TextBlock Style="{StaticResource FieldHintStyle}" Text="Let the assistant find your files using the Windows Search index." />
+                                    </StackPanel>
+                                    <ToggleSwitch Grid.Column="1" IsOn="{x:Bind Pc.Enabled, Mode=TwoWay}" />
+                                </Grid>
+
+                                <StackPanel Spacing="4">
+                                    <ProgressBar Maximum="100" Value="{x:Bind Pc.ProgressPercent, Mode=OneWay}" />
+                                    <TextBlock Style="{StaticResource FieldHintStyle}" Text="{x:Bind Pc.StatusText, Mode=OneWay}" />
+                                </StackPanel>
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Indexed folders" />
+                                    <ItemsControl ItemsSource="{x:Bind Pc.Folders}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="x:String">
+                                                <Grid Margin="0,3" ColumnSpacing="8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock
+                                                        Grid.Column="0"
+                                                        VerticalAlignment="Center"
+                                                        FontFamily="{StaticResource MonoFontFamily}"
+                                                        FontSize="12"
+                                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                                        Text="{x:Bind}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                    <Button
+                                                        Grid.Column="1"
+                                                        Click="RemoveFolder_Click"
+                                                        Content="Remove"
+                                                        Tag="{x:Bind}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Click="AddFolder_Click" Content="Add folder…" Style="{StaticResource AccentButtonStyle}" />
+                                    <Button Click="RefreshIndex_Click" Content="Refresh status" />
+                                    <Button Click="OpenIndexingOptions_Click" Content="Windows options…" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!--  ── PRIVACY & DATA ──  -->
+                    <StackPanel x:Name="PrivacySection" Spacing="10">
+                        <TextBlock Style="{StaticResource SectionHeadingStyle}" Text="Privacy &amp; data" />
+                        <Border Padding="18,16" Style="{StaticResource GlassCardStyle}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Style="{StaticResource FieldHintStyle}" Text="Conversations and keys stay on this PC. Cloud providers only receive what you send them." />
+                                <StackPanel Spacing="2">
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Data location" />
+                                    <TextBlock FontFamily="{StaticResource MonoFontFamily}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Text="%LOCALAPPDATA%\WindowsAI" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Click="OpenDataFolder_Click" Content="Open data folder" />
+                                    <Button Click="OpenCrashLog_Click" Content="Open crash log" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!--  ── ABOUT ──  -->
                     <StackPanel x:Name="AboutSection" Spacing="10">
                         <TextBlock Style="{StaticResource SectionHeadingStyle}" Text="About" />
-
                         <Border Padding="20,16" Style="{StaticResource GlassCardSubtleStyle}">
-                            <StackPanel Spacing="10">
+                            <StackPanel Spacing="12">
                                 <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <TextBlock
-                                        FontSize="15"
-                                        Foreground="{StaticResource GlowGradientBrush}"
-                                        Text="✦" />
-                                    <TextBlock
-                                        FontSize="16"
-                                        FontWeight="SemiBold"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
-                                        Text="WindowsAI" />
+                                    <TextBlock FontSize="15" Foreground="{StaticResource GlowGradientBrush}" Text="✦" />
+                                    <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Text="WindowsAI" />
+                                    <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource TextTertiaryBrush}" Text="{x:Bind AppVersion}" />
                                 </StackPanel>
-                                <Grid ColumnSpacing="24" RowSpacing="6">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
 
-                                    <TextBlock
-                                        Grid.Row="0"
-                                        Grid.Column="0"
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextTertiaryBrush}"
-                                        Text="Version" />
-                                    <TextBlock
-                                        Grid.Row="0"
-                                        Grid.Column="1"
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
-                                        Text="{x:Bind AppVersion}" />
+                                <StackPanel Spacing="6">
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Shortcuts" />
+                                    <Grid ColumnSpacing="12" RowSpacing="6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Style="{StaticResource FieldHintStyle}" Text="Summon search" />
+                                            <TextBlock FontFamily="{StaticResource MonoFontFamily}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Text="{x:Bind ViewModel.SummonHotkeyText, Mode=OneWay}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" VerticalAlignment="Center" Click="ChangeSummonHotkey_Click" Content="Change…" />
+                                    </Grid>
+                                </StackPanel>
 
-                                    <TextBlock
-                                        Grid.Row="1"
-                                        Grid.Column="0"
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextTertiaryBrush}"
-                                        Text="Summon" />
-                                    <TextBlock
-                                        Grid.Row="1"
-                                        Grid.Column="1"
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
-                                        Text="Alt + Space  ·  Writing tools: Ctrl + Shift + Space  ·  Ask about screen: Alt + Shift + S" />
-
-                                    <TextBlock
-                                        Grid.Row="2"
-                                        Grid.Column="0"
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextTertiaryBrush}"
-                                        Text="Privacy" />
-                                    <TextBlock
-                                        Grid.Row="2"
-                                        Grid.Column="1"
-                                        FontSize="12"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
-                                        Text="Conversations and keys never leave this PC unless you use a cloud model."
-                                        TextWrapping="Wrap" />
-                                </Grid>
+                                <TextBlock Style="{StaticResource FieldHintStyle}" Text="Visual Intelligence and Writing Tools shortcuts are on their own pages." />
                             </StackPanel>
                         </Border>
                     </StackPanel>
