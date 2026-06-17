@@ -131,6 +131,10 @@ loop (scripted stub client → tool invoked with the right args → final reply 
   global chords over one window subclass.
 - ✅ **Verified by screen capture**: menu + streamed Proofread result render on-brand and
   `gemma4:e2b` corrected the sample text.
+- ✅ **Saved to unified history + Open in chat**: each transform/ask in a popup session is persisted
+  as a `WritingTools`-tagged conversation (request + selection → result); an **Open in chat** action
+  escalates the thread into the full shell chat (adds the `Chat` tag → two chips). The Ask prompt now
+  permits structured Markdown (tables/lists/code) when it makes the answer clearer.
 - 🚧 **Cross-app paste injection pending manual check** — the final Ctrl+V into a third-party app
   needs real (trusted) keyboard input, which the automated QA harness can't synthesize.
 
@@ -155,6 +159,11 @@ loop (scripted stub client → tool invoked with the right args → final reply 
 - ✅ **Hotkey + Settings**: `Alt+Shift+S` (`HotkeyDefinition.VisualIntelligence`, multiplexed through
   the same `HotkeyManager` subclass) opens the capture; the vision model id is editable on the
   Settings page under OpenRouter.
+- ✅ **Markdown answers + history + Open in chat**: answers render through the shared
+  `MessageContentControl` (tables/lists/code as real formatting), driven by a markdown-oriented
+  `VisionService` prompt. Each region session is saved as a `VisualIntelligence`-tagged conversation
+  with the crop copied to stable media storage and embedded as a thumbnail; **Open in chat** escalates
+  it into the full chat, re-attaching the image for follow-ups (→ `[VisualIntelligence, Chat]`, two chips).
 - 🚧 **Live vision round-trip pending** — needs an OpenRouter key + a real model call; the streaming
   path reuses the proven `OpenRouterChatProvider` image-attachment client.
 

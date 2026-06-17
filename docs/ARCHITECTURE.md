@@ -70,6 +70,28 @@ and the shell write to one shared conversation archive while keeping independent
 
 ---
 
+## Unified history and source chips
+
+Every surface that talks to a model writes to the **same** conversation archive (`IConversationStore`):
+the chat, the overlay, **Visual Intelligence**, and **Writing Tools**. Each `StoredConversation`
+records where it came from in `Sources` (`Chat`, `VisualIntelligence`, `WritingTools`) — a list, not a
+single value, because a conversation can pick up a second origin.
+
+- **Visual Intelligence** and **Writing Tools** persist each exchange as its own conversation tagged
+  with that origin. VI copies the captured region into stable media storage (`ConversationMedia`) and
+  embeds it in the first turn as a markdown image, so the saved transcript still renders the thumbnail.
+- **Open in chat** escalates a satellite exchange into the full shell chat: `App.EscalateToChat` opens
+  the window, calls `ChatViewModel.AdoptAsync` (which loads the transcript, re-attaches the region
+  image for follow-up context, and **adds `Chat`** to `Sources`), then navigates to it. An escalated VI
+  exchange therefore carries `[VisualIntelligence, Chat]` — rendered as **two chips**.
+- `ConversationSourceTag.From` maps `Sources` to chips, shown in the History list rows and above the
+  active chat. Plain chats (no non-chat origin) get no chip, so the badges stay meaningful.
+
+VI answers render through the shared `MessageContentControl`, so tables/lists/code come back as real
+formatting rather than raw markdown — driven by the markdown-oriented `VisionService` system prompt.
+
+---
+
 ## The chat pipeline
 
 All chat flows through `ChatOrchestrator` in the core. It resolves the model for a capability (chat
@@ -251,7 +273,8 @@ shell and overlay update independently. Each tool is offered only when its **fea
 | Data | Location | Format and protection |
 | :--- | :--- | :--- |
 | Settings | `%LOCALAPPDATA%\WindowsAI\settings.json` | Plain JSON, versioned (`SchemaVersion`); migrated in place on load |
-| Conversations | `%LOCALAPPDATA%\WindowsAI\conversations\` | One JSON file per conversation, auto-titled |
+| Conversations | `%LOCALAPPDATA%\WindowsAI\conversations\` | One JSON file per conversation, auto-titled; each carries origin `Sources` |
+| Conversation media | `%LOCALAPPDATA%\WindowsAI\conversations\media\` | Stable copies of conversation images (e.g. Visual Intelligence region crops) |
 | Secrets | `%LOCALAPPDATA%\WindowsAI\secrets\` | DPAPI-encrypted, per-user |
 | Crash log | `%TEMP%\WindowsAI-crash.log` | Appended plain text |
 
