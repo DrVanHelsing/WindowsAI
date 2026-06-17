@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace WindowsAI.Core.History;
 
@@ -13,6 +14,9 @@ public sealed class JsonConversationStore : IConversationStore
     {
         WriteIndented = true,
         PropertyNameCaseInsensitive = true,
+        // Persist the source tags as readable strings ("VisualIntelligence") rather than ints,
+        // and tolerate unknown names from a newer build by skipping them.
+        Converters = { new JsonStringEnumConverter(allowIntegerValues: true) },
     };
 
     private readonly string _dir;

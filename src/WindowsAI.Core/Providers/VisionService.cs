@@ -15,7 +15,12 @@ public sealed class VisionService
     private const string SystemPrompt =
         "You are WindowsAI's visual assistant. The user captured a region of their screen and is " +
         "asking about it. Answer concisely and helpfully, describing exactly what is shown and " +
-        "addressing their question directly.";
+        "addressing their question directly. " +
+        "Format your answer in Markdown so structure is preserved: when the region contains a table " +
+        "or spreadsheet, reproduce it as a Markdown table (| header | … | with a |---| separator row); " +
+        "render lists as Markdown lists, key/value pairs as a short list or two-column table, and code " +
+        "or terminal output in fenced code blocks. Transcribe text, numbers, and labels faithfully — " +
+        "do not invent or omit cells. Keep prose minimal when the user just wants the data extracted.";
 
     private readonly CapabilityRouter _router;
 

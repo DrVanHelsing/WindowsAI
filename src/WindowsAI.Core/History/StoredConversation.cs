@@ -1,5 +1,22 @@
 namespace WindowsAI.Core.History;
 
+/// <summary>
+/// Where a conversation originated. A conversation can carry more than one tag: a Visual
+/// Intelligence exchange that the user escalates to the full chat ends up tagged with both
+/// <see cref="VisualIntelligence"/> and <see cref="Chat"/> (two chips in the UI).
+/// </summary>
+public enum ConversationSource
+{
+    /// <summary>Started in (or escalated to) the main app chat.</summary>
+    Chat,
+
+    /// <summary>Started from a Visual Intelligence screen-region capture.</summary>
+    VisualIntelligence,
+
+    /// <summary>Started from the type-anywhere Writing Tools popup.</summary>
+    WritingTools,
+}
+
 /// <summary>A persisted chat session: an ordered list of messages plus display metadata.</summary>
 public sealed class StoredConversation
 {
@@ -15,6 +32,13 @@ public sealed class StoredConversation
 
     /// <summary>Pinned conversations float to a "Pinned" group at the top of history.</summary>
     public bool IsPinned { get; set; }
+
+    /// <summary>
+    /// Where this conversation came from, in the order it was acquired (e.g. <c>[VisualIntelligence, Chat]</c>
+    /// once escalated). Drives the source chips. Older saved conversations deserialize with this empty —
+    /// callers treat an empty list as a plain <see cref="ConversationSource.Chat"/> conversation.
+    /// </summary>
+    public List<ConversationSource> Sources { get; set; } = new();
 
     public List<StoredMessage> Messages { get; set; } = new();
 

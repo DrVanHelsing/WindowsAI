@@ -51,6 +51,9 @@ try
         var older = new StoredConversation { Title = "older", UpdatedAt = DateTimeOffset.Now.AddMinutes(-5) };
         older.Messages.Add(new StoredMessage { Author = "You", Text = "hello", IsUser = true });
         var newer = new StoredConversation { Title = "newer", UpdatedAt = DateTimeOffset.Now };
+        // An escalated Visual Intelligence exchange carries two source tags.
+        newer.Sources.Add(ConversationSource.VisualIntelligence);
+        newer.Sources.Add(ConversationSource.Chat);
 
         await store.SaveAsync(older);
         await store.SaveAsync(newer);
@@ -62,6 +65,14 @@ try
         var fetched = await store.GetAsync(older.Id);
         Check("get returns full message body",
             fetched is { Messages.Count: 1 } && fetched.Messages[0].Text == "hello");
+
+        var fetchedNewer = await store.GetAsync(newer.Id);
+        Check("source tags round-trip",
+            fetchedNewer is { Sources.Count: 2 }
+            && fetchedNewer.Sources[0] == ConversationSource.VisualIntelligence
+            && fetchedNewer.Sources[1] == ConversationSource.Chat);
+        Check("source tags persist as readable strings",
+            File.ReadAllText(Path.Combine(tmp, "conversations", $"{newer.Id}.json")).Contains("VisualIntelligence"));
 
         await store.DeleteAsync(older.Id);
         var afterDelete = await store.ListAsync();
