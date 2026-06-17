@@ -66,7 +66,9 @@ public sealed partial class WritingToolsWindow : Window
         }
 
         _appWindow.IsShownInSwitchers = true;
-        SystemBackdrop = new MicaBackdrop();
+        // Mica is Windows 11-only; on Windows 10 it simply doesn't apply. Guard it so the window
+        // falls back to its solid background instead of relying on silent no-op behavior.
+        try { SystemBackdrop = new MicaBackdrop(); } catch { /* Windows 10: solid background */ }
 
         // Branding lives in the native window title bar — the app icon (logo) and the window title —
         // not redrawn in the body. The content does not extend into the title bar, so there is a
