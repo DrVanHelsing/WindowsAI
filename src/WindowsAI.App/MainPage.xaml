@@ -48,14 +48,21 @@
             Inline gradient avoids StaticResource resolution inside a ControlTemplate.
         -->
         <Style x:Key="GradientCircleButtonStyle" TargetType="Button">
-            <Setter Property="Width" Value="40" />
-            <Setter Property="Height" Value="40" />
+            <!--  The button BOX is 52 so it fully contains its largest child (the 50px glow halo and
+                  the 48px focus ring). If a child overflowed the box, WinUI would apply a rectangular
+                  layout clip at the button bounds and the round glow/ring would be clipped into a
+                  squircle — the "phantom square behind the send button" bug. The VISIBLE circle stays
+                  40px (the gradient ellipse below is pinned to 40), so the look is unchanged.  -->
+            <Setter Property="Width" Value="52" />
+            <Setter Property="Height" Value="52" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <!--  The round button can't wear the default rectangular focus rect — we draw a ring instead.  -->
             <Setter Property="UseSystemFocusVisuals" Value="False" />
+            <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+            <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -138,8 +145,13 @@
                                 Stroke="{StaticResource TextPrimaryBrush}"
                                 StrokeThickness="2" />
 
-                            <!--  Gradient fill ellipse — Electric Iris glow  -->
-                            <Ellipse>
+                            <!--  Gradient fill ellipse — Electric Iris glow. Pinned to 40 so the visible
+                                  circle keeps its size while the button box is 52 (see Width setter).  -->
+                            <Ellipse
+                                Width="40"
+                                Height="40"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
                                 <Ellipse.Fill>
                                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                         <GradientStop Offset="0.0" Color="#4F8CFF" />

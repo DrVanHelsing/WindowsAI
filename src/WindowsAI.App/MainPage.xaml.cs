@@ -34,11 +34,25 @@ public sealed partial class MainPage : Page
         base.OnNavigatedTo(e);
         // "new" parameter means the New Chat button was tapped in the sidebar.
         if (e.Parameter is "new")
+        {
             ViewModel.NewConversationCommand.Execute(null);
+            FocusComposer();
+        }
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
-        => await ViewModel.InitializeAsync();
+    {
+        // Land keyboard focus in the composer so the caret blinks immediately and nothing else takes
+        // initial focus. Enqueued at low priority so it runs AFTER the window finishes activating and
+        // after any default focus assignment — and independently of InitializeAsync (which can throw).
+        FocusComposer();
+        await ViewModel.InitializeAsync();
+    }
+
+    /// <summary>Moves keyboard focus into the chat input once the current layout/activation settles.</summary>
+    private void FocusComposer() => DispatcherQueue.TryEnqueue(
+        Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
+        () => InputBox.Focus(FocusState.Programmatic));
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
