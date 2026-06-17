@@ -116,6 +116,35 @@
                                     FontSize="11"
                                     Foreground="{StaticResource TextGhostBrush}"
                                     Text="{x:Bind Meta}" />
+
+                                <!--  Origin chips — Visual Intelligence / Writing Tools (+ Chat once escalated)  -->
+                                <ItemsControl
+                                    Margin="0,4,0,0"
+                                    ItemsSource="{x:Bind SourceTags}"
+                                    Visibility="{x:Bind HasSourceTags, Converter={StaticResource BoolToVisConverter}}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="6" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ConversationSourceTag">
+                                            <Border Style="{StaticResource SourceChipStyle}">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <FontIcon
+                                                        FontSize="12"
+                                                        Foreground="{StaticResource AccentTextBrush}"
+                                                        Glyph="{x:Bind Glyph}" />
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        FontSize="11"
+                                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                                        Text="{x:Bind Label}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
 
                             <!-- Row actions — quiet until the row is hovered; each opens a modal -->

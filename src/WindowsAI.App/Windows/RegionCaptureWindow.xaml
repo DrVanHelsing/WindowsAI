@@ -135,18 +135,39 @@
                                 Foreground="{StaticResource TextPrimaryBrush}"
                                 Text="Ask about this region" />
                         </StackPanel>
-                        <Button
-                            x:Name="CloseButton"
-                            Padding="8"
+                        <StackPanel
                             HorizontalAlignment="Right"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Click="Close_Click"
-                            Foreground="{StaticResource TextTertiaryBrush}"
-                            AutomationProperties.Name="Close"
-                            ToolTipService.ToolTip="Close (Esc)">
-                            <FontIcon FontSize="13" Glyph="&#xE711;" />
-                        </Button>
+                            Orientation="Horizontal"
+                            Spacing="4">
+                            <!--  Escalate this exchange to the full app chat (carries transcript + region image)  -->
+                            <Button
+                                x:Name="OpenInChatButton"
+                                Padding="10,6"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Click="OpenInChat_Click"
+                                CornerRadius="{StaticResource RadiusMedium}"
+                                Foreground="{StaticResource AccentTextBrush}"
+                                Visibility="Collapsed"
+                                AutomationProperties.Name="Open in chat"
+                                ToolTipService.ToolTip="Continue this in the full chat">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon FontSize="13" Glyph="&#xE8BD;" />
+                                    <TextBlock FontSize="12" Text="Open in chat" />
+                                </StackPanel>
+                            </Button>
+                            <Button
+                                x:Name="CloseButton"
+                                Padding="8"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Click="Close_Click"
+                                Foreground="{StaticResource TextTertiaryBrush}"
+                                AutomationProperties.Name="Close"
+                                ToolTipService.ToolTip="Close (Esc)">
+                                <FontIcon FontSize="13" Glyph="&#xE711;" />
+                            </Button>
+                        </StackPanel>
                     </Grid>
 
                     <!-- Captured thumbnail -->
@@ -213,12 +234,8 @@
                         CornerRadius="{StaticResource RadiusMedium}">
                         <Grid>
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <TextBlock
-                                    x:Name="AnswerText"
-                                    FontSize="14"
-                                    Foreground="{StaticResource TextPrimaryBrush}"
-                                    IsTextSelectionEnabled="True"
-                                    TextWrapping="Wrap" />
+                                <!--  Markdown-rendered answer: tables/lists/code render properly (shared with chat)  -->
+                                <controls:MessageContentControl x:Name="AnswerView" />
                             </ScrollViewer>
                             <StackPanel
                                 x:Name="ThinkingRow"

@@ -85,6 +85,20 @@ public partial class ChatViewModel : ObservableObject
     /// <summary>Id of the conversation being built — saved to history after each exchange.</summary>
     public string CurrentConversationId => _current.Id;
 
+    /// <summary>
+    /// Origin chips for the active conversation (e.g. "Visual Intelligence" + "Chat" for an
+    /// escalated exchange). Empty for a plain chat — see <see cref="ConversationSourceTag.From"/>.
+    /// </summary>
+    public IReadOnlyList<ConversationSourceTag> SourceTags => ConversationSourceTag.From(_current.Sources);
+
+    public bool HasSourceTags => SourceTags.Count > 0;
+
+    private void NotifySourceTagsChanged()
+    {
+        OnPropertyChanged(nameof(SourceTags));
+        OnPropertyChanged(nameof(HasSourceTags));
+    }
+
     public string ModelLabel => _orchestrator.ActiveModelLabel;
 
     /// <summary>Compact badge text — the active model's <see cref="ModelOption.ShortName"/>.</summary>
@@ -521,8 +535,9 @@ public partial class ChatViewModel : ObservableObject
     {
         Messages.Clear();
         _conversation.Clear();
-        _current = new StoredConversation();
+        _current = new StoredConversation { Sources = { ConversationSource.Chat } };
         _conversation.Add(new ChatMessage(ChatRole.System, EffectiveSystemPrompt()));
+        NotifySourceTagsChanged();
     }
 
     /// <summary>Replaces the current session with a saved one loaded from history.</summary>
@@ -532,6 +547,39 @@ public partial class ChatViewModel : ObservableObject
         if (convo is null)
             return;
 
+        Adopt(convo);
+
+        // Restore this conversation's pinned model, if it saved one.
+        if (_current.Overrides is { ProviderId: { Length: > 0 } providerId, ModelId: { Length: > 0 } modelId })
+            await _activeModel.SetAsync(providerId, modelId);
+    }
+
+    /// <summary>
+    /// Takes over a conversation started on another surface (Visual Intelligence / Writing Tools)
+    /// so the user can keep going in the full chat. Tags it <see cref="ConversationSource.Chat"/>
+    /// (yielding the second chip), re-attaches an optional source image so follow-up questions keep
+    /// visual context, persists the new tag, and leaves the transcript ready to continue.
+    /// </summary>
+    public async Task AdoptAsync(StoredConversation convo, string? imagePath = null)
+    {
+        Adopt(convo);
+
+        if (!_current.Sources.Contains(ConversationSource.Chat))
+            _current.Sources.Add(ConversationSource.Chat);
+        NotifySourceTagsChanged();
+
+        if (_current.Overrides is { ProviderId: { Length: > 0 } providerId, ModelId: { Length: > 0 } modelId })
+            await _activeModel.SetAsync(providerId, modelId);
+
+        if (!string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+            AddAttachments([imagePath]);
+
+        await PersistAsync();
+    }
+
+    /// <summary>Loads a stored transcript into the visible bubbles and the model context.</summary>
+    private void Adopt(StoredConversation convo)
+    {
         _current = convo;
 
         Messages.Clear();
@@ -544,9 +592,7 @@ public partial class ChatViewModel : ObservableObject
             _conversation.Add(new ChatMessage(m.IsUser ? ChatRole.User : ChatRole.Assistant, m.Text));
         }
 
-        // Restore this conversation's pinned model, if it saved one.
-        if (_current.Overrides is { ProviderId: { Length: > 0 } providerId, ModelId: { Length: > 0 } modelId })
-            await _activeModel.SetAsync(providerId, modelId);
+        NotifySourceTagsChanged();
     }
 
     /// <summary>This conversation's custom system prompt, or empty when it uses the app default.</summary>
@@ -587,6 +633,11 @@ public partial class ChatViewModel : ObservableObject
     /// <summary>Snapshots the visible conversation to the store after each completed exchange.</summary>
     private async Task PersistAsync()
     {
+        // A conversation saved through the chat surface is, by definition, a chat — tag it so it
+        // gets the right origin (older saved chats with no tag pick this up on their next save).
+        if (!_current.Sources.Contains(ConversationSource.Chat))
+            _current.Sources.Add(ConversationSource.Chat);
+
         _current.Messages = Messages
             .Select(m => new StoredMessage { Author = m.Author, Text = m.Text, IsUser = m.IsUser })
             .ToList();

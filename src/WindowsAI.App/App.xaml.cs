@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using WindowsAI.Core;
 using WindowsAI.Core.Configuration;
+using WindowsAI.Core.History;
 using WindowsAI.Core.Security;
 using WindowsAI.Services.Hotkeys;
 using WindowsAI.Services.Inference;
@@ -194,6 +195,8 @@ public partial class App : Application
             _writingTools = new WritingToolsController(
                 Services.GetRequiredService<WindowsAI.Services.Writing.TextSelectionService>(),
                 Services.GetRequiredService<WindowsAI.Core.Writing.WritingToolsService>(),
+                Services.GetRequiredService<IConversationStore>(),
+                EscalateToChat,
                 _overlay.DispatcherQueue,
                 window => _themeSync?.RegisterWindow(window.ThemeRoot));
             _hotkey.Add(ToDefinition(features.WritingToolsHotkey), () => _writingTools?.Trigger());
@@ -204,6 +207,8 @@ public partial class App : Application
             _visualIntelligence = new VisualIntelligenceController(
                 Services.GetRequiredService<WindowsAI.Services.Capture.ScreenCaptureService>(),
                 Services.GetRequiredService<WindowsAI.Core.Providers.VisionService>(),
+                Services.GetRequiredService<IConversationStore>(),
+                EscalateToChat,
                 _overlay.DispatcherQueue,
                 window => _themeSync?.RegisterWindow(window.ThemeRoot));
             _hotkey.Add(ToDefinition(features.VisualIntelligenceHotkey), () => _visualIntelligence?.Trigger());
@@ -249,6 +254,24 @@ public partial class App : Application
     /// <summary>Another launch of the app was redirected here — surface the main window.</summary>
     private void OnActivationRedirected(object? sender, Microsoft.Windows.AppLifecycle.AppActivationArguments e)
         => _overlay?.DispatcherQueue.TryEnqueue(ShowMainApp);
+
+    /// <summary>
+    /// Escalates a conversation started on a satellite surface (Visual Intelligence / Writing Tools)
+    /// into the full app chat: opens the shell, adopts the saved transcript into the shared chat view
+    /// model (re-attaching the region image when supplied), and navigates to it. async void by design —
+    /// it's a fire-and-forget UI callback handed to those controllers.
+    /// </summary>
+    public async void EscalateToChat(string conversationId, string? imagePath)
+    {
+        ShowMainApp();
+
+        var convo = await Services.GetRequiredService<IConversationStore>().GetAsync(conversationId);
+        if (convo is null)
+            return;
+
+        await GetService<ChatViewModel>().AdoptAsync(convo, imagePath);
+        _mainWindow?.ShowChat();
+    }
 
     /// <summary>Summons the overlay search surface.</summary>
     public void ShowOverlay() => _overlay?.ShowOverlay();

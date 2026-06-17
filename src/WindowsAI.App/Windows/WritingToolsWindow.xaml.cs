@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.Graphics;
 using Windows.System;
+using WindowsAI.Core.History;
 using WindowsAI.Core.Writing;
 using WindowsAI.Services;
 using WindowsAI.Services.Interop;
@@ -31,6 +32,8 @@ public sealed partial class WritingToolsWindow : Window
     private readonly AppWindow _appWindow;
     private readonly TextSelectionService _selectionService;
     private readonly WritingToolsService _writing;
+    private readonly IConversationStore _store;
+    private readonly Action<string, string?> _escalateToChat;
 
     private IntPtr _targetWindow;
     private string _selection = string.Empty;
@@ -38,15 +41,25 @@ public sealed partial class WritingToolsWindow : Window
     private string _result = string.Empty;
     private CancellationTokenSource? _cts;
 
+    // History for the current popup session (one selection): each transform/ask appends a turn so the
+    // user can pick up the thread in the full chat. Reset on each ShowFor.
+    private StoredConversation? _session;
+
     public IntPtr Hwnd { get; }
 
     /// <summary>Root element ThemeSyncService flips to track the OS light/dark setting.</summary>
     public FrameworkElement ThemeRoot => RootHost;
 
-    public WritingToolsWindow(TextSelectionService selectionService, WritingToolsService writing)
+    public WritingToolsWindow(
+        TextSelectionService selectionService,
+        WritingToolsService writing,
+        IConversationStore store,
+        Action<string, string?> escalateToChat)
     {
         _selectionService = selectionService;
         _writing = writing;
+        _store = store;
+        _escalateToChat = escalateToChat;
 
         InitializeComponent();
 
@@ -100,6 +113,8 @@ public sealed partial class WritingToolsWindow : Window
         _targetWindow = targetWindow;
         _originalClipboard = originalClipboard;
         _result = string.Empty;
+        _session = null;
+        OpenInChatButton.IsEnabled = false;
 
         SelectionPreview.Text = selection.Trim();
         AskBox.Text = string.Empty;
@@ -200,7 +215,7 @@ public sealed partial class WritingToolsWindow : Window
     private async void ActionButton_Click(object sender, RoutedEventArgs e)
     {
         if (((FrameworkElement)sender).Tag is WritingAction action)
-            await RunStreamAsync(ct => _writing.StreamAsync(action, _selection, ct));
+            await RunStreamAsync(action.Label, ct => _writing.StreamAsync(action, _selection, ct));
     }
 
     // ── Ask (free-form request about the selection) ───────────────────────────
@@ -221,7 +236,7 @@ public sealed partial class WritingToolsWindow : Window
         var request = AskBox.Text.Trim();
         if (request.Length == 0)
             return;
-        await RunStreamAsync(ct => _writing.StreamAskAsync(request, _selection, ct));
+        await RunStreamAsync(request, ct => _writing.StreamAskAsync(request, _selection, ct));
     }
 
     /// <summary>
@@ -229,7 +244,7 @@ public sealed partial class WritingToolsWindow : Window
     /// result state, streams deltas into the result text, then cleans + freezes the final answer.
     /// Cancels any in-flight run first so a newer request always wins.
     /// </summary>
-    private async Task RunStreamAsync(Func<CancellationToken, IAsyncEnumerable<string>> stream)
+    private async Task RunStreamAsync(string userPrompt, Func<CancellationToken, IAsyncEnumerable<string>> stream)
     {
         ShowResultState();
         SetResultBusy(true);
@@ -255,6 +270,9 @@ public sealed partial class WritingToolsWindow : Window
 
             _result = WritingPrompt.CleanResult(sb.ToString());
             ResultText.Text = _result.Length == 0 ? "(no response)" : _result;
+
+            if (_result.Length > 0)
+                await SaveTurnAsync(userPrompt, _result);
         }
         catch (OperationCanceledException)
         {
@@ -277,6 +295,49 @@ public sealed partial class WritingToolsWindow : Window
         ReplaceButton.IsEnabled = !busy && _result.Length > 0;
         CopyButton.IsEnabled = !busy && _result.Length > 0;
         BackButton.IsEnabled = !busy;
+        OpenInChatButton.IsEnabled = !busy && _session is not null;
+    }
+
+    // ── History + escalation ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Appends this transform/ask to the popup session's saved conversation and persists it. The user
+    /// turn records the request plus the selection (as a blockquote) so the saved thread reads sensibly
+    /// and the model has the source text if the user continues in chat. Best-effort — a history failure
+    /// must never disrupt the result the user is about to paste.
+    /// </summary>
+    private async Task SaveTurnAsync(string userPrompt, string result)
+    {
+        try
+        {
+            _session ??= new StoredConversation { Sources = { ConversationSource.WritingTools } };
+
+            var quoted = "> " + _selection.Trim().ReplaceLineEndings("\n").Replace("\n", "\n> ");
+            var userText = $"{userPrompt}:\n\n{quoted}";
+
+            _session.Messages.Add(new StoredMessage { Author = "You", Text = userText, IsUser = true });
+            _session.Messages.Add(new StoredMessage { Author = "Writing Tools", Text = result, IsUser = false });
+
+            if (string.IsNullOrWhiteSpace(_session.Title))
+                _session.Title = userPrompt.Length <= 60 ? userPrompt : userPrompt[..60].TrimEnd() + "…";
+
+            _session.UpdatedAt = DateTimeOffset.Now;
+            await _store.SaveAsync(_session);
+        }
+        catch
+        {
+            // History is best-effort — never break the transform over a failed save.
+        }
+    }
+
+    private void OpenInChat_Click(object sender, RoutedEventArgs e)
+    {
+        if (_session is null)
+            return;
+
+        var id = _session.Id;
+        Hide();
+        _escalateToChat(id, null);
     }
 
     // ── Result actions ───────────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 using Microsoft.UI.Dispatching;
+using WindowsAI.Core.History;
 using WindowsAI.Core.Writing;
 using WindowsAI.Services.Interop;
 using WindowsAI.Services.Writing;
@@ -17,6 +18,8 @@ public sealed class WritingToolsController
 {
     private readonly TextSelectionService _selectionService;
     private readonly WritingToolsService _writing;
+    private readonly IConversationStore _store;
+    private readonly Action<string, string?> _escalateToChat;
     private readonly DispatcherQueue _dispatcher;
     private readonly Action<WritingToolsWindow> _registerWindowTheme;
 
@@ -26,11 +29,15 @@ public sealed class WritingToolsController
     public WritingToolsController(
         TextSelectionService selectionService,
         WritingToolsService writing,
+        IConversationStore store,
+        Action<string, string?> escalateToChat,
         DispatcherQueue dispatcher,
         Action<WritingToolsWindow> registerWindowTheme)
     {
         _selectionService = selectionService;
         _writing = writing;
+        _store = store;
+        _escalateToChat = escalateToChat;
         _dispatcher = dispatcher;
         _registerWindowTheme = registerWindowTheme;
     }
@@ -104,7 +111,7 @@ public sealed class WritingToolsController
 
     private WritingToolsWindow CreateWindow()
     {
-        var window = new WritingToolsWindow(_selectionService, _writing);
+        var window = new WritingToolsWindow(_selectionService, _writing, _store, _escalateToChat);
         _registerWindowTheme(window);
         return window;
     }

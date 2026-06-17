@@ -124,6 +124,7 @@ public sealed class ConversationSummary
         Id = convo.Id;
         Title = string.IsNullOrWhiteSpace(convo.Title) ? "Untitled conversation" : convo.Title;
         IsPinned = convo.IsPinned;
+        SourceTags = ConversationSourceTag.From(convo.Sources);
 
         var count = convo.Messages.Count;
         var when = convo.UpdatedAt.LocalDateTime;
@@ -138,6 +139,11 @@ public sealed class ConversationSummary
     public string Id { get; }
 
     public string Title { get; }
+
+    /// <summary>Origin chips (Visual Intelligence / Writing Tools, plus Chat once escalated). Empty for plain chats.</summary>
+    public IReadOnlyList<ConversationSourceTag> SourceTags { get; }
+
+    public bool HasSourceTags => SourceTags.Count > 0;
 
     public string Meta { get; }
 

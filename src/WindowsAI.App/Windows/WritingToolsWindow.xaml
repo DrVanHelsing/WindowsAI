@@ -253,6 +253,26 @@
                         <FontIcon FontSize="13" Glyph="&#xE8C8;" />
                     </Button>
 
+                    <!--  Continue this transform in the full app chat (saves + opens with history)  -->
+                    <Button
+                        x:Name="OpenInChatButton"
+                        Grid.Column="2"
+                        Padding="10,8"
+                        HorizontalAlignment="Left"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Click="OpenInChat_Click"
+                        CornerRadius="{StaticResource RadiusMedium}"
+                        Foreground="{StaticResource AccentTextBrush}"
+                        IsEnabled="False"
+                        AutomationProperties.Name="Open in chat"
+                        ToolTipService.ToolTip="Continue this in the full chat">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="13" Glyph="&#xE8BD;" />
+                            <TextBlock FontSize="13" Text="Open in chat" />
+                        </StackPanel>
+                    </Button>
+
                     <Button
                         x:Name="ReplaceButton"
                         Grid.Column="3"

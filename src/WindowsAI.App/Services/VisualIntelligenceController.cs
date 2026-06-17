@@ -1,4 +1,5 @@
 using Microsoft.UI.Dispatching;
+using WindowsAI.Core.History;
 using WindowsAI.Core.Providers;
 using WindowsAI.Services.Capture;
 using WindowsAI_App.Windows;
@@ -15,6 +16,8 @@ public sealed class VisualIntelligenceController
 {
     private readonly ScreenCaptureService _capture;
     private readonly VisionService _vision;
+    private readonly IConversationStore _store;
+    private readonly Action<string, string?> _escalateToChat;
     private readonly DispatcherQueue _dispatcher;
     private readonly Action<RegionCaptureWindow> _registerWindowTheme;
 
@@ -24,11 +27,15 @@ public sealed class VisualIntelligenceController
     public VisualIntelligenceController(
         ScreenCaptureService capture,
         VisionService vision,
+        IConversationStore store,
+        Action<string, string?> escalateToChat,
         DispatcherQueue dispatcher,
         Action<RegionCaptureWindow> registerWindowTheme)
     {
         _capture = capture;
         _vision = vision;
+        _store = store;
+        _escalateToChat = escalateToChat;
         _dispatcher = dispatcher;
         _registerWindowTheme = registerWindowTheme;
     }
@@ -59,7 +66,7 @@ public sealed class VisualIntelligenceController
 
     private RegionCaptureWindow CreateWindow()
     {
-        var window = new RegionCaptureWindow(_vision);
+        var window = new RegionCaptureWindow(_vision, _store, _escalateToChat);
         _registerWindowTheme(window);
         return window;
     }

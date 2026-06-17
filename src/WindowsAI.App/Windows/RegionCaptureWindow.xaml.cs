@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Foundation;
 using Windows.Graphics;
 using Windows.System;
+using WindowsAI.Core.History;
 using WindowsAI.Core.Providers;
 using WindowsAI.Services;
 using WindowsAI.Services.Capture;
@@ -29,6 +30,8 @@ public sealed partial class RegionCaptureWindow : Window
 
     private readonly AppWindow _appWindow;
     private readonly VisionService _vision;
+    private readonly IConversationStore _store;
+    private readonly Action<string, string?> _escalateToChat;
 
     private CapturedScreen? _capture;
     private bool _selecting;
@@ -37,14 +40,21 @@ public sealed partial class RegionCaptureWindow : Window
     private byte[]? _cropBytes;
     private CancellationTokenSource? _cts;
 
+    // History for the current region: built up turn-by-turn and saved after each answer. The crop is
+    // copied once into stable media storage so the saved transcript still shows its thumbnail later.
+    private StoredConversation? _session;
+    private string? _sessionImagePath;
+
     public IntPtr Hwnd { get; }
 
     /// <summary>Root element ThemeSyncService flips to track the OS light/dark setting.</summary>
     public FrameworkElement ThemeRoot => RootHost;
 
-    public RegionCaptureWindow(VisionService vision)
+    public RegionCaptureWindow(VisionService vision, IConversationStore store, Action<string, string?> escalateToChat)
     {
         _vision = vision;
+        _store = store;
+        _escalateToChat = escalateToChat;
 
         InitializeComponent();
 
@@ -91,9 +101,10 @@ public sealed partial class RegionCaptureWindow : Window
         // Reset to the "drag to select" state.
         ResetSelectionState();
         AskOverlay.Visibility = Visibility.Collapsed;
-        AnswerText.Text = string.Empty;
+        AnswerView.Text = string.Empty;
         QuestionBox.Text = string.Empty;
         HintBanner.Visibility = Visibility.Visible;
+        ResetSession();
 
         RootHost.Opacity = 0;
         _appWindow.Show();
@@ -201,8 +212,10 @@ public sealed partial class RegionCaptureWindow : Window
         ThumbImage.Source = new BitmapImage(new Uri(path));
 
         HintBanner.Visibility = Visibility.Collapsed;
-        AnswerText.Text = string.Empty;
+        AnswerView.Text = string.Empty;
         AskOverlay.Visibility = Visibility.Visible;
+        // A new region starts a fresh conversation — drop the previous region's saved session.
+        ResetSession();
         QuestionBox.Focus(FocusState.Programmatic);
     }
 
@@ -268,31 +281,38 @@ public sealed partial class RegionCaptureWindow : Window
         var cts = _cts = new CancellationTokenSource();
 
         SetBusy(true);
-        AnswerText.Text = string.Empty;
+        AnswerView.Text = string.Empty;
 
+        var question = QuestionBox.Text;
         var sb = new StringBuilder();
         try
         {
-            await foreach (var delta in _vision.StreamAsync(_cropBytes, "image/png", QuestionBox.Text, cts.Token))
+            await foreach (var delta in _vision.StreamAsync(_cropBytes, "image/png", question, cts.Token))
             {
                 if (cts.IsCancellationRequested)
                     return;
                 sb.Append(delta);
-                AnswerText.Text = sb.ToString();
+                AnswerView.Text = sb.ToString();
             }
 
             if (cts.IsCancellationRequested)
                 return;
 
             if (sb.Length == 0)
-                AnswerText.Text = "(no response)";
+            {
+                AnswerView.Text = "(no response)";
+                return;
+            }
+
+            await SaveTurnAsync(question, sb.ToString());
+            OpenInChatButton.Visibility = Visibility.Visible;
         }
         catch (OperationCanceledException)
         {
         }
         catch (Exception ex)
         {
-            AnswerText.Text = $"⚠ {ex.Message}";
+            AnswerView.Text = $"⚠ {ex.Message}";
         }
         finally
         {
@@ -306,5 +326,61 @@ public sealed partial class RegionCaptureWindow : Window
         ThinkingRow.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
         AskButton.IsEnabled = !busy;
         QuestionBox.IsEnabled = !busy;
+        OpenInChatButton.IsEnabled = !busy;
+    }
+
+    // ── History + escalation ───────────────────────────────────────────────────
+
+    private void ResetSession()
+    {
+        _session = null;
+        _sessionImagePath = null;
+        OpenInChatButton.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// Appends this question/answer turn to the region's saved conversation and persists it. The crop
+    /// is copied into stable media storage once and embedded in the first question as a markdown image,
+    /// so the saved transcript (and the chat, if escalated) renders the thumbnail. Best-effort: a
+    /// history failure must never disrupt the visible answer.
+    /// </summary>
+    private async Task SaveTurnAsync(string question, string answer)
+    {
+        try
+        {
+            _session ??= new StoredConversation { Sources = { ConversationSource.VisualIntelligence } };
+
+            if (_sessionImagePath is null && _cropBytes is not null)
+                _sessionImagePath = ConversationMedia.Save(_cropBytes);
+
+            var q = string.IsNullOrWhiteSpace(question) ? "Describe this region." : question.Trim();
+            var userText = _sessionImagePath is not null && _session.Messages.Count == 0
+                ? $"{q}\n\n![Captured region]({_sessionImagePath})"
+                : q;
+
+            _session.Messages.Add(new StoredMessage { Author = "You", Text = userText, IsUser = true });
+            _session.Messages.Add(new StoredMessage { Author = "Visual Intelligence", Text = answer, IsUser = false });
+
+            if (string.IsNullOrWhiteSpace(_session.Title))
+                _session.Title = q.Length <= 60 ? q : q[..60].TrimEnd() + "…";
+
+            _session.UpdatedAt = DateTimeOffset.Now;
+            await _store.SaveAsync(_session);
+        }
+        catch
+        {
+            // History is best-effort — never break the answer over a failed save.
+        }
+    }
+
+    private void OpenInChat_Click(object sender, RoutedEventArgs e)
+    {
+        if (_session is null)
+            return;
+
+        var id = _session.Id;
+        var image = _sessionImagePath;
+        Dismiss();
+        _escalateToChat(id, image);
     }
 }

@@ -141,14 +141,47 @@
         DragLeave="Page_DragLeave"
         Drop="Page_Drop">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <!-- ── Origin chips — where this conversation came from (Visual Intelligence / Writing Tools + Chat) ── -->
+        <ItemsControl
+            Grid.Row="0"
+            MaxWidth="800"
+            Margin="32,14,32,0"
+            HorizontalAlignment="Left"
+            ItemsSource="{x:Bind ViewModel.SourceTags, Mode=OneWay}"
+            Visibility="{x:Bind ViewModel.HasSourceTags, Mode=OneWay, Converter={StaticResource BoolToVisConverter}}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="6" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ConversationSourceTag">
+                    <Border Style="{StaticResource SourceChipStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon
+                                FontSize="12"
+                                Foreground="{StaticResource AccentTextBrush}"
+                                Glyph="{x:Bind Glyph}" />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontSize="11"
+                                Foreground="{StaticResource TextSecondaryBrush}"
+                                Text="{x:Bind Label}" />
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
         <!-- ── Conversation ──────────────────────────────────────────── -->
         <ListView
             x:Name="ChatList"
-            Grid.Row="0"
+            Grid.Row="1"
             MaxWidth="800"
             Padding="32,20,32,12"
             HorizontalAlignment="Stretch"
@@ -428,7 +461,7 @@
         <!-- ── Empty state — greeting + suggestions ─────────────────── -->
         <StackPanel
             x:Name="EmptyState"
-            Grid.Row="0"
+            Grid.Row="1"
             MaxWidth="560"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
@@ -518,7 +551,7 @@
 
         <!-- ── Composer — floating glass card ───────────────────────── -->
         <StackPanel
-            Grid.Row="1"
+            Grid.Row="2"
             MaxWidth="800"
             Margin="32,4,32,20"
             HorizontalAlignment="Stretch"
@@ -791,7 +824,7 @@
         <!-- ── Drag-and-drop affordance — shown while dragging files over the chat ── -->
         <Border
             x:Name="DropAffordance"
-            Grid.RowSpan="2"
+            Grid.RowSpan="3"
             Margin="16"
             Background="{StaticResource AccentFillSubtleBrush}"
             BorderBrush="{StaticResource AccentBrush}"
