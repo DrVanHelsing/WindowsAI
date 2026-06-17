@@ -48,18 +48,18 @@
             Inline gradient avoids StaticResource resolution inside a ControlTemplate.
         -->
         <Style x:Key="GradientCircleButtonStyle" TargetType="Button">
-            <!--  The button BOX is 52 so it fully contains its largest child (the 50px glow halo and
-                  the 48px focus ring). If a child overflowed the box, WinUI would apply a rectangular
-                  layout clip at the button bounds and the round glow/ring would be clipped into a
-                  squircle — the "phantom square behind the send button" bug. The VISIBLE circle stays
-                  40px (the gradient ellipse below is pinned to 40), so the look is unchanged.  -->
-            <Setter Property="Width" Value="52" />
-            <Setter Property="Height" Value="52" />
+            <!--  Clean gradient circle — just the gradient ellipse, no glow halo or focus ring.
+                  The old 50px glow / 48px ring overflowed the 40px button box, so WinUI applied a
+                  rectangular layout clip at the button bounds and the round glow got clipped into a
+                  square — the "phantom square behind the send button". With nothing larger than the
+                  button, there is no overflow, no clip, and no square.  -->
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
-            <!--  The round button can't wear the default rectangular focus rect — we draw a ring instead.  -->
+            <!--  Round button: suppress the default rectangular system focus rectangle.  -->
             <Setter Property="UseSystemFocusVisuals" Value="False" />
             <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
             <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
@@ -106,52 +106,14 @@
                                         </Storyboard>
                                     </VisualState>
                                 </VisualStateGroup>
-                                <VisualStateGroup x:Name="FocusStates">
-                                    <VisualState x:Name="Unfocused" />
-                                    <VisualState x:Name="PointerFocused" />
-                                    <VisualState x:Name="Focused">
-                                        <Storyboard>
-                                            <DoubleAnimation
-                                                Storyboard.TargetName="FocusRing"
-                                                Storyboard.TargetProperty="Opacity"
-                                                To="1"
-                                                Duration="0:0:0.12" />
-                                        </Storyboard>
-                                    </VisualState>
-                                </VisualStateGroup>
                             </VisualStateManager.VisualStateGroups>
 
                             <Grid.RenderTransform>
                                 <ScaleTransform ScaleX="1" ScaleY="1" />
                             </Grid.RenderTransform>
 
-                            <!--  Soft accent glow halo behind the button (the "primary action" cue)  -->
-                            <Ellipse
-                                Width="50"
-                                Height="50"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Fill="{StaticResource AccentBrush}"
-                                Opacity="0.28" />
-
-                            <!--  Circular keyboard-focus ring (replaces the default square focus rect)  -->
-                            <Ellipse
-                                x:Name="FocusRing"
-                                Width="48"
-                                Height="48"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Opacity="0"
-                                Stroke="{StaticResource TextPrimaryBrush}"
-                                StrokeThickness="2" />
-
-                            <!--  Gradient fill ellipse — Electric Iris glow. Pinned to 40 so the visible
-                                  circle keeps its size while the button box is 52 (see Width setter).  -->
-                            <Ellipse
-                                Width="40"
-                                Height="40"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center">
+                            <!--  Gradient fill ellipse — Electric Iris. Fills the button bounds.  -->
+                            <Ellipse>
                                 <Ellipse.Fill>
                                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                         <GradientStop Offset="0.0" Color="#4F8CFF" />
