@@ -139,10 +139,11 @@
                             HorizontalAlignment="Right"
                             Orientation="Horizontal"
                             Spacing="4">
-                            <!--  Escalate this exchange to the full app chat (carries transcript + region image)  -->
+                            <!--  Escalate this exchange to the full app chat (carries transcript + region image).
+                                  Icon-only: the header is too narrow for a label, so it relies on its tooltip.  -->
                             <Button
                                 x:Name="OpenInChatButton"
-                                Padding="10,6"
+                                Padding="8"
                                 Background="Transparent"
                                 BorderThickness="0"
                                 Click="OpenInChat_Click"
@@ -150,11 +151,8 @@
                                 Foreground="{StaticResource AccentTextBrush}"
                                 Visibility="Collapsed"
                                 AutomationProperties.Name="Open in chat"
-                                ToolTipService.ToolTip="Continue this in the full chat">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <FontIcon FontSize="13" Glyph="&#xE8BD;" />
-                                    <TextBlock FontSize="12" Text="Open in chat" />
-                                </StackPanel>
+                                ToolTipService.ToolTip="Open in chat — continue this in the full app">
+                                <FontIcon FontSize="13" Glyph="&#xE8BD;" />
                             </Button>
                             <Button
                                 x:Name="CloseButton"

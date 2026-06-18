@@ -285,13 +285,13 @@ public partial class App : Application
         if (_mainWindow is null)
         {
             _mainWindow = new MainWindow();
-            // Drop the reference when the window is closed so it can be reopened later.
-            _mainWindow.Closed += (_, _) => _mainWindow = null;
+            // The window hides-to-tray on close (it isn't destroyed), so this single instance lives
+            // for the session; re-opening restores it rather than stacking a new one on top.
             // Follow the OS theme/accent (flip the acrylic tint, tint the border) for the window's life.
             _themeSync?.RegisterWindow(_mainWindow.ThemeRoot, _mainWindow.Backdrop, _mainWindow.Hwnd);
         }
 
-        _mainWindow.Activate();
+        _mainWindow.RestoreAndActivate();
     }
 
     /// <summary>Tears down the hotkey and tray and exits the process.</summary>
@@ -301,6 +301,8 @@ public partial class App : Application
         _hotkey = null;
         _tray?.Dispose();
         _tray = null;
+        // Let the main window's close box actually destroy it now (it normally hides-to-tray).
+        _mainWindow?.AllowClose();
         Exit();
     }
 }

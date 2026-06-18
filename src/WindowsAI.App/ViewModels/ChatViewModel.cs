@@ -201,19 +201,40 @@ public partial class ChatViewModel : ObservableObject
             AvailableModels.Add(m);
 
         var active = _activeModel.Current;
-        SelectedModel =
-            AvailableModels.FirstOrDefault(m => m.ProviderId == active.ProviderId && m.ModelId == active.ModelId)
-            ?? AvailableModels.FirstOrDefault();
-        _applyingSelection = false;
+        var match = AvailableModels
+            .FirstOrDefault(m => m.ProviderId == active.ProviderId && m.ModelId == active.ModelId);
 
-        // If settings pointed at a model that no longer exists, adopt the fallback everywhere.
-        if (SelectedModel is { } fallback &&
-            (fallback.ProviderId != active.ProviderId || fallback.ModelId != active.ModelId))
+        // The saved model may be missing from the catalog this run — a local server that hasn't
+        // started yet, or a provider whose model list hasn't been fetched. Surface the saved model
+        // as-is rather than silently switching to (and persisting) a different one: doing the latter
+        // is what made the user's choice "reset to default" on the next launch. Only fall back to the
+        // first model when nothing was ever chosen.
+        if (match is null && !active.IsEmpty)
         {
-            await _activeModel.SetAsync(fallback.ProviderId, fallback.ModelId);
+            match = SynthesizeOption(active);
+            AvailableModels.Insert(0, match);
         }
 
+        SelectedModel = match ?? AvailableModels.FirstOrDefault();
+        _applyingSelection = false;
+
         NotifyModelBadgeChanged();
+    }
+
+    /// <summary>
+    /// Builds a display option for a persisted selection that isn't in the live catalog yet (e.g. a
+    /// local model whose server is still starting), so the picker shows the user's real model instead
+    /// of snapping to — and saving — a default.
+    /// </summary>
+    private ModelOption SynthesizeOption(ModelSelection selection)
+    {
+        var provider = _settings.Current.Providers.FirstOrDefault(p => p.Id == selection.ProviderId);
+        var isLocal = provider is { Kind: ProviderKind.Ollama }
+            || (provider is not null
+                && Uri.TryCreate(provider.BaseUrl, UriKind.Absolute, out var u)
+                && (u.IsLoopback || u.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)));
+        var suffix = provider is null ? string.Empty : $" ({provider.DisplayName})";
+        return new ModelOption(selection.ProviderId, selection.ModelId, $"{selection.ModelId}{suffix}", isLocal);
     }
 
     private void NotifyModelBadgeChanged()

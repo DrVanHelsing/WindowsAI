@@ -93,7 +93,7 @@ public partial class SettingsViewModel : ObservableObject
         Fill(ImageModels, models.Where(m => Supports(providers, m, image: true)));
 
         _initializing = true;
-        ChatModel = Match(ChatModels, _settings.Current.Capabilities.Chat);
+        ChatModel = MatchOrSynthesize(ChatModels, _settings.Current.Capabilities.Chat, providers);
         VisionModel = Match(VisionModels, _settings.Current.Capabilities.VisualIntelligence);
         WritingModel = Match(WritingModels, _settings.Current.Capabilities.WritingTools);
         ImageModel = Match(ImageModels, _settings.Current.Capabilities.ImageGeneration);
@@ -229,6 +229,29 @@ public partial class SettingsViewModel : ObservableObject
         if (selection is null || selection.IsEmpty)
             return null;
         return options.FirstOrDefault(m => m.ProviderId == selection.ProviderId && m.ModelId == selection.ModelId);
+    }
+
+    /// <summary>
+    /// Like <see cref="Match"/>, but if the saved selection isn't in the catalog this run (e.g. a
+    /// local server that hasn't started), it surfaces the saved model as a synthesized option so the
+    /// picker shows the user's real choice instead of appearing blank — which reads as a reset.
+    /// </summary>
+    private static ModelOption MatchOrSynthesize(
+        ObservableCollection<ModelOption> options, ModelSelection selection,
+        IReadOnlyDictionary<string, ProviderConnection> providers)
+    {
+        if (Match(options, selection) is { } found)
+            return found;
+
+        providers.TryGetValue(selection.ProviderId, out var provider);
+        var isLocal = provider is { Kind: ProviderKind.Ollama }
+            || (provider is not null
+                && Uri.TryCreate(provider.BaseUrl, UriKind.Absolute, out var u)
+                && (u.IsLoopback || u.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)));
+        var suffix = provider is null ? string.Empty : $" ({provider.DisplayName})";
+        var option = new ModelOption(selection.ProviderId, selection.ModelId, $"{selection.ModelId}{suffix}", isLocal);
+        options.Insert(0, option);
+        return option;
     }
 
     private static bool Supports(IReadOnlyDictionary<string, ProviderConnection> providers, ModelOption m, bool vision = false, bool image = false)

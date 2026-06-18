@@ -1,3 +1,4 @@
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
@@ -20,11 +21,22 @@ public sealed partial class MainWindow : Window
     /// <summary>Native handle — lets ThemeSyncService tint the window border to the OS accent.</summary>
     public IntPtr Hwnd { get; }
 
+    private readonly AppWindow _appWindow;
+
+    /// <summary>True only during app shutdown, so the close box hides-to-tray but Quit really closes.</summary>
+    private bool _allowClose;
+
     public MainWindow()
     {
         InitializeComponent();
 
         Hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        _appWindow = AppWindow;
+
+        // The app lives in the tray: closing the window hides it (keeping the chat session intact)
+        // rather than destroying it, so re-opening from the tray restores this same window instead
+        // of stacking a fresh one on top. Real teardown happens via the tray's Quit (see AllowClose).
+        _appWindow.Closing += OnClosing;
 
         // Slightly heavier tint than the overlay so long-form chat stays readable.
         Backdrop = Helpers.GlassBackdrop.Apply(this, tintOpacity: 0.55f, luminosityOpacity: 0.70f);
@@ -37,6 +49,28 @@ public sealed partial class MainWindow : Window
         ContentFrame.Navigate(typeof(MainPage), null, new EntranceNavigationTransitionInfo());
         NavChat.IsChecked = true;
     }
+
+    private void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        if (_allowClose)
+            return;
+
+        args.Cancel = true;
+        _appWindow.Hide();
+    }
+
+    /// <summary>Shows the window and restores it from a minimized/hidden state, bringing it forward.</summary>
+    public void RestoreAndActivate()
+    {
+        if (_appWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized } presenter)
+            presenter.Restore();
+
+        _appWindow.Show();
+        Activate();
+    }
+
+    /// <summary>Lets the next close actually destroy the window. Called on app quit.</summary>
+    public void AllowClose() => _allowClose = true;
 
     /// <summary>Re-selects Chat and navigates the frame to it.</summary>
     public void ShowChat()
